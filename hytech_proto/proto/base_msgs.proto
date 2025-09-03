@@ -1,0 +1,404 @@
+syntax = "proto3";
+package hytech_msgs;
+
+enum AnalogSensorStatus_e
+{
+    ANALOG_SENSOR_GOOD = 0;
+    ANALOG_SENSOR_CLAMPED = 1;
+}
+
+message AnalogConversion_s
+{
+    uint32 raw = 1;
+    float conversion = 2;
+    AnalogSensorStatus_e status = 3;
+}
+
+message AnalogConversionPacket_s
+{
+    repeated AnalogConversion_s conversions = 1; //check
+}
+
+message veh_vec_float
+{
+    float FL = 1;
+    float FR = 2;
+    float RL = 3;
+    float RR = 4;
+}
+
+message veh_vec_int
+{
+    int32 FL = 1;
+    int32 FR = 2;
+    int32 RL = 3;
+    int32 RR = 4;
+}
+
+/**
+ * Nested struct of analog pedals data (stored as int from 0-4095).
+ */
+message PedalSensorData_s
+{
+    uint32 accel_1 = 1;
+    uint32 accel_2 = 2;
+    uint32 brake_1 = 3;
+    uint32 brake_2 = 4;
+}
+
+message InverterData_s
+    {
+        bool system_ready = 1;
+        bool error = 2;
+        bool warning = 3;
+        bool quit_dc_on = 4;
+        bool dc_on = 5;
+        bool quit_inverter_on = 6;
+        bool inverter_on = 7;
+        bool derating_on = 8;
+        sint32 speed_rpm = 9;
+        sint32 actual_motor_torque = 10;
+        sint32 commanded_torque = 11;
+        sint32 motor_temp = 12;
+        sint32 inverter_temp = 13;
+        sint32 diagnostic_number = 14;
+        sint32 igbt_temp = 15;
+        sint32 dc_bus_voltage = 16;
+        sint32 actual_power = 17;
+        sint32 feedback_torque = 18;
+    }
+
+message veh_vec_inverter
+    {
+    InverterData_s FL = 1;
+    InverterData_s FR = 2;
+    InverterData_s RL = 3;
+    InverterData_s RR = 4;
+    }
+
+message xyz_vector
+{
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+message veh_vec_xyz_vector
+{
+    xyz_vector FL = 1;
+    xyz_vector FR = 2;
+    xyz_vector RL = 3;
+    xyz_vector RR = 4;
+}
+
+
+message ypr_vector
+{
+    float yaw = 1;
+    float pitch = 2;
+    float roll = 3;
+}
+
+message GPS_data
+{
+    float lat = 1;
+    float lon = 2;
+}
+
+enum INSMode {
+  TRACKING_0 = 0;
+  ALIGNING_1 = 1;
+  TRACKING_2 = 2;
+  GPS_LOSS_3 = 3;
+}
+
+message GPS_compass_signal_health_status
+{
+    int32 num_sats_pvt_1 = 1;
+    int32 num_sats_rtk_1 = 2;
+    int32 highest_cn0_1 = 3;
+    int32 num_sats_pvt_2 = 4;
+    int32 num_sats_rtk_2 = 5;
+    int32 highest_cn0_2 = 6;
+    int32 num_com_sats_pvt = 7; 
+    int32 num_com_sats_rtk= 8;
+}
+
+message vn_status
+{
+    INSMode ins_mode = 1;
+    bool gnss_fix = 2;
+    bool error_imu = 3;
+    bool error_mag_pres = 4;
+    bool error_gnss = 5;
+    bool gnss_heading_ins = 6;
+    bool gnss_compass = 7;
+    GPS_compass_signal_health_status gps_status = 8;
+    int32 ins_mode_int = 9;
+    float ins_vel_u = 10;
+}
+
+message TireDynamics
+{
+    veh_vec_xyz_vector tire_forces_n = 1;
+    veh_vec_xyz_vector tire_moments_nm = 2;
+    veh_vec_float accel_saturation_nm = 3;
+    veh_vec_float brake_saturation_nm = 4;
+}
+
+message TorqueVectoringStatus
+{
+    veh_vec_float torque_additional_nm = 1;
+    float additional_mz_moment_nm = 2;
+    float des_psi_dot = 3;
+    float psi_dot_err = 4;
+    float perceived_vx = 5;
+    float integral_yaw_rate_err = 6;
+    float perceived_psi_dot = 7;
+    float psi_dot_gain = 8;
+    float vy_vn_gain = 9;
+    float perceived_vy = 10;
+}
+
+message PowerLimitStatus
+{
+    bool power_limit_status = 1;
+    veh_vec_float corner_power_kw = 2;
+}
+
+
+/**
+ * Unconverted, unfiltered front load cell data.
+ */
+message FrontLoadCellData_s
+{
+    uint32 FL_loadcell_analog = 1;
+    uint32 FR_loadcell_analog = 2;
+}
+
+/**
+ * Unconverted, unfiltered front sus pot data.
+ */
+message FrontSusPotData_s
+{
+    uint32 FL_sus_pot_analog = 1;
+    uint32 FR_sus_pot_analog = 2;
+}
+
+/**
+ * Non digitally-filtered steering data.
+ */
+message SteeringSensorData_s
+{
+    // Analog steering sensor data, in degrees.
+    float analog_steering_degrees = 1;
+    // Digital steering sensor data, unconverted (0-4095)
+    float digital_steering_analog = 2;
+}
+
+enum ControllerMode_e
+    {
+        /* No torque vectoring */
+        MODE_0 = 0;
+        /* Normal force torque vectoring */
+        MODE_1 = 1;
+        /* PID torque vectoring */
+        MODE_2 = 2;
+        /* Launch Ctrl */
+        MODE_3 = 3;
+        MODE_4 = 4;
+        MODE_5 = 5;
+    }
+
+message DashInputState_s
+{
+
+    bool dim_btn_is_pressed = 1;
+    bool preset_btn_is_pressed = 2;
+    bool mc_reset_btn_is_pressed = 3; 
+    bool mode_btn_is_pressed = 4; 
+    bool start_btn_is_pressed = 5; 
+    bool data_btn_is_pressed = 6;
+    bool left_paddle_is_pressed = 7; 
+    bool right_paddle_is_pressed = 8; 
+    ControllerMode_e dial_state = 9; 
+}   
+
+message PedalsSystemData_s
+{
+    bool accel_is_implausible = 1; 
+    bool brake_is_implausible = 2; 
+    bool brake_is_pressed = 3; 
+    bool accel_is_pressed = 4;
+    bool mech_brake_is_active = 5; 
+    bool brake_and_accel_pressed_implausibility_high = 6; 
+    bool implausibility_has_exceeded_max_duration = 7; 
+    float accel_percent = 8;
+    float brake_percent = 9;
+    float regen_percent = 10; 
+}
+
+message CurrentSensorData_s
+{
+    float twentyfour_volt_sensor = 1;
+    float current_sensor_unfiltered = 2;
+    float current_refererence_unfiltered = 3;
+}
+
+message ShutdownSensingData_s
+{
+    bool i_shutdown_in = 1;
+    bool j_bspd_relay = 2;
+    bool k_watchdog_relay = 3;
+    bool l_bms_relay = 4;
+    bool m_imd_relay = 5;
+
+    bool bspd_is_ok = 6;
+    bool watchdog_is_ok = 7;
+    bool bms_is_ok = 8;
+    bool imd_is_ok = 9;
+}
+
+/**
+ * VCF's ethernet switch "link" data. This is a digital GPIO pin
+ * that should be high when "linked" to the ethernet switch and low otherwise.
+ */
+message VCFEthernetLinkData_s
+{
+    bool vcr_link = 1;
+    bool teensy_link = 2;
+    bool dash_link = 3;
+}
+
+/**
+ * VFR's ethernet switch "link" data. This is a digital GPIO pin that should
+ * be high when "linked" to the ethernet switch and low otherwise.
+ */
+message VCREthernetLinkData_s
+{
+    bool acu_link = 1;
+    bool drivebrain_link = 2;
+    bool vcf_link = 3;
+    bool teensy_link = 4;
+    bool debug_link = 5;
+    bool ubiquiti_link = 6;
+}
+
+message SafetySystemData_s
+{
+    bool software_is_ok = 1;
+}
+
+message RearSusPotData_s
+{
+    uint32 RL_sus_pot_analog = 1;
+    uint32 RR_sus_pot_analog = 2;
+}
+
+
+
+message RearLoadCellData_s
+{
+    uint32 RL_loadcell_analog = 1;
+    uint32 RR_loadcell_analog = 2;
+}
+
+
+
+message EnergyMeterData_s
+{
+    float em_current = 1; // Current, in amps, from the EM
+    float em_voltage = 2; // Voltage, in volts, from the EM.
+}
+
+enum TorqueLimit_e
+{
+    TCMUX_FULL_TORQUE = 0;
+    TCMUX_MID_TORQUE = 1;
+    TCMUX_LOW_TORQUE = 2;
+    TCMUX_NUM_TORQUE_LIMITS = 3;
+}
+
+enum TorqueControllerMuxError_e
+{
+    NO_ERROR = 0;
+    ERROR_SPEED_DIFF_TOO_HIGH = 1;
+    ERROR_TORQUE_DIFF_TOO_HIGH = 2;
+    ERROR_CONTROLLER_INDEX_OUT_OF_BOUNDS =3;
+    ERROR_CONTROLLER_NULL_POINTER =4;
+}
+
+message TorqueControllerMuxStatus_s
+{
+    TorqueControllerMuxError_e active_error = 1;
+    ControllerMode_e active_controller_mode = 2;
+    TorqueLimit_e active_torque_limit_enum = 3;
+    float active_torque_limit_value = 4;
+    bool output_is_bypassing_limits = 5;
+}
+
+message DrivetrainDynamicReport_s
+{
+    uint32 measuredInverterFLPackVoltage = 1;
+    veh_vec_float measuredSpeeds = 2; // rpm
+    veh_vec_float measuredTorques = 3;
+    veh_vec_float measuredTorqueCurrents = 4;
+    veh_vec_float measuredMagnetizingCurrents = 5;
+}
+
+message N
+{
+    uint32 n = 1;
+}
+
+/**
+ * Processed AMS system data (processed within VCR). This is different
+ * from ACUCoreData and ACUAllData because those are calculated/sent by
+ * the ACU, while this is processed in VCR (calculated from ACUCoreData
+ * and ACUAllData).
+ */
+message AMSSystemData_s
+{
+    float min_cell_voltage = 1;
+    float average_cell_voltage = 2;
+    float max_cell_voltage = 3;
+    float min_temp_celsius = 4; // Degrees celsius
+    float average_temp_celsius = 5; // Degrees celsius
+    float max_temp_celsius = 6; // Degrees celsius
+    float total_pack_voltage = 7;
+
+    bool ams_ok = 8; // False when one of the three shutdown conditions is met (see AMSSystem header)
+}
+
+enum DrivetrainState_e {
+    NOT_CONNECTED = 0;
+    NOT_ENABLED_NO_HV_PRESENT = 1;
+    NOT_ENABLED_HV_PRESENT = 2;
+    INVERTERS_READY = 3;
+    INVERTERS_HV_ENABLED = 4;
+    ENABLED_DRIVE_MODE = 5;
+    ERROR = 6;
+    CLEARING_ERRORS = 7;
+}
+
+enum VehicleState_e {
+    TRACTIVE_SYSTEM_NOT_ACTIVE = 0;
+    TRACTIVE_SYSTEM_ACTIVE = 1;
+    WANTING_READY_TO_DRIVE = 2;
+    READY_TO_DRIVE = 3;
+    WANTING_RECALIBRATE_PEDALS = 4;
+    RECALIBRATING_PEDALS = 5;
+}
+
+/**
+ * All Status and State Data in VCR. Contains system level states including that in Vehicle and Drivetrain SM.
+ * Also contains interface level comm status of interfaces, including pedals.
+ */
+message VCRStatus
+{
+    VehicleState_e vehicle_state = 1;
+    DrivetrainState_e drivetrain_state = 2;
+    bool pedals_heartbeat_ok = 3;
+    bool drivebrain_is_in_control = 4;
+    bool drivebrain_controller_timing_failure = 5;
+}

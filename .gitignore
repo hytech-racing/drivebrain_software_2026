@@ -1,0 +1,9 @@
+.venv
+.venv/
+
+cmake
+cmake/
+
+.vscode
+.vscode/
+

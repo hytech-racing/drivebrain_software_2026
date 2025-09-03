@@ -1,0 +1,27 @@
+from conan import ConanFile
+from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout
+from os import path
+
+class DrivebrainSoftware(ConanFile):
+    name = "_foxglove"
+    version = "1.0.0-dev"
+    license = "zlib"
+    settings = ["os", "compiler", "build_type", "arch"]
+    exports_sources = "CMakeLists.txt", "LICENSE", "src/*", "include/*"
+    generators = "CMakeDeps", "CMakeToolchain"
+    exports = '*'
+
+
+    def build(self):
+        cmake = CMake(self)
+        cmake.build()
+        cmake.install()
+
+    def requirements(self): 
+        self.requires("foxglove-websocket/1.4.0", transitive_headers=True)
+        self.requires("protobuf/5.29.3", transitive_headers=True)
+        self.requires("boost/1.88.0")
+        self.requires("spdlog/1.15.3")
+        
+    def build_requirements(self): 
+        self.tool_requires("protobuf/5.29.3")

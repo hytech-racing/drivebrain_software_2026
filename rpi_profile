@@ -1,0 +1,13 @@
+[settings]
+os=Linux
+arch=armv8
+compiler=gcc
+build_type=Release
+compiler.cppstd=17
+compiler.libcxx=libstdc++11
+compiler.version=9
+
+[buildenv]
+CC=/usr/bin/aarch64-linux-gnu-gcc-11
+CXX=/usr/bin/aarch64-linux-gnu-g++-11
+LD=/usr/bin/aarch64-linux-gnu-ld
