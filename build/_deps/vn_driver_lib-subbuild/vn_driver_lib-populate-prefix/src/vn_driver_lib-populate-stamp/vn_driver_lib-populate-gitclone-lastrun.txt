@@ -1,3 +1,0 @@
-repository='https://github.com/hytech-racing/vn_driver_lib.git'
-module=''
-tag='origin'

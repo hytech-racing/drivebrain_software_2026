@@ -1,3 +1,0 @@
-repository='https://github.com/hytech-racing/HT_proto.git'
-module=''
-tag='origin'

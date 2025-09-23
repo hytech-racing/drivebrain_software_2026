@@ -1,3 +1,0 @@
-/app/build/_deps/ht_proto-subbuild/CMakeFiles/ht_proto-populate.dir
-/app/build/_deps/ht_proto-subbuild/CMakeFiles/edit_cache.dir
-/app/build/_deps/ht_proto-subbuild/CMakeFiles/rebuild_cache.dir

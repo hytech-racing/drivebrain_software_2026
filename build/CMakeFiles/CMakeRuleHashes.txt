@@ -1,3 +1,0 @@
-# Hashes of file build rules.
-4186ebe0871d418804d39fe2a1309573 _deps/ht_proto-build/generated/base_msgs.pb.h
-9bf7dad54d319fc3a779f206e170428b _deps/ht_proto-build/generated/hytech_msgs.pb.h
