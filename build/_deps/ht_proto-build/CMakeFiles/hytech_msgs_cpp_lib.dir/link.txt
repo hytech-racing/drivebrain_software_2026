@@ -1,0 +1,2 @@
+/usr/bin/ar qc libhytech_msgs_cpp_lib.a CMakeFiles/hytech_msgs_cpp_lib_object.dir/generated/hytech_msgs.pb.cc.o CMakeFiles/hytech_msgs_cpp_lib_object.dir/generated/base_msgs.pb.cc.o
+/usr/bin/ranlib libhytech_msgs_cpp_lib.a

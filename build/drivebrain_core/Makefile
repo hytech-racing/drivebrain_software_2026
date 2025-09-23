@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /workdir
+CMAKE_SOURCE_DIR = /app
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /workdir/build
+CMAKE_BINARY_DIR = /app/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -132,14 +132,14 @@ install/strip/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /workdir/build && $(CMAKE_COMMAND) -E cmake_progress_start /workdir/build/CMakeFiles /workdir/build/drivebrain_core//CMakeFiles/progress.marks
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /workdir/build/CMakeFiles 0
+	cd /app/build && $(CMAKE_COMMAND) -E cmake_progress_start /app/build/CMakeFiles /app/build/drivebrain_core//CMakeFiles/progress.marks
+	cd /app/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /app/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/clean
+	cd /app/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/clean
 .PHONY : clean
 
 # The main clean target
@@ -148,22 +148,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/preinstall
+	cd /app/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/preinstall
+	cd /app/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /workdir/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /app/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 drivebrain_core/CMakeFiles/drivebrain_core.dir/rule:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/CMakeFiles/drivebrain_core.dir/rule
+	cd /app/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_core/CMakeFiles/drivebrain_core.dir/rule
 .PHONY : drivebrain_core/CMakeFiles/drivebrain_core.dir/rule
 
 # Convenience name for target.
@@ -172,80 +172,32 @@ drivebrain_core: drivebrain_core/CMakeFiles/drivebrain_core.dir/rule
 
 # fast build rule for target.
 drivebrain_core/fast:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/build
+	cd /app/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/build
 .PHONY : drivebrain_core/fast
 
-src/Configurable.o: src/Configurable.cpp.o
-.PHONY : src/Configurable.o
+src/FoxgloveServer.o: src/FoxgloveServer.cpp.o
+.PHONY : src/FoxgloveServer.o
 
 # target to build an object file
-src/Configurable.cpp.o:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o
-.PHONY : src/Configurable.cpp.o
+src/FoxgloveServer.cpp.o:
+	cd /app/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o
+.PHONY : src/FoxgloveServer.cpp.o
 
-src/Configurable.i: src/Configurable.cpp.i
-.PHONY : src/Configurable.i
-
-# target to preprocess a source file
-src/Configurable.cpp.i:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.i
-.PHONY : src/Configurable.cpp.i
-
-src/Configurable.s: src/Configurable.cpp.s
-.PHONY : src/Configurable.s
-
-# target to generate assembly for a file
-src/Configurable.cpp.s:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.s
-.PHONY : src/Configurable.cpp.s
-
-src/JsonFileHandler.o: src/JsonFileHandler.cpp.o
-.PHONY : src/JsonFileHandler.o
-
-# target to build an object file
-src/JsonFileHandler.cpp.o:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o
-.PHONY : src/JsonFileHandler.cpp.o
-
-src/JsonFileHandler.i: src/JsonFileHandler.cpp.i
-.PHONY : src/JsonFileHandler.i
+src/FoxgloveServer.i: src/FoxgloveServer.cpp.i
+.PHONY : src/FoxgloveServer.i
 
 # target to preprocess a source file
-src/JsonFileHandler.cpp.i:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.i
-.PHONY : src/JsonFileHandler.cpp.i
+src/FoxgloveServer.cpp.i:
+	cd /app/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.i
+.PHONY : src/FoxgloveServer.cpp.i
 
-src/JsonFileHandler.s: src/JsonFileHandler.cpp.s
-.PHONY : src/JsonFileHandler.s
-
-# target to generate assembly for a file
-src/JsonFileHandler.cpp.s:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.s
-.PHONY : src/JsonFileHandler.cpp.s
-
-src/Logger.o: src/Logger.cpp.o
-.PHONY : src/Logger.o
-
-# target to build an object file
-src/Logger.cpp.o:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o
-.PHONY : src/Logger.cpp.o
-
-src/Logger.i: src/Logger.cpp.i
-.PHONY : src/Logger.i
-
-# target to preprocess a source file
-src/Logger.cpp.i:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.i
-.PHONY : src/Logger.cpp.i
-
-src/Logger.s: src/Logger.cpp.s
-.PHONY : src/Logger.s
+src/FoxgloveServer.s: src/FoxgloveServer.cpp.s
+.PHONY : src/FoxgloveServer.s
 
 # target to generate assembly for a file
-src/Logger.cpp.s:
-	cd /workdir/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.s
-.PHONY : src/Logger.cpp.s
+src/FoxgloveServer.cpp.s:
+	cd /app/build && $(MAKE) $(MAKESILENT) -f drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.s
+.PHONY : src/FoxgloveServer.cpp.s
 
 # Help Target
 help:
@@ -260,15 +212,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... drivebrain_core"
-	@echo "... src/Configurable.o"
-	@echo "... src/Configurable.i"
-	@echo "... src/Configurable.s"
-	@echo "... src/JsonFileHandler.o"
-	@echo "... src/JsonFileHandler.i"
-	@echo "... src/JsonFileHandler.s"
-	@echo "... src/Logger.o"
-	@echo "... src/Logger.i"
-	@echo "... src/Logger.s"
+	@echo "... src/FoxgloveServer.o"
+	@echo "... src/FoxgloveServer.i"
+	@echo "... src/FoxgloveServer.s"
 .PHONY : help
 
 
@@ -280,6 +226,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /workdir/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /app/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

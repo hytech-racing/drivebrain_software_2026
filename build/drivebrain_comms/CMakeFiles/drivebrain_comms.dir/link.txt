@@ -1,2 +1,0 @@
-/usr/bin/ar qc libdrivebrain_comms.a CMakeFiles/drivebrain_comms.dir/src/CANComms.cpp.o CMakeFiles/drivebrain_comms.dir/src/DBServiceImpl.cpp.o CMakeFiles/drivebrain_comms.dir/src/ETHSendComms.cpp.o CMakeFiles/drivebrain_comms.dir/src/foxglove_server.cpp.o CMakeFiles/drivebrain_comms.dir/src/VNComms.cpp.o
-/usr/bin/ranlib libdrivebrain_comms.a

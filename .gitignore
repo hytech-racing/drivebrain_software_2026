@@ -7,3 +7,11 @@ cmake/
 .vscode
 .vscode/
 
+build
+build/
+
+.vscode
+.vscode/
+
+
+

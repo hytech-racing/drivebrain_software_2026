@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /workdir
+CMAKE_SOURCE_DIR = /app
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /workdir/build
+CMAKE_BINARY_DIR = /app/build
 
 # Include any dependencies generated for this target.
 include drivebrain_core/CMakeFiles/drivebrain_core.dir/depend.make
@@ -69,75 +69,43 @@ include drivebrain_core/CMakeFiles/drivebrain_core.dir/progress.make
 # Include the compile flags for this target's objects.
 include drivebrain_core/CMakeFiles/drivebrain_core.dir/flags.make
 
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/flags.make
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o: ../drivebrain_core/src/Configurable.cpp
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/workdir/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o -MF CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o.d -o CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o -c /workdir/drivebrain_core/src/Configurable.cpp
+drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/flags.make
+drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o: ../drivebrain_core/src/FoxgloveServer.cpp
+drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/app/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o"
+	cd /app/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o -MF CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o.d -o CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o -c /app/drivebrain_core/src/FoxgloveServer.cpp
 
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.i"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /workdir/drivebrain_core/src/Configurable.cpp > CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.i
+drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.i"
+	cd /app/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /app/drivebrain_core/src/FoxgloveServer.cpp > CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.i
 
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.s"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /workdir/drivebrain_core/src/Configurable.cpp -o CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.s
-
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/flags.make
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o: ../drivebrain_core/src/JsonFileHandler.cpp
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/workdir/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o -MF CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o.d -o CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o -c /workdir/drivebrain_core/src/JsonFileHandler.cpp
-
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.i"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /workdir/drivebrain_core/src/JsonFileHandler.cpp > CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.i
-
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.s"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /workdir/drivebrain_core/src/JsonFileHandler.cpp -o CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.s
-
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/flags.make
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o: ../drivebrain_core/src/Logger.cpp
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o: drivebrain_core/CMakeFiles/drivebrain_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/workdir/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o -MF CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o.d -o CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o -c /workdir/drivebrain_core/src/Logger.cpp
-
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/drivebrain_core.dir/src/Logger.cpp.i"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /workdir/drivebrain_core/src/Logger.cpp > CMakeFiles/drivebrain_core.dir/src/Logger.cpp.i
-
-drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/drivebrain_core.dir/src/Logger.cpp.s"
-	cd /workdir/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /workdir/drivebrain_core/src/Logger.cpp -o CMakeFiles/drivebrain_core.dir/src/Logger.cpp.s
+drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.s"
+	cd /app/build/drivebrain_core && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /app/drivebrain_core/src/FoxgloveServer.cpp -o CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.s
 
 # Object files for target drivebrain_core
 drivebrain_core_OBJECTS = \
-"CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o" \
-"CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o" \
-"CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o"
+"CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o"
 
 # External object files for target drivebrain_core
 drivebrain_core_EXTERNAL_OBJECTS =
 
-drivebrain_core/libdrivebrain_core.a: drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o
-drivebrain_core/libdrivebrain_core.a: drivebrain_core/CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o
-drivebrain_core/libdrivebrain_core.a: drivebrain_core/CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o
+drivebrain_core/libdrivebrain_core.a: drivebrain_core/CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o
 drivebrain_core/libdrivebrain_core.a: drivebrain_core/CMakeFiles/drivebrain_core.dir/build.make
 drivebrain_core/libdrivebrain_core.a: drivebrain_core/CMakeFiles/drivebrain_core.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/workdir/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX static library libdrivebrain_core.a"
-	cd /workdir/build/drivebrain_core && $(CMAKE_COMMAND) -P CMakeFiles/drivebrain_core.dir/cmake_clean_target.cmake
-	cd /workdir/build/drivebrain_core && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/drivebrain_core.dir/link.txt --verbose=$(VERBOSE)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/app/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libdrivebrain_core.a"
+	cd /app/build/drivebrain_core && $(CMAKE_COMMAND) -P CMakeFiles/drivebrain_core.dir/cmake_clean_target.cmake
+	cd /app/build/drivebrain_core && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/drivebrain_core.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
 drivebrain_core/CMakeFiles/drivebrain_core.dir/build: drivebrain_core/libdrivebrain_core.a
 .PHONY : drivebrain_core/CMakeFiles/drivebrain_core.dir/build
 
 drivebrain_core/CMakeFiles/drivebrain_core.dir/clean:
-	cd /workdir/build/drivebrain_core && $(CMAKE_COMMAND) -P CMakeFiles/drivebrain_core.dir/cmake_clean.cmake
+	cd /app/build/drivebrain_core && $(CMAKE_COMMAND) -P CMakeFiles/drivebrain_core.dir/cmake_clean.cmake
 .PHONY : drivebrain_core/CMakeFiles/drivebrain_core.dir/clean
 
 drivebrain_core/CMakeFiles/drivebrain_core.dir/depend:
-	cd /workdir/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /workdir /workdir/drivebrain_core /workdir/build /workdir/build/drivebrain_core /workdir/build/drivebrain_core/CMakeFiles/drivebrain_core.dir/DependInfo.cmake --color=$(COLOR)
+	cd /app/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /app /app/drivebrain_core /app/build /app/build/drivebrain_core /app/build/drivebrain_core/CMakeFiles/drivebrain_core.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : drivebrain_core/CMakeFiles/drivebrain_core.dir/depend
 

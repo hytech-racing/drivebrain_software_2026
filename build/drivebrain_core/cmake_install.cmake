@@ -1,4 +1,4 @@
-# Install script for directory: /workdir/drivebrain_core
+# Install script for directory: /app/drivebrain_core
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

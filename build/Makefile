@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /workdir
+CMAKE_SOURCE_DIR = /app
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /workdir/build
+CMAKE_BINARY_DIR = /app/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -132,9 +132,9 @@ install/strip/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /workdir/build/CMakeFiles /workdir/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /app/build/CMakeFiles /app/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /workdir/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /app/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -162,30 +162,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named app
+# Target rules for targets named drivebrain
 
 # Build rule for target.
-app: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 app
-.PHONY : app
+drivebrain: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain
+.PHONY : drivebrain
 
 # fast build rule for target.
-app/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/app.dir/build.make CMakeFiles/app.dir/build
-.PHONY : app/fast
-
-#=============================================================================
-# Target rules for targets named libvncxx
-
-# Build rule for target.
-libvncxx: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 libvncxx
-.PHONY : libvncxx
-
-# fast build rule for target.
-libvncxx/fast:
-	$(MAKE) $(MAKESILENT) -f vn_driver_lib/CMakeFiles/libvncxx.dir/build.make vn_driver_lib/CMakeFiles/libvncxx.dir/build
-.PHONY : libvncxx/fast
+drivebrain/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/drivebrain.dir/build.make CMakeFiles/drivebrain.dir/build
+.PHONY : drivebrain/fast
 
 #=============================================================================
 # Target rules for targets named drivebrain_core
@@ -201,17 +188,17 @@ drivebrain_core/fast:
 .PHONY : drivebrain_core/fast
 
 #=============================================================================
-# Target rules for targets named drivebrain_comms
+# Target rules for targets named hytech_msgs_cpp_lib_object
 
 # Build rule for target.
-drivebrain_comms: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 drivebrain_comms
-.PHONY : drivebrain_comms
+hytech_msgs_cpp_lib_object: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 hytech_msgs_cpp_lib_object
+.PHONY : hytech_msgs_cpp_lib_object
 
 # fast build rule for target.
-drivebrain_comms/fast:
-	$(MAKE) $(MAKESILENT) -f drivebrain_comms/CMakeFiles/drivebrain_comms.dir/build.make drivebrain_comms/CMakeFiles/drivebrain_comms.dir/build
-.PHONY : drivebrain_comms/fast
+hytech_msgs_cpp_lib_object/fast:
+	$(MAKE) $(MAKESILENT) -f _deps/ht_proto-build/CMakeFiles/hytech_msgs_cpp_lib_object.dir/build.make _deps/ht_proto-build/CMakeFiles/hytech_msgs_cpp_lib_object.dir/build
+.PHONY : hytech_msgs_cpp_lib_object/fast
 
 #=============================================================================
 # Target rules for targets named hytech_msgs_cpp_lib
@@ -223,15 +210,28 @@ hytech_msgs_cpp_lib: cmake_check_build_system
 
 # fast build rule for target.
 hytech_msgs_cpp_lib/fast:
-	$(MAKE) $(MAKESILENT) -f hytech_proto/CMakeFiles/hytech_msgs_cpp_lib.dir/build.make hytech_proto/CMakeFiles/hytech_msgs_cpp_lib.dir/build
+	$(MAKE) $(MAKESILENT) -f _deps/ht_proto-build/CMakeFiles/hytech_msgs_cpp_lib.dir/build.make _deps/ht_proto-build/CMakeFiles/hytech_msgs_cpp_lib.dir/build
 .PHONY : hytech_msgs_cpp_lib/fast
+
+#=============================================================================
+# Target rules for targets named libvncxx
+
+# Build rule for target.
+libvncxx: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 libvncxx
+.PHONY : libvncxx
+
+# fast build rule for target.
+libvncxx/fast:
+	$(MAKE) $(MAKESILENT) -f _deps/vn_driver_lib-build/CMakeFiles/libvncxx.dir/build.make _deps/vn_driver_lib-build/CMakeFiles/libvncxx.dir/build
+.PHONY : libvncxx/fast
 
 drivebrain_app/src/main.o: drivebrain_app/src/main.cpp.o
 .PHONY : drivebrain_app/src/main.o
 
 # target to build an object file
 drivebrain_app/src/main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/app.dir/build.make CMakeFiles/app.dir/drivebrain_app/src/main.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/drivebrain.dir/build.make CMakeFiles/drivebrain.dir/drivebrain_app/src/main.cpp.o
 .PHONY : drivebrain_app/src/main.cpp.o
 
 drivebrain_app/src/main.i: drivebrain_app/src/main.cpp.i
@@ -239,7 +239,7 @@ drivebrain_app/src/main.i: drivebrain_app/src/main.cpp.i
 
 # target to preprocess a source file
 drivebrain_app/src/main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/app.dir/build.make CMakeFiles/app.dir/drivebrain_app/src/main.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/drivebrain.dir/build.make CMakeFiles/drivebrain.dir/drivebrain_app/src/main.cpp.i
 .PHONY : drivebrain_app/src/main.cpp.i
 
 drivebrain_app/src/main.s: drivebrain_app/src/main.cpp.s
@@ -247,7 +247,7 @@ drivebrain_app/src/main.s: drivebrain_app/src/main.cpp.s
 
 # target to generate assembly for a file
 drivebrain_app/src/main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/app.dir/build.make CMakeFiles/app.dir/drivebrain_app/src/main.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/drivebrain.dir/build.make CMakeFiles/drivebrain.dir/drivebrain_app/src/main.cpp.s
 .PHONY : drivebrain_app/src/main.cpp.s
 
 # Help Target
@@ -262,10 +262,10 @@ help:
 	@echo "... install/strip"
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
-	@echo "... app"
-	@echo "... drivebrain_comms"
+	@echo "... drivebrain"
 	@echo "... drivebrain_core"
 	@echo "... hytech_msgs_cpp_lib"
+	@echo "... hytech_msgs_cpp_lib_object"
 	@echo "... libvncxx"
 	@echo "... drivebrain_app/src/main.o"
 	@echo "... drivebrain_app/src/main.i"

@@ -1,2 +1,2 @@
-/usr/bin/ar qc libdrivebrain_core.a CMakeFiles/drivebrain_core.dir/src/Configurable.cpp.o CMakeFiles/drivebrain_core.dir/src/JsonFileHandler.cpp.o CMakeFiles/drivebrain_core.dir/src/Logger.cpp.o
+/usr/bin/ar qc libdrivebrain_core.a CMakeFiles/drivebrain_core.dir/src/FoxgloveServer.cpp.o
 /usr/bin/ranlib libdrivebrain_core.a

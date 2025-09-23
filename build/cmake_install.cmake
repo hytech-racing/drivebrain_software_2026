@@ -1,4 +1,4 @@
-# Install script for directory: /workdir
+# Install script for directory: /app
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,10 +44,9 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/workdir/build/vn_driver_lib/cmake_install.cmake")
-  include("/workdir/build/drivebrain_core/cmake_install.cmake")
-  include("/workdir/build/drivebrain_comms/cmake_install.cmake")
-  include("/workdir/build/hytech_proto/cmake_install.cmake")
+  include("/app/build/drivebrain_core/cmake_install.cmake")
+  include("/app/build/_deps/ht_proto-build/cmake_install.cmake")
+  include("/app/build/_deps/vn_driver_lib-build/cmake_install.cmake")
 
 endif()
 
@@ -59,5 +58,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/workdir/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/app/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

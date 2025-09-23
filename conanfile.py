@@ -22,6 +22,7 @@ class DrivebrainSoftware(ConanFile):
         self.requires("protobuf/5.29.3", transitive_headers=True)
         self.requires("boost/1.88.0")
         self.requires("spdlog/1.15.3")
+        self.requires("mcap/2.0.2")
         
     def build_requirements(self): 
         self.tool_requires("protobuf/5.29.3")
