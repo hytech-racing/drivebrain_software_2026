@@ -29,11 +29,13 @@ int main() {
     bind(s, (struct sockaddr *)&addr, sizeof(addr));
 
     can_frame torque_request_msg = {
-        .can_id = 241
+        .can_id = 241,
+        .can_dlc = 8
     };
 
     can_frame speed_request_msg = {
-        .can_id = 242
+        .can_id = 242,
+        .can_dlc = 8
     };
 
     while (true) {
