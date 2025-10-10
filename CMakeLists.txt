@@ -43,7 +43,7 @@ FetchContent_MakeAvailable(vn_driver_lib)
 # Linking to main app
 #################################
 add_executable(drivebrain
-    drivebrain_app/src/main.cpp
+    drivebrain_simple_hil_test/src/debug_can.cpp
 )
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
