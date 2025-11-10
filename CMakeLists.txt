@@ -54,4 +54,5 @@ target_link_libraries(drivebrain PUBLIC
     boost::boost
     hytech_msgs_cpp_lib
     drivebrain_core
+    mcap::mcap
 )
