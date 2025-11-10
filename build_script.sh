@@ -11,5 +11,5 @@ conan install . --build=missing --profile:build=default --profile:host=rpi_profi
 
 mkdir build
 cd build
-cmake ..  -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake
+cmake ..  -DCMAKE_EXE_LINKER_FLAGS="-static" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake
 make -j
