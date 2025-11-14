@@ -3,6 +3,8 @@
 #include <hytech_msgs.pb.h>
 #include <hytech.pb.h>
 #include <FoxgloveServer.hpp>
+#include <MCAPLogger.hpp>
+#include <mcap/writer.hpp>
 
 std::atomic<bool> running = true;
 
@@ -12,6 +14,10 @@ int main(int argc, char* argv[]) {
     hytech_msgs::ACUAllData data;
 
     core::FoxgloveServer server(argv[1]);
+    core::MCAPLogger mcap_logger("recordings/", mcap::McapWriterOptions(""));
+
+    mcap_logger.open_new_mcap("test_1.mcap");
+    
 
     while (running) {
 

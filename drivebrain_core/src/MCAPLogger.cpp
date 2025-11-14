@@ -1,3 +1,5 @@
+
+
 #include <MCAPLogger.hpp>
 
 /****************************************************************
@@ -78,6 +80,8 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
 int core::MCAPLogger::close_active_mcap() {
     std::cout << "Closing mcap" << std::endl;
     _writer.close(); 
+
+    return 0;
 }
 
 int core::MCAPLogger::log_protobuf_message(std::shared_ptr<google::protobuf::Message> message) {

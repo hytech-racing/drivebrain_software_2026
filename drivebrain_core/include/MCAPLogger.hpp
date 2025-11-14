@@ -2,6 +2,7 @@
 #include <deque> 
 #include <thread> 
 #include <mutex> 
+#include <condition_variable> 
 #include <queue> 
 #include <google/protobuf/descriptor.pb.h>
 #include <foxglove/websocket/base64.hpp>
@@ -44,7 +45,7 @@ namespace core {
              * Adds params schema to allow for parameter logging
              * @return 0 on success, negative err code on failure
              */
-            int add_params_schema(); 
+            // int add_params_schema();  TODO 
 
             /**
              * Logs a protobuf message 
@@ -59,7 +60,7 @@ namespace core {
              * 
              * @return 0 on success, negative err code on failure
              */
-            int log_params(); 
+            // int log_params(); TODO
 
         private: 
 
@@ -78,8 +79,6 @@ namespace core {
             
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             bool _running = true;
-        
-
 
     };
 

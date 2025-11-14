@@ -55,10 +55,10 @@ target_include_directories(drivebrain PUBLIC drivebrain_app/include)
 
 target_link_libraries(drivebrain PUBLIC 
     foxglove-websocket::foxglove-websocket 
+    mcap::mcap
     protobuf::libprotobuf 
     boost::boost
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
-    mcap::mcap
 )
