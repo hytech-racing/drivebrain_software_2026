@@ -28,7 +28,6 @@ FetchContent_Declare(
     HT_Proto 
     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
     GIT_TAG 5f61368
-
 )
 FetchContent_MakeAvailable(HT_Proto)
 
@@ -39,20 +38,27 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(vn_driver_lib)
 
+FetchContent_Declare(
+    HT_CAN
+    URL "https://github.com/hytech-racing/HT_CAN/releases/download/231/drivebrain_can_lib.tar.gz"
+)
+FetchContent_MakeAvailable(HT_CAN)
+
 #################################
 # Linking to main app
 #################################
 add_executable(drivebrain
-    drivebrain_simple_hil_test/src/debug_can.cpp
+    drivebrain_app/src/main.cpp
 )
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
 
 target_link_libraries(drivebrain PUBLIC 
     foxglove-websocket::foxglove-websocket 
+    mcap::mcap
     protobuf::libprotobuf 
     boost::boost
     hytech_msgs_cpp_lib
+    hytech_can_msgs_cpp_lib
     drivebrain_core
-    mcap::mcap
 )

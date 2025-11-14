@@ -10,6 +10,8 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 
+#include "hytech.pb.h"
+
 int main() {
 
     auto period = std::chrono::milliseconds(4); // 250hz
@@ -27,6 +29,8 @@ int main() {
     addr.can_ifindex = ifr.ifr_ifindex;
 
     bind(s, (struct sockaddr *)&addr, sizeof(addr));
+
+    hytech::acu_ok acu_ok;
 
     can_frame torque_request_msg = {
         .can_id = 241,
