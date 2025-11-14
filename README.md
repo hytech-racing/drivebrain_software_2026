@@ -11,6 +11,13 @@ This guide explains how to build the DriveBrain Software 2026 using the provided
 
 ## Building the Software
 
+## 0. Build the dockerfile (you only need to do this once)
+Run the following command to build the dockerfile: 
+```
+docker build -t rpi-cross-compile .
+```
+It may take a few minutes. 
+
 ### 1. Enter the Docker Container
 
 Run the following command to start the Docker container with the necessary volumes mounted:
@@ -22,6 +29,8 @@ docker run -it \
   -w /app \
   rpi-cross-compile /bin/bash
 ```
+
+On some systems you may want to add the following flag `--memory=16g --cpus=4`.
 
 * `-v [insert_your_directory]/drivebrain_packages/.conan2:/root/.conan2` mounts your local Conan cache inside the container.
 * `-v "$(pwd)":/app` mounts the current repository folder inside the container.
@@ -36,6 +45,7 @@ Inside the container, execute:
 ```
 
 This script will build the DriveBrain software using the cross-compilation toolchain for the target platform.
+The first time you run it, it will take some time because it needs to compile all the dependencies. However, future builds past the first one take <1 minute because dependencies are cached. 
 
 ### Notes
 * Make sure the build script has execute permissions: `chmod +x build_script.sh`.
