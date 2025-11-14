@@ -45,8 +45,7 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) {
-    _options = options; 
+core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) : _options(options) {
 }
 
 int core::MCAPLogger::open_new_mcap(const std::string &name) {

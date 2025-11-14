@@ -76,7 +76,7 @@ namespace core {
             mcap::McapWriter _writer;   
             mcap::McapWriterOptions _options;
             
-            <std::unordered_map<std::string, uint32_t> _name_to_id_map;
+            std::unordered_map<std::string, uint32_t> _name_to_id_map;
             bool _running = true;
         
 
