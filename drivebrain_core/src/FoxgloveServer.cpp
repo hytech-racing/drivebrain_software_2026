@@ -1,19 +1,18 @@
 #include <FoxgloveServer.hpp>
 
-static uint64_t nanosecondsSinceEpoch()
-{
+static uint64_t nanosecondsSinceEpoch() {
     return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
                         std::chrono::system_clock::now().time_since_epoch())
                         .count());
 }
 
 
-static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(const std::vector<std::string> &filenames)
-{
+static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(const std::vector<std::string> &filenames) {
     std::vector<const google::protobuf::FileDescriptor *> descriptors;
 
     for (const auto &name : filenames) {
         const google::protobuf::FileDescriptor *file_descriptor = google::protobuf::DescriptorPool::generated_pool()->FindFileByName(name);
+
         if (!file_descriptor) {
             std::cout << "File descriptor not found" << std::endl;
         }
@@ -47,11 +46,7 @@ static std::string SerializeFdSet(const google::protobuf::Descriptor *toplevelDe
     return fdSet.SerializeAsString();
 }
 
-core::FoxgloveServer::FoxgloveServer(std::string file_name, std::vector<std::function<void(std::unordered_map<std::string, foxglove::ParameterValue>)>> parameter_change_callback)
-{
-
-    // For changing parameters
-    _parameter_change_callbacks = parameter_change_callback;
+core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     // Read params data
     std::fstream params_file(file_name);
@@ -100,11 +95,16 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name, std::vector<std::fun
 
     hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
     {
+
+        std::unordered_map<std::string, foxglove::ParameterValue> params_map; 
+
         for (const auto &param_to_change : params) {
-            _foxglove_params_map[param_to_change.getName()] = param_to_change.getValue();
+            params_map[param_to_change.getName()] = param_to_change.getValue();
         }
-        for (std::function<void(std::unordered_map<std::string, foxglove::ParameterValue>)> callback: _parameter_change_callbacks) {
-            callback(_foxglove_params_map);
+        
+        {
+            std::unique_lock lock(_parameter_mutex); 
+            _foxglove_params_map = std::move(params_map); 
         }
     };
 
@@ -150,3 +150,5 @@ void core::FoxgloveServer::send_live_telem_msg(std::shared_ptr<google::protobuf:
     const auto now = nanosecondsSinceEpoch();
     _server->broadcastMessage(msg_chan_id, now, reinterpret_cast<const uint8_t *>(serialized_msg.data()), serialized_msg.size());
 }
+
+
