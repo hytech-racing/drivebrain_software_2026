@@ -1,4 +1,4 @@
-
+#define MCAP_IMPLEMENTATION
 
 #include <MCAPLogger.hpp>
 
