@@ -26,11 +26,12 @@ docker compose run dev
 
 Alternatively, if you want to enter a modified container for whatever reason, you can run:
 ```bash
+# running with modified memory and cpu limits
 docker run -it \
   --mount type=volume,source=conan_cache,target=/root/.conan2 \
   --mount type=bind,source="$(pwd)",target=/app \
-  --memory=16g \ # extra flag
-  --cpus=4 \ # extra flag
+  --memory=16g \
+  --cpus=4 \ 
   -w /app \
   rpi-cross-compile /bin/bash 
 ```
