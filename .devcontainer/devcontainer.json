@@ -13,7 +13,8 @@
         "ms-vscode.cmake-tools",
         "twxs.cmake",
         "ms-python.python",
-        "jeff-hykin.better-cpp-syntax"
+        "jeff-hykin.better-cpp-syntax",
+        "llvm-vs-code-extensions.vscode-clangd"
       ]
     }
   },
