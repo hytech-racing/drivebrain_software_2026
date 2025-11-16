@@ -13,5 +13,5 @@ build/
 .vscode
 .vscode/
 
-
-
+.cache
+compile_commands.json
