@@ -13,5 +13,8 @@ mkdir build
 cd build
 # cmake ..  -DCMAKE_EXE_LINKER_FLAGS="-static" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake
 source ../cmake/conanbuild.sh
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake 
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 make -j
+cd ..
+ln -sf build/compile_commands.json compile_commands.json
+
