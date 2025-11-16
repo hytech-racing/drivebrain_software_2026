@@ -93,8 +93,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
         std::cout << "Client " << clientStr << " unsubscribed from " << chanId << std::endl;
     };
 
-    hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
-    {
+    hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) {
 
         std::unordered_map<std::string, foxglove::ParameterValue> params_map; 
 
@@ -109,8 +108,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
     };
 
     hdlrs.parameterRequestHandler = [this](const std::vector<std::string> &param_names, const std::optional<std::string> &request_id,
-                                           foxglove::ConnHandle clientHandle)
-    {
+                                           foxglove::ConnHandle clientHandle) {
         std::vector<foxglove::Parameter> foxglove_params; 
         for (auto &[key, value] : _foxglove_params_map) {
             foxglove::Parameter param(key, value);

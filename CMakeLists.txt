@@ -10,7 +10,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Custom libs
 #################################
 add_subdirectory(drivebrain_core)
-# add_subdirectory(drivebrain_comms)
+add_subdirectory(drivebrain_comms)
 
 #################################
 # Find packages
@@ -20,6 +20,7 @@ find_package(Protobuf REQUIRED CONFIG)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
+find_package(dbcppp REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -61,4 +62,5 @@ target_link_libraries(drivebrain PUBLIC
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
+    drivebrain_comms
 )
