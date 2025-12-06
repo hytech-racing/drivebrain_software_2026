@@ -68,6 +68,7 @@ class CANComms {
         can_frame _frame;
         std::thread _reader_thread; 
         std::unordered_map<uint64_t, const dbcppp::IMessage*> _messages;
+        std::unordered_map<std::string, uint64_t> _names_to_can_id;
         std::unique_ptr<dbcppp::INetwork> _net;
 
 };
