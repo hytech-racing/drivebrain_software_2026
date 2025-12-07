@@ -10,6 +10,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Custom libs
 #################################
 add_subdirectory(drivebrain_core)
+
 add_subdirectory(drivebrain_comms)
 
 #################################

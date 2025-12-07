@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
+#include <errno.h>
 
 #include "hytech.pb.h"
 #include "hytech_msgs.pb.h"
@@ -36,9 +37,26 @@ class CANComms {
          * 
          * @param message the message to be sent
          */
-        int send_message(std::shared_ptr<google::protobuf::Message> message);
+        void send_message(std::shared_ptr<google::protobuf::Message> message);
 
     private: 
+
+
+        /**
+         * Returns an empty protobuf message, given the name.
+         */
+        std::shared_ptr<google::protobuf::Message> _get_proto_message_from_name(const std::string& name);
+
+        /**
+         * Receives and unpacks a can frame. 
+         */
+        std::shared_ptr<google::protobuf::Message> _decode_can_frame(struct can_frame& frame);
+
+        /**
+         * Encodes a protobuf message to a CAN message
+         */
+        int _encode_can_frame(std::shared_ptr<google::protobuf::Message> proto_message, can_frame* frame);
+
 
         /**
          * Receive handler that runs until the interface is destructed
@@ -58,7 +76,7 @@ class CANComms {
          * @param frame the can frame to be processed
          * @return shared ptr to the protobuf message to return
          */
-        std::shared_ptr<google::protobuf::Message> _protobuf_message_receive(const can_frame &frame); 
+        std::shared_ptr<google::protobuf::Message> _protobuf_message_receive(struct can_frame &frame); 
 
 
     public: 
