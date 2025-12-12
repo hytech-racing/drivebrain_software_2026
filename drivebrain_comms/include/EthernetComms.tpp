@@ -49,7 +49,7 @@ namespace comms
         spdlog::warn("Ethernet driver destructed");
     }
 
-    /* Receive logic */
+    /* Receive methods */
     template <typename MsgType>
     void ETHDriver<MsgType>::_handle_receive(const boost::system::error_code &error, std::size_t size)
     {
@@ -74,7 +74,7 @@ namespace comms
                         boost::asio::placeholders::bytes_transferred));
     }
 
-    /* Send logic */
+    /* Send methods */
 
     template<typename MsgType>
     void ETHDriver<MsgType>::enqueue_msg_send(std::shared_ptr<google::protobuf::Message> send_msg)
