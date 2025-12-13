@@ -14,14 +14,11 @@
 
 namespace core
 {
-    namespace common
+    template <typename MsgType>
+    struct ThreadSafeDeque
     {
-        template <typename MsgType>
-        struct ThreadSafeDeque
-        {
-            std::deque<MsgType> deque;
-            std::mutex mtx;
-            std::condition_variable cv;
-        };
-    }
+        std::deque<MsgType> deque;
+        std::mutex mtx;
+        std::condition_variable cv;
+    };
 }

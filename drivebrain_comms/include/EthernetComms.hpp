@@ -1,5 +1,4 @@
-#ifndef __ETHCOMMS_H__
-#define __ETHCOMMS_H__
+#pragma once
 
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
@@ -22,11 +21,10 @@ namespace comms
      * @tparam MsgType The protobuf message type the initialized Ethernet class will receive. An empty (void) template type indicates send-only mode
     */
     template<typename MsgType = void>
-    class ETHDriver 
-    {
+    class ETHDriver {
     public:
 
-        using deqtype = core::common::ThreadSafeDeque<std::shared_ptr<google::protobuf::Message>>;
+        using deqtype = core::ThreadSafeDeque<std::shared_ptr<google::protobuf::Message>>;
 
         ETHDriver() = delete;
         ~ETHDriver();
@@ -81,4 +79,3 @@ namespace comms
 
 }
 
-#endif // __ETHCOMMS_H__
