@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <google/protobuf/message.h>
 
-#include "Loggable.hpp"
 #include "DriverBus.hpp"
 #include "hytech_msgs.pb.h"
 #include <memory>
@@ -23,7 +22,7 @@ namespace comms
      * @tparam MsgType The protobuf message type the initialized Ethernet class will receive. An empty (void) template type indicates send-only mode
     */
     template<typename MsgType = void>
-    class ETHDriver : public core::common::Loggable<std::shared_ptr<google::protobuf::Message>>
+    class ETHDriver 
     {
     public:
 
@@ -40,7 +39,7 @@ namespace comms
          * @param send_ip The IP address to send messages from (empty by default if in receive-only mode)
          * @param bind Whether or not the socket should bind to local endpoint
         */
-        ETHDriver(boost::asio::io_context &io_context, uint16_t port, std::string send_ip = "", bool bind=true);
+        ETHDriver(boost::asio::io_context &io_context, uint16_t port, std::string send_ip = "");
 
         /**
          * Method for adding a new message to the send queue
