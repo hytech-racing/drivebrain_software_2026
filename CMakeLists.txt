@@ -20,6 +20,7 @@ find_package(Protobuf REQUIRED CONFIG)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
+find_package(GTest REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -58,6 +59,7 @@ target_link_libraries(drivebrain PUBLIC
     mcap::mcap
     protobuf::libprotobuf 
     boost::boost
+    gtest::gtest
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
