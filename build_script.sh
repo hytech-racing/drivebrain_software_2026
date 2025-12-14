@@ -1,20 +1,42 @@
+#!/usr/bin/env sh
+set -e
+
+profile="rpi_profile"
+build_folder="build-arm"
+
+if [ "$1" = "--test" ]; then
+  profile="default"
+  build_folder="build-native"
+fi
+
 rm -rf .venv
-rm -rf build
+rm -rf "$build_folder"
 rm -rf cmake
 
 python3 -m venv .venv
-source .venv/bin/activate
+. .venv/bin/activate
 pip install -r requirements.txt
 
-conan profile detect
-conan install . --build=missing --profile:build=default --profile:host=rpi_profile -of=cmake
+unset CC
+unset CXX
+unset CMAKE_TOOLCHAIN_FILE
 
-mkdir build
-cd build
-# cmake ..  -DCMAKE_EXE_LINKER_FLAGS="-static" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake
-source ../cmake/conanbuild.sh
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+conan profile detect --force
+
+conan install . \
+  --build=missing \
+  --profile:build=default \
+  --profile:host="$profile" \
+  -of=cmake
+
+mkdir -p "$build_folder"
+cd "$build_folder"
+
+. ../cmake/conanbuild.sh
+
+cmake .. \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
 make -j
-cd ..
-ln -sf build/compile_commands.json compile_commands.json
-
