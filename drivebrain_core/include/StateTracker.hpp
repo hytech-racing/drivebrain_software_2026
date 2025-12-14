@@ -13,13 +13,14 @@
 #include <thread>
 
 #include "hytech_msgs.pb.h"
-#include "hytech.h"
+#include "hytech.pb.h"
 
 /**
  * The state tracker acts 
  * as a thread-safe translation unit
  * between our comms interfaces and 
- * the rest of the program.
+ * the rest of the program. It keeps track 
+ * of current internal state. 
  */
 namespace core {
 
@@ -165,6 +166,7 @@ namespace core {
 
     struct VehicleState {
         bool is_ready_to_drive; 
+        DriverInput input;
         xyz_vec<float> current_body_vel_ms;
         xyz_vec<float> current_body_accel_mss;
         xyz_vec<float> current_angular_rate_rads;
@@ -203,13 +205,13 @@ namespace core {
         private: 
 
             template <size_t index, typename inverter_dynamics_message>
-            void _handle_set_inverter_dynamics(std::shared_ptr<inverter_dynamics_message> msg);
+            void _handle_set_inverter_dynamics(std::shared_ptr<google::protobuf::Message> msg);
 
             template <size_t index, typename inverter_temps_message>
-            void _handle_set_inverter_temps(std::shared_ptr<inverter_temps_message> msg);
+            void _handle_set_inverter_temps(std::shared_ptr<google::protobuf::Message> msg);
 
             template<size_t arr_len> 
-            bool _validate_timestamps(const std::array<std::chrono::microseconds, arr_len> &timestamp_arr) {
+            bool _validate_timestamps(const std::array<std::chrono::microseconds, arr_len> &timestamp_arr);
 
             void _receive_low_level_state(std::shared_ptr<google::protobuf::Message> message);
 
@@ -219,6 +221,7 @@ namespace core {
             RawInputData _raw_input_data;
             std::mutex _state_mutex;
             std::array<std::chrono::microseconds, 4> _timestamp_array; 
+
 
     };
 }

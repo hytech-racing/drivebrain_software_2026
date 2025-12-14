@@ -5,14 +5,14 @@ using namespace core;
 /****************************************************************
  * Public class methods
  ****************************************************************/
-void StateTracker::set_previous_control_output(core::ControllerOutput previous_controller_output) {
+void StateTracker::set_previous_control_output(core::ControllerOutput prev_controller_output) {
     std::unique_lock lk(_state_mutex);
-    _vehicle_state.previous_controller_output = previous_controller_output;
+    _vehicle_state.prev_controller_output = prev_controller_output;
 }
 
-void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::protobuf::Message> message) {
-    if (message->GetTypeName() == "hytech_msgs.VNData") {
-        auto in_msg = std::static_pointer_cast<hytech_msgs::VNData>(message);
+void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::protobuf::Message> msg) {
+    if (msg->GetTypeName() == "hytech_msgs.VNData") {
+        auto in_msg = std::static_pointer_cast<hytech_msgs::VNData>(msg);
         xyz_vec<float> body_vel_ms = {(in_msg->vn_vel_m_s().x()), (in_msg->vn_vel_m_s().y()),
                                       (in_msg->vn_vel_m_s().z())};
 
@@ -39,30 +39,43 @@ void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::proto
             _vehicle_state.ins_status.status_mode = ins_mode_int;
             _vehicle_state.ins_status.vel_uncertainty = vel_u;
         }
-    } else if (message->GetTypeName() == "hytech_msgs.VCRData_s") {
-        auto in_msg = std::static_pointer_cast<hytech_msgs::VCRData_s>(message);
+    } else if (msg->GetTypeName() == "hytech_msgs.VCRData_s") {
+        auto in_msg = std::static_pointer_cast<hytech_msgs::VCRData_s>(msg);
         bool is_rtd = (in_msg->status().vehicle_state() == hytech_msgs::VehicleState_e::READY_TO_DRIVE);
         {
             std::unique_lock lk(_state_mutex);
             _vehicle_state.is_ready_to_drive = is_rtd;
         }
-    } else if (message->GetTypeName() == "hytech_msgs.ACUAllData") {
-        auto in_msg = std::static_pointer_cast<hytech_msgs::ACUAllData>(message);
+    } else if (msg->GetTypeName() == "hytech_msgs.ACUAllData") {
+        auto in_msg = std::static_pointer_cast<hytech_msgs::ACUAllData>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _vehicle_state.acc_data.min_cell_voltage = in_msg->core_data().min_cell_voltage();
         }
     }
     else {
-        _receive_low_level_state(message);
+        _receive_low_level_state(msg);
     }
+}
+
+std::pair<core::VehicleState, bool> StateTracker::get_latest_state_and_validity() {
+    auto state_is_valid = _validate_timestamps(_timestamp_array);
+
+    VehicleState current_state  = { };
+
+    {
+        std::unique_lock lk(_state_mutex);
+        current_state = _vehicle_state;
+    }
+
+    return {current_state, state_is_valid};
 }
 
 /****************************************************************
  * Private class methods
  ****************************************************************/
-template <size_t index, typename inverter_dynamics_message>
-void StateTracker::_handle_set_inverter_dynamics(std::shared_ptr<inverter_dynamics_message> msg) {
+template <size_t ind, typename inverter_dynamics_message>
+void StateTracker::_handle_set_inverter_dynamics(std::shared_ptr<google::protobuf::Message> msg) {
     auto in_msg = std::static_pointer_cast<inverter_dynamics_message>(msg);
     {
         std::unique_lock lk(_state_mutex);
@@ -74,7 +87,7 @@ void StateTracker::_handle_set_inverter_dynamics(std::shared_ptr<inverter_dynami
 }
 
 template <size_t ind, typename inverter_temps_message>
-void StateTracker::_handle_set_inverter_temps(std::shared_ptr<inverter_temps_message> msg) {
+void StateTracker::_handle_set_inverter_temps(std::shared_ptr<google::protobuf::Message> msg) {
     
     auto in_msg = std::static_pointer_cast<inverter_temps_message>(msg);
     core::DrivetrainData dt_data = {};
@@ -87,9 +100,9 @@ void StateTracker::_handle_set_inverter_temps(std::shared_ptr<inverter_temps_mes
     }
 }
 
-void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Message> message) {
-    if (message->GetTypeName() == "hytech.rear_suspension") {
-        auto in_msg = std::static_pointer_cast<hytech::rear_suspension>(message);
+void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Message> msg) {
+    if (msg->GetTypeName() == "hytech.rear_suspension") {
+        auto in_msg = std::static_pointer_cast<hytech::rear_suspension>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _timestamp_array[0] = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -99,8 +112,8 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_shock_pot_values.RL = in_msg->rl_shock_pot();
             _raw_input_data.raw_shock_pot_values.RR = in_msg->rr_shock_pot();
         }
-    } else if (message->GetTypeName() == "hytech.front_suspension") {
-        auto in_msg = std::static_pointer_cast<hytech::front_suspension>(message);
+    } else if (msg->GetTypeName() == "hytech.front_suspension") {
+        auto in_msg = std::static_pointer_cast<hytech::front_suspension>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _timestamp_array[1] = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -110,8 +123,8 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_shock_pot_values.FL = in_msg->fl_shock_pot();
             _raw_input_data.raw_shock_pot_values.FR = in_msg->fr_shock_pot();
         }
-    } else if (message->GetTypeName() == "hytech.pedals_system_data") {
-        auto in_msg = std::static_pointer_cast<hytech::pedals_system_data>(message);
+    } else if (msg->GetTypeName() == "hytech.pedals_system_data") {
+        auto in_msg = std::static_pointer_cast<hytech::pedals_system_data>(msg);
         core::DriverInput input = {(in_msg->accel_pedal()), (in_msg->brake_pedal())};
         {
             std::unique_lock lk(_state_mutex);
@@ -119,8 +132,8 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
                 std::chrono::high_resolution_clock::now().time_since_epoch());
             _vehicle_state.input = input;
         }
-    } else if (message->GetTypeName() == "hytech.steering_data") {
-        auto in_msg = std::static_pointer_cast<hytech::steering_data>(message);
+    } else if (msg->GetTypeName() == "hytech.steering_data") {
+        auto in_msg = std::static_pointer_cast<hytech::steering_data>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _timestamp_array[3] = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -128,8 +141,8 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_steering_analog = in_msg->steering_analog_raw();
             _raw_input_data.raw_steering_digital = in_msg->steering_digital_raw();
         }
-    } else if (message->GetTypeName() == "hytech.em_measurement") {
-        auto in_msg = std::static_pointer_cast<hytech::em_measurement>(message);
+    } else if (msg->GetTypeName() == "hytech.em_measurement") {
+        auto in_msg = std::static_pointer_cast<hytech::em_measurement>(msg);
         float em_voltage = in_msg->em_voltage();
         float em_current = in_msg->em_current();
         {
@@ -138,11 +151,11 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
         }
     } 
     else {
-        _receive_inverter_states(message);
+        _receive_inverter_states(msg);
     }
 }
 
-void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Message> message) {
+void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Message> msg) {
     auto name = msg->GetTypeName();
     if (name == "hytech.inv1_dynamics") {
         _handle_set_inverter_dynamics<0, hytech::inv1_dynamics>(msg);
@@ -220,7 +233,7 @@ void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Me
 }
 
 template <size_t arr_len>
-bool StateEstimator::_validate_timestamps(const std::array<std::chrono::microseconds, arr_len> &timestamp_arr) {
+bool StateTracker::_validate_timestamps(const std::array<std::chrono::microseconds, arr_len> &timestamp_arr) {
     std::array<std::chrono::microseconds, arr_len> timestamp_array_to_sort;
     
     {
@@ -249,35 +262,5 @@ bool StateEstimator::_validate_timestamps(const std::array<std::chrono::microsec
     bool last_update_recent_enough =
         (std::chrono::duration_cast<std::chrono::microseconds>(curr_time - max_stamp)) < threshold;
 
-    if (std::chrono::duration_cast<std::chrono::microseconds>(curr_time - max_stamp) < _debug_maxtime_diff || (_debug_maxtime_diff.count() < 0)) {
-        _debug_maxtime_diff = std::chrono::duration_cast<std::chrono::microseconds>(curr_time - max_stamp);
-    }
-
-    if (std::chrono::duration_cast<std::chrono::microseconds>(max_stamp - min_stamp) < _debug_maxjitter_diff || (_debug_maxjitter_diff.count() < 0)) {
-        _debug_maxjitter_diff = std::chrono::duration_cast<std::chrono::microseconds>(max_stamp - min_stamp);
-    }
-
-    if ((curr_time - _last_debug_veh_state_print) > debug_print_period)
-    {
-        _last_debug_veh_state_print = std::chrono::duration_cast<std::chrono::seconds>(curr_time);
-        spdlog::info("_debug_maxtime_diff: {}", _debug_maxtime_diff.count());
-        spdlog::info("_debug_maxjitter_diff: {}", _debug_maxjitter_diff.count());
-    }
-
-    if (!within_threshold) {
-        spdlog::warn("data not recvd within time window theshold: {}", (max_stamp - min_stamp).count());
-    } else if(!all_members_received) {
-        spdlog::warn("not all data recvd yet for state to be valid");
-    } else if (!last_update_recent_enough) {
-        spdlog::warn("max timestamp message has been been recvd in time window {}", (curr_time - max_stamp).count());
-    }
-    
-    if (!(within_threshold && all_members_received && last_update_recent_enough)) {
-        spdlog::info("vcr suspension val: {}", debug_copy[0].count());
-        spdlog::info("vcf suspension val: {}", debug_copy[1].count());
-        spdlog::info("vcf pedals val: {}", debug_copy[2].count());
-        spdlog::info("steering data val: {}", debug_copy[3].count());
-    }
-    
     return within_threshold && all_members_received && last_update_recent_enough;
 }
