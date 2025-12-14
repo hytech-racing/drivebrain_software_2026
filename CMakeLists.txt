@@ -59,8 +59,16 @@ target_link_libraries(drivebrain PUBLIC
     mcap::mcap
     protobuf::libprotobuf 
     boost::boost
-    gtest::gtest
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
 )
+
+#################################
+# Unit Testing
+#################################
+
+if(NOT CMAKE_CROSSCOMPILING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
