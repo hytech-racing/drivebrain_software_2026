@@ -17,6 +17,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 
+# let cmake infer this
 unset CC
 unset CXX
 unset CMAKE_TOOLCHAIN_FILE
@@ -40,3 +41,8 @@ cmake .. \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 make -j
+
+# run unit tests
+if [ "$1" = "--test" ]; then
+  ctest --rerun-failed --output-on-failure
+fi

@@ -14,5 +14,14 @@ target_link_libraries(drivebrain_test PUBLIC
     GTest::gtest
 )
 
+file(COPY
+  ${CMAKE_SOURCE_DIR}/tests/test_configs
+  DESTINATION ${CMAKE_BINARY_DIR}
+)
+target_compile_definitions(drivebrain_test PRIVATE
+    TEST_CONFIG_DIR="${CMAKE_BINARY_DIR}/test_configs"
+)
+
 include(GoogleTest)
 gtest_discover_tests(drivebrain_test)
+
