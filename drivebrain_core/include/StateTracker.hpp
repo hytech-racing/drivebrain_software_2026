@@ -24,6 +24,9 @@
  */
 namespace core {
 
+    /**
+     * @struct Represents a vehicle vector (4 elements of any type)
+     */
     template <typename T>
     struct veh_vec {
         T FL;
@@ -61,6 +64,9 @@ namespace core {
 
     };
 
+    /**
+     * @struct Represents an xyz vector (3 elements of any type)
+     */
     template <typename T>
     struct xyz_vec {
         T x;
@@ -68,6 +74,9 @@ namespace core {
         T z;
     };
 
+    /**
+     * @struct Represents a ypr vector (3 elements of any type that represent angle)
+     */
     template <typename T>
     struct ypr_vec  {   
         T yaw;
@@ -75,8 +84,9 @@ namespace core {
         T roll;
     };
 
-    
-
+    /**
+     * @struct Represents raw sensor data
+     */
     struct RawInputData  {
         veh_vec<float> raw_load_cell_values;
         veh_vec<float> raw_shock_pot_values;
@@ -86,21 +96,33 @@ namespace core {
         veh_vec<float> raw_inverter_power;
     };
 
+    /**
+     * @struct position
+     */
     struct Position {
         double lat;
         double lon;
         bool valid;
     };
 
+    /**
+     * @struct Contains requested pedals information
+     */
     struct DriverInput {
         float requested_accel; // float from 0 to 1 representing percent of accel pedal travel
         float requested_brake; // float from 0 to 1 representing pedal travel of brake
     };
 
+    /**
+     * @struct Contains the torque outputs of the controller
+     */
     struct ControllerTorqueOut {
         veh_vec<float> res_torque_lim_nm;
     };
 
+    /**
+     * @struct Represents the outputs of the tire model 
+     */
     struct TireDynamics {
         veh_vec<xyz_vec<float>> tire_forces_n;
         veh_vec<xyz_vec<float>> tire_moments_nm;
@@ -118,6 +140,10 @@ namespace core {
         }
     };
 
+    /**
+     * @struct Represents more specific outputs of the controller 
+     * re. torque vectoring statuses
+     */
     struct TorqueVectoringStatus {
         veh_vec<float> torque_additional_nm;
         float additional_mz_moment_nm;
@@ -128,42 +154,68 @@ namespace core {
         float perceived_psi_dot;
     };
 
+    /**
+     * @struct Collection of different outputs
+     */
     struct MatlabMathResult {
         TireDynamics tire_dynamics;
         TorqueVectoringStatus torque_vectoring_status;
     };
 
+    /**
+     * @struct Collection of desired speed and torques
+     */
     struct SpeedControlOut {
         int64_t mcu_recv_millis;
         veh_vec<float> desired_rpms;
         veh_vec<float> torque_lim_nm;
     };
 
+    /**
+     * @struct A specific torque control out
+     */
     struct TorqueControlOut {
         veh_vec<float> desired_torques_nm;
     };
 
 
+    /**
+     * @struct A controller output 
+     */
     struct ControllerOutput {
         std::variant<SpeedControlOut, TorqueControlOut, std::monostate> out;
     };
 
+    /**
+     * @struct Contains the health of our ins 
+     */
     struct INSStatus {
         float vel_uncertainty;
         int status_mode;
     };
 
+    /**
+     * @struct Contains drivetrain information
+     */
     struct DrivetrainData {
         veh_vec<float> inverter_igbt_temps_c;
         veh_vec<float> inverter_temps_c;
         veh_vec<float> inverter_motor_temps_c;
     };
 
+    /**
+     * @struct Contains accumulator information
+     */
     struct AccumulatorData {
         float min_cell_voltage;
         float pack_voltage;
     };
 
+    /**
+     * @struct Contains a wealth of data
+     * representing the entire internal 
+     * state of the vehicle. 
+     */
     struct VehicleState {
         bool is_ready_to_drive; 
         DriverInput input;
@@ -190,15 +242,39 @@ namespace core {
         AccumulatorData acc_data;
     };
 
+    /**
+     * Allows different communications interfaces
+     * to update the internal state of drivebrain in a thread-safe manner
+     */
     class StateTracker {
 
         public: 
-            StateTracker();
 
+            /**
+             * Constructs a new state tracker.
+             */
+            StateTracker() { }
+
+            /**
+             * Receives a protobuf message and adds any useful information to the internal 
+             * vehicle state. 
+             * 
+             * @param message the message with information to add. 
+             */
             void handle_receive_protobuf_message(std::shared_ptr<google::protobuf::Message> message);
             
+            /**
+             * Sets the previous control output of the controller
+             * 
+             * @param previous_control_output the previous output of the controller
+             */
             void set_previous_control_output(ControllerOutput previous_control_output);
-
+            
+            /**
+             * Returns a pair of the current vehicle state and whether or not it's valid
+             * 
+             * @return the vehicle state and whether or not its valid. 
+             */
             std::pair<core::VehicleState, bool> get_latest_state_and_validity();
 
             

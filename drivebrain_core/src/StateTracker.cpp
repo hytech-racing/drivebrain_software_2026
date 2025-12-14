@@ -147,7 +147,7 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
         float em_current = in_msg->em_current();
         {
             std::unique_lock lk(_state_mutex);
-            _vehicle_state.old_energy_meter_kw = (-1.0f * em_voltage * em_current / 1000.0f); // on ht09 the energy meter is backwards as of right now
+            _vehicle_state.old_energy_meter_kw = (-1.0f * em_voltage * em_current / 1000.0f);
         }
     } 
     else {
