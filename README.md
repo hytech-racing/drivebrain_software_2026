@@ -48,8 +48,12 @@ Inside the container, execute:
 This script will build the DriveBrain software using the cross-compilation toolchain for the target platform.
 The first time you run it, it will take some time because it needs to compile all the dependencies. However, future builds past the first one take <1 minute because dependencies are cached. 
 
-### Developer Environment
-If you use VSCode as your primary IDE, you can open this project in a Devcontainer environment after running `build_script.sh`. Otherwise, you can run `gencompilecommands.sh` on your local machine after building to obtain a native `compile_commands.json` that works with clangd in your editor of choice.
+### Unit Tests
+Unit tests have to be compiled to your native architecture if you actually want to see them run. To do this, you can pass in the `--test` flag in the build script.
+```bash
+./build_script.sh --test
+```
+and the project along with its unit tests will be compiled and ran.
 
 ### Notes
 * Make sure the build script has execute permissions: `chmod +x build_script.sh`.
