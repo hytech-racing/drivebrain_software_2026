@@ -1,0 +1,5 @@
+{
+ "enable_logging": true,
+ "rpm_limit": 10000,
+ "kP": 10.2
+}
