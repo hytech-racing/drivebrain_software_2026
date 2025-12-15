@@ -1,5 +1,4 @@
-#ifndef STATE_TRACKER_H
-#define STATE_TRACKER_H
+#pragma once
 
 #include <foxglove/websocket/base64.hpp>
 #include <foxglove/websocket/websocket_notls.hpp>
@@ -253,7 +252,7 @@ namespace core {
             /**
              * Constructs a new state tracker.
              */
-            StateTracker() { }
+            StateTracker() = default;
 
             /**
              * Receives a protobuf message and adds any useful information to the internal 
@@ -268,7 +267,7 @@ namespace core {
              * 
              * @param previous_control_output the previous output of the controller
              */
-            void set_previous_control_output(ControllerOutput previous_control_output);
+            void set_previous_control_output(ControllerOutput &previous_control_output);
             
             /**
              * Returns a pair of the current vehicle state and whether or not it's valid
@@ -293,13 +292,11 @@ namespace core {
 
             void _receive_inverter_states(std::shared_ptr<google::protobuf::Message> message);
 
-            VehicleState _vehicle_state;
-            RawInputData _raw_input_data;
+            VehicleState _vehicle_state = { };
+            RawInputData _raw_input_data = { };
             std::mutex _state_mutex;
             std::array<std::chrono::microseconds, 4> _timestamp_array; 
 
 
     };
 }
-
-#endif // STATE_TRACKER_H

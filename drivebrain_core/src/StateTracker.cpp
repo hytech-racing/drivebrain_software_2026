@@ -5,13 +5,13 @@ using namespace core;
 /****************************************************************
  * Public class methods
  ****************************************************************/
-void StateTracker::set_previous_control_output(core::ControllerOutput prev_controller_output) {
+void StateTracker::set_previous_control_output(core::ControllerOutput &prev_controller_output) {
     std::unique_lock lk(_state_mutex);
     _vehicle_state.prev_controller_output = prev_controller_output;
 }
 
 void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::protobuf::Message> msg) {
-    if (msg->GetTypeName() == "hytech_msgs.VNData") {
+    if (msg->GetDescriptor() == hytech_msgs::VNData::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech_msgs::VNData>(msg);
         xyz_vec<float> body_vel_ms = {(in_msg->vn_vel_m_s().x()), (in_msg->vn_vel_m_s().y()),
                                       (in_msg->vn_vel_m_s().z())};
@@ -39,14 +39,14 @@ void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::proto
             _vehicle_state.ins_status.status_mode = ins_mode_int;
             _vehicle_state.ins_status.vel_uncertainty = vel_u;
         }
-    } else if (msg->GetTypeName() == "hytech_msgs.VCRData_s") {
+    } else if (msg->GetDescriptor() == hytech_msgs::VCRData_s::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech_msgs::VCRData_s>(msg);
         bool is_rtd = (in_msg->status().vehicle_state() == hytech_msgs::VehicleState_e::READY_TO_DRIVE);
         {
             std::unique_lock lk(_state_mutex);
             _vehicle_state.is_ready_to_drive = is_rtd;
         }
-    } else if (msg->GetTypeName() == "hytech_msgs.ACUAllData") {
+    } else if (msg->GetDescriptor() == hytech_msgs::ACUAllData::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech_msgs::ACUAllData>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -101,7 +101,7 @@ void StateTracker::_handle_set_inverter_temps(std::shared_ptr<google::protobuf::
 }
 
 void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Message> msg) {
-    if (msg->GetTypeName() == "hytech.rear_suspension") {
+    if (msg->GetDescriptor() == hytech::rear_suspension::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::rear_suspension>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -112,7 +112,7 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_shock_pot_values.RL = in_msg->rl_shock_pot();
             _raw_input_data.raw_shock_pot_values.RR = in_msg->rr_shock_pot();
         }
-    } else if (msg->GetTypeName() == "hytech.front_suspension") {
+    } else if (msg->GetDescriptor() == hytech::front_suspension::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::front_suspension>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -123,7 +123,7 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_shock_pot_values.FL = in_msg->fl_shock_pot();
             _raw_input_data.raw_shock_pot_values.FR = in_msg->fr_shock_pot();
         }
-    } else if (msg->GetTypeName() == "hytech.pedals_system_data") {
+    } else if (msg->GetDescriptor() == hytech::pedals_system_data::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::pedals_system_data>(msg);
         core::DriverInput input = {(in_msg->accel_pedal()), (in_msg->brake_pedal())};
         {
@@ -132,7 +132,7 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
                 std::chrono::high_resolution_clock::now().time_since_epoch());
             _vehicle_state.input = input;
         }
-    } else if (msg->GetTypeName() == "hytech.steering_data") {
+    } else if (msg->GetDescriptor() == hytech::steering_data::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::steering_data>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -141,7 +141,7 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_steering_analog = in_msg->steering_analog_raw();
             _raw_input_data.raw_steering_digital = in_msg->steering_digital_raw();
         }
-    } else if (msg->GetTypeName() == "hytech.em_measurement") {
+    } else if (msg->GetDescriptor() == hytech::em_measurement::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::em_measurement>(msg);
         float em_voltage = in_msg->em_voltage();
         float em_current = in_msg->em_current();
@@ -156,16 +156,16 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
 }
 
 void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Message> msg) {
-    auto name = msg->GetTypeName();
-    if (name == "hytech.inv1_dynamics") {
+    auto descriptor = msg->GetDescriptor();
+    if (descriptor == hytech::inv1_dynamics::descriptor()) {
         _handle_set_inverter_dynamics<0, hytech::inv1_dynamics>(msg);
-    } else if (name == "hytech.inv2_dynamics") {
+    } else if (descriptor == hytech::inv2_dynamics::descriptor()) {
         _handle_set_inverter_dynamics<1, hytech::inv2_dynamics>(msg);
-    } else if (name == "hytech.inv3_dynamics") {
+    } else if (descriptor == hytech::inv3_dynamics::descriptor()) {
         _handle_set_inverter_dynamics<2, hytech::inv3_dynamics>(msg);
-    } else if (name == "hytech.inv4_dynamics") {
+    } else if (descriptor == hytech::inv4_dynamics::descriptor()) {
         _handle_set_inverter_dynamics<3, hytech::inv4_dynamics>(msg);
-    } else if (name == "hytech.inv1_temps") {
+    } else if (descriptor == hytech::inv1_temps::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv1_temps>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -173,7 +173,7 @@ void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Me
             _vehicle_state.dt_data.inverter_temps_c.FL = in_msg->inverter_temp();
             _vehicle_state.dt_data.inverter_motor_temps_c.FL = in_msg->motor_temp();
         }
-    } else if (name == "hytech.inv2_temps") {
+    } else if (descriptor == hytech::inv2_temps::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv2_temps>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -181,7 +181,7 @@ void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Me
             _vehicle_state.dt_data.inverter_temps_c.FR = in_msg->inverter_temp();
             _vehicle_state.dt_data.inverter_motor_temps_c.FR = in_msg->motor_temp();
         }
-    } else if (name == "hytech.inv3_temps") {
+    } else if (descriptor == hytech::inv3_temps::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv3_temps>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -189,7 +189,7 @@ void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Me
             _vehicle_state.dt_data.inverter_temps_c.RL = in_msg->inverter_temp();
             _vehicle_state.dt_data.inverter_motor_temps_c.RL = in_msg->motor_temp();
         }
-    } else if (name == "hytech.inv4_temps") {
+    } else if (descriptor == hytech::inv4_temps::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv4_temps>(msg);
         {
             std::unique_lock lk(_state_mutex);
@@ -197,31 +197,31 @@ void StateTracker::_receive_inverter_states(std::shared_ptr<google::protobuf::Me
             _vehicle_state.dt_data.inverter_temps_c.RR = in_msg->inverter_temp();
             _vehicle_state.dt_data.inverter_motor_temps_c.RR = in_msg->motor_temp();
         }
-    } else if (name == "hytech.inv1_overload") {
+    } else if (descriptor == hytech::inv1_overload::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv1_overload>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _vehicle_state.motor_overload_percentages.FL = in_msg->motor_overload_percentage();
         }
-    } else if (name == "hytech.inv2_overload") {
+    } else if (descriptor == hytech::inv2_overload::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv2_overload>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _vehicle_state.motor_overload_percentages.FR = in_msg->motor_overload_percentage();
         }
-    } else if (name == "hytech.inv3_overload") {
+    } else if (descriptor == hytech::inv3_overload::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv3_overload>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _vehicle_state.motor_overload_percentages.RL = in_msg->motor_overload_percentage();
         }
-    } else if (name == "hytech.inv4_overload") {
+    } else if (descriptor == hytech::inv4_overload::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::inv4_overload>(msg);
         {
             std::unique_lock lk(_state_mutex);
             _vehicle_state.motor_overload_percentages.RR = in_msg->motor_overload_percentage();
         }
-    } else if(name == "hytech.inv1_status") {
+    } else if(descriptor == hytech::inv1_status::descriptor()) {
         
         auto in_msg = std::static_pointer_cast<hytech::inv1_status>(msg);
         auto voltage = in_msg->dc_bus_voltage();
