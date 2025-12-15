@@ -20,6 +20,7 @@ find_package(Protobuf REQUIRED CONFIG)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
+find_package(GTest REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -62,3 +63,12 @@ target_link_libraries(drivebrain PUBLIC
     hytech_can_msgs_cpp_lib
     drivebrain_core
 )
+
+#################################
+# Unit Testing
+#################################
+
+if(NOT CMAKE_CROSSCOMPILING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
