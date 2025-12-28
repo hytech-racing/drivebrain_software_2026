@@ -1,7 +1,6 @@
 #include "EthernetComms.hpp"
 #include "hytech_msgs.pb.h"
-#include <boost/asio/ip/address.hpp>
-#include <boost/asio/placeholders.hpp>
+#include <boost/asio.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <google/protobuf/message.h>
 #include <spdlog/spdlog.h>
@@ -16,16 +15,13 @@ namespace comms
         _send_endp(send_ip.empty()
                     ? udp::endpoint(udp::v4(), port)
                     : udp::endpoint(boost::asio::ip::make_address(send_ip.c_str()), port))
-    {
-        if(!send_ip.empty()) {
-            _socket.bind(_send_endp);
-        }
-        
+    {        
         _running = true;
         _output_thread = std::thread(&comms::ETHDriver<MsgType>::_handle_send_msg_from_queue, this);
 
         if constexpr (!std::is_same_v<MsgType, void>)  {
-            _received_eth_msg = std::make_shared<MsgType>();
+            _socket.bind(udp::endpoint(udp::v4(), port));
+           _received_eth_msg = std::make_shared<MsgType>();
             _start_receive();
             spdlog::info("ETHDriver full duplex mode initialized for port {}", port);
         } else {
@@ -50,7 +46,7 @@ namespace comms
     void ETHDriver<MsgType>::_handle_receive(const boost::system::error_code &error, std::size_t size) {
         if (_running && !error) {
             _received_eth_msg ->ParseFromArray(_recv_buffer.data(), size);
-            auto out_msg = static_cast<std::shared_ptr<google::protobuf::Message>>( _received_eth_msg );
+            auto out_msg = static_cast<std::shared_ptr<google::protobuf::Message>>(_received_eth_msg);
             // log to outputs
             // TODO: log to state estimator
             _start_receive();

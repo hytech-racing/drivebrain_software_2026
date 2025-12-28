@@ -1,6 +1,6 @@
 #include <cassert>
 #include <cstdint>
-#include<gtest/gtest.h>
+#include <gtest/gtest.h>
 #include <FoxgloveServer.hpp>
 #include <MCAPLogger.hpp>
 

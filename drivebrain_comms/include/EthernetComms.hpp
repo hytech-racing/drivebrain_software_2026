@@ -7,11 +7,11 @@
 #include <boost/system/detail/error_code.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <google/protobuf/message.h>
 
 #include "DriverBus.hpp"
 #include "hytech_msgs.pb.h"
-#include <memory>
 
 
 namespace comms
@@ -79,3 +79,4 @@ namespace comms
 
 }
 
+#include "EthernetComms.tpp"

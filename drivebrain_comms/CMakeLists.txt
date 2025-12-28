@@ -8,10 +8,9 @@ find_package(Protobuf REQUIRED CONFIG)
 
 add_library(drivebrain_comms
     src/CANComms.cpp
-    src/DBServiceImpl.cpp
-    src/ETHSendComms.cpp
-    src/foxglove_server.cpp
-    src/VNComms.cpp
+    # src/DBServiceImpl.cpp
+    # src/foxglove_server.cpp
+    # src/VNComms.cpp
 )
 
 target_include_directories(drivebrain_comms PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
