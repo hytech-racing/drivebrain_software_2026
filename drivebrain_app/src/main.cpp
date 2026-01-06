@@ -14,10 +14,9 @@ int main(int argc, char* argv[]) {
     hytech_msgs::ACUAllData data;
 
     core::FoxgloveServer server(argv[1]);
-    core::MCAPLogger mcap_logger("recordings/", mcap::McapWriterOptions(""));
+    core::MCAPLogger::initialize("recordings/", mcap::McapWriterOptions(""));
 
-    mcap_logger.open_new_mcap("test_1.mcap");
-    
+    core::MCAPLogger::get_instance().open_new_mcap("test_1.mcap");
 
     while (running) {
 

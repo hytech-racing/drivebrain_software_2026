@@ -1,9 +1,11 @@
-#include <mcap/writer.hpp>
 #include <deque> 
 #include <thread> 
 #include <mutex> 
 #include <condition_variable> 
+#include <atomic>
+#include <cassert>
 #include <queue> 
+#include <mcap/writer.hpp>
 #include <google/protobuf/descriptor.pb.h>
 #include <foxglove/websocket/base64.hpp>
 
@@ -16,17 +18,28 @@ namespace core {
     };
 
     class MCAPLogger {
-
         public: 
 
             /**
-             * Constructor for creating a new MCAP Logger instance
+             * Constructor for initializing a new MCAPLogger singleton instance 
              * 
              * @param base_dir the directory in which the log file should be created
              * @param options options to create the mcap with 
              */
-            MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options);
+            static void initialize(const std::string &base_dir, const mcap::McapWriterOptions &options);
 
+            /**
+             * Fetches MCAPLogger singleton instance
+             *
+             * @retun MCAPLogger instance
+             */
+            static MCAPLogger& get_instance();
+            
+            ~MCAPLogger() {
+              s_instance.store(nullptr, std::memory_order_release);
+              /* join logging thread, etc */
+            }
+            
             /**
              * Opens a new mcap file by adding options and all protobuf schema
              * 
@@ -63,12 +76,22 @@ namespace core {
             // int log_params(); TODO
 
         private: 
+          
+            /* Private constructor to be called by init method */
+            MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options);
 
             /**
              * Spawned by thread, loops until end of program life or error occurs. 
              * Logs all queued messages to a file. 
              */
             void _handle_log_to_file();     
+
+            /* Singleton move semantics */
+            MCAPLogger(const MCAPLogger&) = delete;
+            MCAPLogger& operator=(const MCAPLogger&) = delete;
+
+            /* Singleton instance */
+            inline static std::atomic<MCAPLogger*> s_instance;
 
             std::deque<RawMessage_s> _input_buffer; 
             std::mutex _input_buffer_mutex;
@@ -79,7 +102,6 @@ namespace core {
             
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             bool _running = true;
-
     };
 
 }

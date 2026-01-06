@@ -1,3 +1,5 @@
+#include <atomic>
+#include <stdexcept>
 #define MCAP_IMPLEMENTATION
 
 #include <MCAPLogger.hpp>
@@ -47,7 +49,20 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) : _options(options) {
+
+void core::MCAPLogger::initialize(const std::string &base_dir, const mcap::McapWriterOptions &options) {
+    MCAPLogger* expected = nullptr;
+    MCAPLogger* local = new MCAPLogger(base_dir, options);
+    if(!s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+        // Already initialized, delete local instance
+        delete local;
+    }
+}
+
+core::MCAPLogger& core::MCAPLogger::get_instance() {
+    MCAPLogger* instance = s_instance.load(std::memory_order_acquire);
+    assert(instance != nullptr && "MCAPLogger has not been initialized");
+    return *instance;
 }
 
 int core::MCAPLogger::open_new_mcap(const std::string &name) {
@@ -102,6 +117,10 @@ int core::MCAPLogger::log_protobuf_message(std::shared_ptr<google::protobuf::Mes
 /****************************************************************
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
+core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) : _options(options) {
+    // TODO: spawn logging thread
+}
+
 void core::MCAPLogger::_handle_log_to_file() {
     static std::deque<RawMessage_s> write_buffer; // The buffer to be copied over to
     
