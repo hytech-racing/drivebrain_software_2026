@@ -36,8 +36,8 @@ namespace core {
             static MCAPLogger& get_instance();
             
             ~MCAPLogger() {
-              s_instance.store(nullptr, std::memory_order_release);
-              /* join logging thread, etc */
+              _s_instance.store(nullptr, std::memory_order_release);
+              // TODO:  join logging thread, etc
             }
             
             /**
@@ -91,7 +91,7 @@ namespace core {
             MCAPLogger& operator=(const MCAPLogger&) = delete;
 
             /* Singleton instance */
-            inline static std::atomic<MCAPLogger*> s_instance;
+            inline static std::atomic<MCAPLogger*> _s_instance;
 
             std::deque<RawMessage_s> _input_buffer; 
             std::mutex _input_buffer_mutex;

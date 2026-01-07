@@ -53,14 +53,14 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
 void core::MCAPLogger::initialize(const std::string &base_dir, const mcap::McapWriterOptions &options) {
     MCAPLogger* expected = nullptr;
     MCAPLogger* local = new MCAPLogger(base_dir, options);
-    if(!s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+    if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
         // Already initialized, delete local instance
         delete local;
     }
 }
 
 core::MCAPLogger& core::MCAPLogger::get_instance() {
-    MCAPLogger* instance = s_instance.load(std::memory_order_acquire);
+    MCAPLogger* instance = _s_instance.load(std::memory_order_acquire);
     assert(instance != nullptr && "MCAPLogger has not been initialized");
     return *instance;
 }
