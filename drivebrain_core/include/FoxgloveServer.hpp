@@ -21,7 +21,7 @@ namespace core {
     class FoxgloveServer {
         public: 
             /**
-             * Constructor for initializing a new Foxglove server singleton instance 
+             *  Initialzes a new Foxglove server singleton instance 
              * 
              * @param parameters_file the json containing parameters for putting on foxglove
              */

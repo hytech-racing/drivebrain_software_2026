@@ -5,7 +5,8 @@ using namespace core;
 
 int main() {
   mcap::McapWriterOptions options("");
-  MCAPLogger::initialize("", options);
-  auto& logger = MCAPLogger::get_instance();
+  MCAPLogger::create("", options);
+  
+  MCAPLogger& logger = MCAPLogger::instance();
   return 0;
 }

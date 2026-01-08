@@ -13,14 +13,13 @@ int main(int argc, char* argv[]) {
     hytech::inv1_status status;
     hytech_msgs::ACUAllData data;
 
-    core::FoxgloveServer server(argv[1]);
+    core::FoxgloveServer::initialize(argv[1]);
     core::MCAPLogger::initialize("recordings/", mcap::McapWriterOptions(""));
-
     core::MCAPLogger::get_instance().open_new_mcap("test_1.mcap");
 
     while (running) {
 
-        std::cout << server.get_param<int>("sdfsdfsdf") << std::endl;
+        std::cout << core::FoxgloveServer::get_instance().get_param<int>("sdfsdfsdf") << std::endl;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 

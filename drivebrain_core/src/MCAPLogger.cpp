@@ -1,4 +1,5 @@
 #include <atomic>
+#include <mutex>
 #include <stdexcept>
 #define MCAP_IMPLEMENTATION
 
@@ -45,12 +46,16 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
     }
     return fdSet.SerializeAsString();
 }
+
+static std::string create_log_name() {
+    
+}
  
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
 
-void core::MCAPLogger::initialize(const std::string &base_dir, const mcap::McapWriterOptions &options) {
+void core::MCAPLogger::create(const std::string &base_dir, const mcap::McapWriterOptions &options) {
     MCAPLogger* expected = nullptr;
     MCAPLogger* local = new MCAPLogger(base_dir, options);
     if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
@@ -59,7 +64,7 @@ void core::MCAPLogger::initialize(const std::string &base_dir, const mcap::McapW
     }
 }
 
-core::MCAPLogger& core::MCAPLogger::get_instance() {
+core::MCAPLogger& core::MCAPLogger::instance() {
     MCAPLogger* instance = _s_instance.load(std::memory_order_acquire);
     assert(instance != nullptr && "MCAPLogger has not been initialized");
     return *instance;
@@ -99,7 +104,16 @@ int core::MCAPLogger::close_active_mcap() {
     return 0;
 }
 
-int core::MCAPLogger::log_protobuf_message(std::shared_ptr<google::protobuf::Message> message) {
+void core::MCAPLogger::init_logging() {
+    _msg_log_thread = std::thread([this]() { _handle_log_to_file(); });
+    spdlog::info("Msg log thread spawned");
+    _param_log_thread = std::thread([this]() { _handle_param_log(); });
+    spdlog::info("Param log thread spawned");
+
+    _logging = true;
+}
+
+int core::MCAPLogger::log_msg(core::MsgType message) {
     mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     RawMessage_s new_message; 
     new_message.log_time = log_time;
@@ -150,4 +164,15 @@ void core::MCAPLogger::_handle_log_to_file() {
     }
 }   
 
+void core::MCAPLogger::_handle_param_log() {
+    std::chrono::seconds param_log_time(1);    
+    while(true) {
+        std::unique_lock lk(_param_mutex);
+        if(_param_cv.wait_for(lk, param_log_time, [this] { return !_logging; }) || !_running) {
+            spdlog::info("Logging stopped/logger is no longer running. Exiting...");
+            return;
+        }
+
+    }
+}
 

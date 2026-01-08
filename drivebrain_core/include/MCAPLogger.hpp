@@ -1,13 +1,15 @@
 #include <deque> 
 #include <thread> 
 #include <mutex> 
-#include <condition_variable> 
+#include <condition_variable>
 #include <atomic>
 #include <cassert>
 #include <queue> 
+#include <chrono>
 #include <mcap/writer.hpp>
 #include <google/protobuf/descriptor.pb.h>
 #include <foxglove/websocket/base64.hpp>
+#include <spdlog/spdlog.h>
 
 namespace core {
 
@@ -16,6 +18,8 @@ namespace core {
         std::string message_name;
         mcap::Timestamp log_time;
     };
+
+    using MsgType = std::shared_ptr<google::protobuf::Message>;
 
     class MCAPLogger {
         public: 
@@ -26,18 +30,29 @@ namespace core {
              * @param base_dir the directory in which the log file should be created
              * @param options options to create the mcap with 
              */
-            static void initialize(const std::string &base_dir, const mcap::McapWriterOptions &options);
+            static void create(const std::string &base_dir, const mcap::McapWriterOptions &options);
 
             /**
              * Fetches MCAPLogger singleton instance
              *
              * @retun MCAPLogger instance
              */
-            static MCAPLogger& get_instance();
+            static MCAPLogger& instance();
             
+            /**
+             * Destructs MCAPLogger instance, frees singleton instance and joins all running log threads
+             */
             ~MCAPLogger() {
+              spdlog::info("Destructing message logger");
+              _logging = false;
+              _running = false;
+
               _s_instance.store(nullptr, std::memory_order_release);
-              // TODO:  join logging thread, etc
+              spdlog::info("Msg logger singleton instance released");
+
+              _param_cv.notify_all();
+              if(_param_log_thread.joinable()) _param_log_thread.join();
+              if(_msg_log_thread.joinable()) _msg_log_thread.join();
             }
             
             /**
@@ -58,22 +73,44 @@ namespace core {
              * Adds params schema to allow for parameter logging
              * @return 0 on success, negative err code on failure
              */
-            // int add_params_schema();  TODO 
+            int add_params_schema();
 
             /**
-             * Logs a protobuf message 
+             * Fetches the current logger status
+             * @return A tuple containing the name of the file being logged to, and whether or not the logging process is active
+            */
+            std::tuple<std::string, bool> status();
+
+            /**
+             * Kicks off the message logging & param logging thread and begins writing to a log file.
+            */
+            void init_logging();
+
+            /**
+             * Stops logging to the current file.
+             * To not be confused with halting, which stops logging and running the MCAPLogger entirely.
+            */
+            void stop_logging();
+
+            /*
+             * Stops logging and running the MCAPLogger
+            */
+            void halt();
+
+            /**
+             * Logs a protobuf message to the current MCAP file
              * 
              * @param message the message to be logged
              * @return 0 on success, negative err code on failure
              */
-            int log_protobuf_message(std::shared_ptr<google::protobuf::Message> message); 
+            int log_msg(MsgType message); 
 
             /**
-             * Logs the json params. Doesn't need an input because the schema has already been created. 
+             * Logs the json params to the current MCAP file. Doesn't need an input because the schema has already been created. 
              * 
              * @return 0 on success, negative err code on failure
              */
-            // int log_params(); TODO
+            int log_params();
 
         private: 
           
@@ -86,22 +123,40 @@ namespace core {
              */
             void _handle_log_to_file();     
 
+            /**
+             * Spawned by thread, loops until end of program life or error occurs.
+             * Logs all active params.
+            */
+            void _handle_param_log();
+
             /* Singleton move semantics */
             MCAPLogger(const MCAPLogger&) = delete;
             MCAPLogger& operator=(const MCAPLogger&) = delete;
 
             /* Singleton instance */
             inline static std::atomic<MCAPLogger*> _s_instance;
-
+        
+            /* Message log management */
             std::deque<RawMessage_s> _input_buffer; 
             std::mutex _input_buffer_mutex;
             std::condition_variable _input_buffer_cv; 
+            std::thread _msg_log_thread;
+  
+            /* Param log management */
+            std::mutex _param_mutex;
+            std::condition_variable _param_cv;
+            std::thread _param_log_thread;
 
+            /* MCAP utilities */
             mcap::McapWriter _writer;   
             mcap::McapWriterOptions _options;
             
+            /* State */
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
+            std::string _log_name = "NONE";
+            bool _logging = false;
             bool _running = true;
+
     };
 
 }
