@@ -154,6 +154,7 @@ namespace core {
             /* State */
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             std::string _log_name = "NONE";
+            bool _param_schema_written = false;
             bool _logging = false;
             bool _running = true;
 

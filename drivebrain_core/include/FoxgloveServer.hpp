@@ -25,14 +25,14 @@ namespace core {
              * 
              * @param parameters_file the json containing parameters for putting on foxglove
              */
-            static void initialize(std::string &parameters_file);
+            static void create(const std::string &parameters_file);
 
             /**
              * Fetches Foxglove server singleton instance
              *
              * @retun FoxgloveServer instance
              */
-            static FoxgloveServer& get_instance();
+            static FoxgloveServer& instance();
             
             /**
              * Destructs the foxglove server instance by stopping the server. 
@@ -57,6 +57,7 @@ namespace core {
              * @param param_name name of the parameter the user wants to get
              * @return the parameter value
              */
+             // TODO: investigate the type conversion conflicts that arrise from this
             template <typename param_type> 
             param_type get_param(std::string param_name) {
                 std::unique_lock lock(_parameter_mutex); 

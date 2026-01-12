@@ -85,11 +85,12 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
     for (const auto &file_descriptor : descriptors) {
         for (int i = 1; i <= file_descriptor->message_type_count(); i++) {
             const google::protobuf::Descriptor *message_descriptor = file_descriptor->message_type(i);
-            _name_to_id_map[message_descriptor->name()] = i;
-            mcap::Schema schema(message_descriptor->full_name(), "protobuf", foxglove::base64Encode(serialize_fd_set(message_descriptor)));
+            mcap::Schema schema(message_descriptor->full_name(), "protobuf", serialize_fd_set(message_descriptor));
             _writer.addSchema(schema);
             mcap::Channel channel(message_descriptor->name(), "protobuf", schema.id);
             _writer.addChannel(channel);
+            _name_to_id_map[message_descriptor->name()] = channel.id;
+
         }
     }
 
