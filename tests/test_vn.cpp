@@ -19,10 +19,8 @@ using namespace vn::protocol::uart;
 
 std::chrono::time_point<std::chrono::high_resolution_clock> init = {};
 
-void validPacketFoundHandler(void *userData, vn::protocol::uart::Packet &packet, size_t runningIndexOfPacketStart, TimeStamp ts)
-{
-    if (packet.type() == vn::protocol::uart::Packet::TYPE_BINARY)
-    {
+void validPacketFoundHandler(void *userData, vn::protocol::uart::Packet &packet, size_t runningIndexOfPacketStart, TimeStamp ts) {
+    if (packet.type() == vn::protocol::uart::Packet::TYPE_BINARY) {
         vn::math::vec3f vel;
         // See if this is a binary packet type we are expecting.
         if (!packet.isCompatible((CommonGroup::COMMONGROUP_YAWPITCHROLL | CommonGroup::COMMONGROUP_ANGULARRATE), // Note use of binary OR to configure flags.
@@ -31,8 +29,7 @@ void validPacketFoundHandler(void *userData, vn::protocol::uart::Packet &packet,
                                  GpsGroup::GPSGROUP_NONE,
                                  AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY,
                                  (InsGroup::INSGROUP_INSSTATUS | InsGroup::INSGROUP_POSLLA | InsGroup::INSGROUP_VELBODY),
-                                 GpsGroup::GPSGROUP_NONE))
-        {
+                                 GpsGroup::GPSGROUP_NONE)) {
             // Not the type of binary packet we are expecting.
             std::cout << "ERROR: packet is not what we want" << std::endl;
             return;
@@ -66,23 +63,17 @@ void validPacketFoundHandler(void *userData, vn::protocol::uart::Packet &packet,
 
         std::cout << "dt ms: " << millis << std::endl;
         init = curr;
-    }
-    else
-    {
+    } else {
         std::cout << "packet not correct" << std::endl;
     }
 }
 
-void readData(SerialPort &m_serial, boost::array<std::uint8_t, 512> &m_inputBuf, vn::protocol::uart::PacketFinder &processor)
-{
+void readData(SerialPort &m_serial, boost::array<std::uint8_t, 512> &m_inputBuf, vn::protocol::uart::PacketFinder &processor) {
     m_serial.async_read_some(
         boost::asio::buffer(m_inputBuf),
-        [&](const boost::system::error_code &ec, std::size_t bytesCount)
-        {
-            if (ec)
-            {
-                if (ec != boost::asio::error::operation_aborted)
-                {
+        [&](const boost::system::error_code &ec, std::size_t bytesCount) {
+            if (ec) {
+                if (ec != boost::asio::error::operation_aborted) {
                     std::cerr << "ERROR: " << ec.message() << std::endl;
                 }
                 return;
@@ -94,8 +85,7 @@ void readData(SerialPort &m_serial, boost::array<std::uint8_t, 512> &m_inputBuf,
         });
 }
 
-void write_data(SerialPort &m_serial, boost::array<std::uint8_t, 512> &m_outputBuf)
-{
+void write_data(SerialPort &m_serial, boost::array<std::uint8_t, 512> &m_outputBuf) {
     boost::array<std::uint8_t, 512> m_inputBuf;
 
     // Generate binary output data to write
@@ -114,32 +104,25 @@ void write_data(SerialPort &m_serial, boost::array<std::uint8_t, 512> &m_outputB
         GpsGroup::GPSGROUP_NONE);
 
     // Perform another blocking write
-    try
-    {
+    try {
         std::size_t bytes_written = boost::asio::write(m_serial, boost::asio::buffer(m_outputBuf.data(), numOfBytes));
         std::cout << "Successfully sent " << bytes_written << " bytes.\n";
-    }
-    catch (const boost::system::system_error &e)
-    {
+    } catch (const boost::system::system_error &e) {
         std::cerr << "Error sending data: " << e.what() << "\n";
     }
 
     // Perform another blocking read
-    try
-    {
+    try {
         std::size_t bytes_read = m_serial.read_some(boost::asio::buffer(m_inputBuf));
         // Process the received data
         // processor.processReceivedData((char *)(m_inputBuf.data()), bytes_read);
         std::cout <<"read"<<std::endl;
-    }
-    catch (const boost::system::system_error &e)
-    {
+    } catch (const boost::system::system_error &e) {
         std::cerr << "Error reading data: " << e.what() << "\n";
     }
 }
 
-int main()
-{
+int main() {
     vn::protocol::uart::PacketFinder processor;
     processor.registerPossiblePacketFoundHandler(nullptr, validPacketFoundHandler);
     boost::asio::io_service io;
@@ -148,8 +131,7 @@ int main()
     std::string dev = "/dev/ttyUSB0";
     m_serial.open(dev, ec);
 
-    if (ec)
-    {
+    if (ec) {
         std::cerr << "ERROR: Failed to open " << dev << std::endl;
         return 1;
     }

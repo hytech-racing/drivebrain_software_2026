@@ -17,8 +17,7 @@
 namespace comms
 {
 
-    bool VNDriver::init()
-    {
+    bool VNDriver::init() {
         // Try to establish a connection to the driver
         spdlog::info("Opening vn driver.");
         auto device_name = get_parameter_value<std::string>("device_name");
@@ -32,8 +31,7 @@ namespace comms
 
         auto ec_ret = _serial.open(device_name.value(), ec);
 
-        if (ec)
-        {
+        if (ec) {
             spdlog::warn("Error: {}", ec.message());
             spdlog::info("failed to open vectornav serial port");
             return false;
@@ -57,27 +55,23 @@ namespace comms
     VNDriver::VNDriver(core::JsonFileHandler &json_file_handler, std::shared_ptr<core::StateEstimator> state_estimator, boost::asio::io_context& io, bool &init_not_successful)
         : core::common::Configurable(json_file_handler, "VNDriver"),
           _state_estimator(state_estimator),
-          _serial(io)
-    {
+          _serial(io) {
         init_not_successful = !init();
 
         // Starts read
-        if(!init_not_successful)
-        {
+        if(!init_not_successful) {
             spdlog::info("Starting vn driver recieve.");
             _start_recieve();
         }
         
     }
 
-    void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg)
-    {
+    void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg) {
         _state_estimator->handle_recv_process(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
         this->log(msg);
     }
 
-    void VNDriver::_configure_binary_outputs()
-    {
+    void VNDriver::_configure_binary_outputs() {
 
         auto num_of_bytes = Packet::genWriteBinaryOutput1(
             ErrorDetectionMode::ERRORDETECTIONMODE_NONE,
@@ -95,24 +89,18 @@ namespace comms
 
         boost::asio::async_write(_serial,
                                  boost::asio::buffer(_output_buff.data(), num_of_bytes),
-                                 [](const boost::system::error_code &ec, std::size_t bytes_transferred)
-                                 {
-                                     if (!ec)
-                                     {
+                                 [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
+                                     if (!ec) {
                                          spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
-                                     }
-                                     else
-                                     {
+                                     } else {
                                          spdlog::error("Error sending data: {}", ec.message());
                                      }
                                  });
     }
 
-    void VNDriver::_handle_recieve(void *userData, vn::protocol::uart::Packet &packet, size_t runningIndexOfPacketStart, TimeStamp ts)
-    {
+    void VNDriver::_handle_recieve(void *userData, vn::protocol::uart::Packet &packet, size_t runningIndexOfPacketStart, TimeStamp ts) {
         auto this_instance = (VNDriver *)userData;
-        if (packet.type() == vn::protocol::uart::Packet::TYPE_BINARY)
-        {
+        if (packet.type() == vn::protocol::uart::Packet::TYPE_BINARY) {
             vn::math::vec3f vel;
             // See if this is a binary packet type we are expecting.
             if (!packet.isCompatible((CommonGroup::COMMONGROUP_YAWPITCHROLL | CommonGroup::COMMONGROUP_ANGULARRATE), // Note use of binary OR to configure flags.
@@ -121,8 +109,7 @@ namespace comms
                                      GpsGroup::GPSGROUP_NONE,
                                      AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY,
                                      (InsGroup::INSGROUP_INSSTATUS | InsGroup::INSGROUP_POSLLA | InsGroup::INSGROUP_VELBODY | InsGroup::INSGROUP_VELU),
-                                     GpsGroup::GPSGROUP_NONE))
-            {
+                                     GpsGroup::GPSGROUP_NONE)) {
                 spdlog::warn("ERROR: packet is not what we want");
                 return;
             }
@@ -181,23 +168,18 @@ namespace comms
             vn_ins_msg->set_ins_vel_u(vel_uncertainty);
 
             this_instance->log_proto_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg_out));
-        }
-        else
-        {
+        } else {
             spdlog::warn("Packet not correct");
         }
     }
 
-    void VNDriver::_start_recieve()
-    {
+    void VNDriver::_start_recieve() {
         _serial.async_read_some(
             boost::asio::buffer(_input_buff),
             [&](const boost::system::error_code &ec, std::size_t bytesCount) -> void
             {
-                if (ec)
-                {
-                    if (ec != boost::asio::error::operation_aborted)
-                    {
+                if (ec) {
+                    if (ec != boost::asio::error::operation_aborted) {
                         spdlog::error("ERROR: {}", ec.message());
                     }
                     return;
