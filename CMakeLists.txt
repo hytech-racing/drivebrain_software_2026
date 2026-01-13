@@ -45,10 +45,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(HT_CAN)
 
 FetchContent_Declare(
-    drivebrain_simulink_models
-    URL "https://github.com/hytech-racing/drivebrain_simulink_models/releases/download/rel22/gen_rel.tar.gz"
+    simulink_proto
+    URL "https://github.com/hytech-racing/drivebrain_simulink_models/releases/download/rel30/proto_outputs.tar.gz"
 )
-FetchContent_MakeAvailable(drivebrain_simulink_models)
+FetchContent_MakeAvailable(simulink_proto)
+
+FetchContent_Declare(
+    simulink_codegen
+    URL "https://github.com/hytech-racing/drivebrain_simulink_models/releases/download/rel30/codegen_outputs.tar.gz"
+)
+FetchContent_MakeAvailable(simulink_codegen)
 
 #################################
 # Linking to main app
@@ -60,7 +66,6 @@ add_executable(drivebrain
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
 
 target_link_libraries(drivebrain PUBLIC 
-    codegen::matlab_model
     foxglove-websocket::foxglove-websocket 
     mcap::mcap
     protobuf::libprotobuf 
@@ -68,4 +73,5 @@ target_link_libraries(drivebrain PUBLIC
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
+    simulink_automation_msgs_proto_cpp
 )
