@@ -32,7 +32,6 @@ comms::CANComms::CANComms(const std::string &device_name, const std::string &dbc
 }
 
 void comms::CANComms::send_message(std::shared_ptr<google::protobuf::Message> message) {
-
     can_frame frame{};
     int return_code = _encode_can_frame(message, &frame);
     if (return_code < 0) {
@@ -93,6 +92,8 @@ void comms::CANComms::_receive_handler() {
         }
 
         std::shared_ptr<google::protobuf::Message> dmsg = _decode_can_frame(_frame);
+
+        // TODO log to state tracker or whatever here
     }
 }
 
