@@ -41,12 +41,6 @@ class CANComms {
 
     private: 
 
-
-        /**
-         * Returns an empty protobuf message, given the name.
-         */
-        std::shared_ptr<google::protobuf::Message> _get_proto_message_from_name(const std::string& name);
-
         /**
          * Receives and unpacks a can frame. 
          */

@@ -3,12 +3,26 @@
 /****************************************************************
  * HELPER METHODS
  ****************************************************************/
-std::string string_to_lowercase(std::string input_string) {
+static std::string string_to_lowercase(std::string input_string) {
     std::transform(input_string.begin(), input_string.end(), input_string.begin(),
                    [](unsigned char c){ return std::tolower(c); });
 
     return input_string;
 }
+
+static std::shared_ptr<google::protobuf::Message> comms::CANComms::get_proto_message_from_name(const std::string &name) {
+    std::shared_ptr<google::protobuf::Message> proto_message; 
+    const google::protobuf::Descriptor *desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName("hytech." + name);
+    if (!desc) {
+        return nullptr;
+    }
+    proto_message.reset(google::protobuf::MessageFactory::generated_factory()->GetPrototype(desc)->New());
+    if (!proto_message) {
+        return nullptr;
+    }
+    return proto_message;
+}
+
 
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
@@ -82,20 +96,6 @@ void comms::CANComms::_receive_handler() {
     }
 }
 
-std::shared_ptr<google::protobuf::Message> comms::CANComms::_get_proto_message_from_name(const std::string &name) {
-    std::shared_ptr<google::protobuf::Message> proto_message; 
-    const google::protobuf::Descriptor *desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName("hytech." + name);
-    if (!desc) {
-        return nullptr;
-    }
-    proto_message.reset(google::protobuf::MessageFactory::generated_factory()->GetPrototype(desc)->New());
-    if (!proto_message) {
-        return nullptr;
-    }
-    return proto_message;
-}
-
-
 std::shared_ptr<google::protobuf::Message> comms::CANComms::_decode_can_frame(struct can_frame &frame) {
     const dbcppp::IMessage* dbc_msg = _messages[frame.can_id];
     
@@ -103,7 +103,7 @@ std::shared_ptr<google::protobuf::Message> comms::CANComms::_decode_can_frame(st
         return nullptr; 
     }
 
-    std::shared_ptr<google::protobuf::Message> proto_message = _get_proto_message_from_name(string_to_lowercase(dbc_msg->Name()));
+    std::shared_ptr<google::protobuf::Message> proto_message = get_proto_message_from_name(string_to_lowercase(dbc_msg->Name()));
     if (proto_message == nullptr) {
         return nullptr;
     }
