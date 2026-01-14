@@ -34,4 +34,4 @@ jobs:
 
       - name: Build 
         run: |  
-          ./build_script.sh
+          ls
