@@ -18,6 +18,7 @@ jobs:
           docker push kkittur/drivebrain_cross_compile:latest
 
   build-executable: 
+    needs: publish-image
     runs-on: ubuntu-latest
     steps: 
       - name: Pull from container registry
