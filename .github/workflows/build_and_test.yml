@@ -3,7 +3,7 @@ on:
   push
 
 jobs: 
-  publish_images: 
+  publish-image: 
     runs-on: ubuntu-latest
     steps: 
       - name: Checkout 
@@ -16,3 +16,17 @@ jobs:
         run: | 
           docker push kkittur/drivebrain_cross_compile:latest
 
+  build-executable: 
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Pull from container registry
+        run: |
+          docker pull kkittur/drivebrain_cross_compile:latest
+
+      - name: Enter container 
+        run: |  
+          docker compose run dev
+
+      - name: Build 
+        run: |  
+          ./build_script.sh
