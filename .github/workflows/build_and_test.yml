@@ -14,13 +14,16 @@ jobs:
 
       - name: push image to docker Hub
         run: | 
-          docker login -u kkittur -p {{ secrets.DOCKER_HUB_TOKEN }}
+          docker login -u kkittur -p ${{ secrets.DOCKER_HUB_TOKEN }}
           docker push kkittur/drivebrain_cross_compile:latest
 
   build-executable: 
     needs: publish-image
     runs-on: ubuntu-latest
     steps: 
+      - name: Checkout 
+        uses: actions/checkout@v4
+
       - name: Pull from container registry
         run: |
           docker pull kkittur/drivebrain_cross_compile:latest
