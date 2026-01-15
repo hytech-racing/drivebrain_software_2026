@@ -50,7 +50,8 @@ FetchContent_MakeAvailable(HT_CAN)
 # Linking to main app
 #################################
 add_executable(drivebrain
-    drivebrain_app/src/main.cpp
+    # drivebrain_app/src/main.cpp
+    drivebrain_simple_hil_test/src/test_can_comms.cpp
 )
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
