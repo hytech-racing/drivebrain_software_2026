@@ -1,0 +1,33 @@
+name: Build and publish image to Docker Hub
+on: 
+  push
+
+jobs: 
+  publish-image: 
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout 
+        uses: actions/checkout@v4
+      
+      - name: Build image
+        run: docker build -t kkittur/drivebrain_cross_compile:latest .
+
+      - name: push image to docker Hub
+        run: | 
+          docker login -u kkittur -p ${{ secrets.DOCKER_HUB_TOKEN }}
+          docker push kkittur/drivebrain_cross_compile:latest
+
+  build-executable: 
+    needs: publish-image
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout 
+        uses: actions/checkout@v4
+
+      - name: Pull from container registry
+        run: |
+          docker pull kkittur/drivebrain_cross_compile:latest
+
+      - name: Enter container and build
+        run: | 
+          docker compose run --rm dev ./build_script.sh
