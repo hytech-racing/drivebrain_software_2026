@@ -46,6 +46,21 @@ static std::string SerializeFdSet(const google::protobuf::Descriptor *toplevelDe
     return fdSet.SerializeAsString();
 }
 
+void core::FoxgloveServer::create(const std::string &parameters_file) {
+    FoxgloveServer* expected = nullptr;
+    FoxgloveServer* local = new FoxgloveServer(parameters_file);
+    if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+        // Already initialized, delete local instance
+        delete local;
+    }
+}
+
+core::FoxgloveServer& core::FoxgloveServer::instance() {
+    FoxgloveServer* instance = _s_instance.load(std::memory_order_acquire);
+    assert(instance != nullptr && "Foxglove server has not been initialized");
+    return *instance;
+}
+
 core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     // Read params data

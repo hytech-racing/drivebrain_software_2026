@@ -1,3 +1,6 @@
+#include <atomic>
+#include <mutex>
+#include <stdexcept>
 #define MCAP_IMPLEMENTATION
 
 #include <MCAPLogger.hpp>
@@ -43,11 +46,28 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
     }
     return fdSet.SerializeAsString();
 }
+
+static std::string create_log_name() {
+    
+}
  
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) : _options(options) {
+
+void core::MCAPLogger::create(const std::string &base_dir, const mcap::McapWriterOptions &options) {
+    MCAPLogger* expected = nullptr;
+    MCAPLogger* local = new MCAPLogger(base_dir, options);
+    if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+        // Already initialized, delete local instance
+        delete local;
+    }
+}
+
+core::MCAPLogger& core::MCAPLogger::instance() {
+    MCAPLogger* instance = _s_instance.load(std::memory_order_acquire);
+    assert(instance != nullptr && "MCAPLogger has not been initialized");
+    return *instance;
 }
 
 int core::MCAPLogger::open_new_mcap(const std::string &name) {
@@ -65,11 +85,12 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
     for (const auto &file_descriptor : descriptors) {
         for (int i = 1; i <= file_descriptor->message_type_count(); i++) {
             const google::protobuf::Descriptor *message_descriptor = file_descriptor->message_type(i);
-            _name_to_id_map[message_descriptor->name()] = i;
-            mcap::Schema schema(message_descriptor->full_name(), "protobuf", foxglove::base64Encode(serialize_fd_set(message_descriptor)));
+            mcap::Schema schema(message_descriptor->full_name(), "protobuf", serialize_fd_set(message_descriptor));
             _writer.addSchema(schema);
             mcap::Channel channel(message_descriptor->name(), "protobuf", schema.id);
             _writer.addChannel(channel);
+            _name_to_id_map[message_descriptor->name()] = channel.id;
+
         }
     }
 
@@ -84,7 +105,16 @@ int core::MCAPLogger::close_active_mcap() {
     return 0;
 }
 
-int core::MCAPLogger::log_protobuf_message(std::shared_ptr<google::protobuf::Message> message) {
+void core::MCAPLogger::init_logging() {
+    _msg_log_thread = std::thread([this]() { _handle_log_to_file(); });
+    spdlog::info("Msg log thread spawned");
+    _param_log_thread = std::thread([this]() { _handle_param_log(); });
+    spdlog::info("Param log thread spawned");
+
+    _logging = true;
+}
+
+int core::MCAPLogger::log_msg(core::MsgType message) {
     mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     RawMessage_s new_message; 
     new_message.log_time = log_time;
@@ -102,6 +132,10 @@ int core::MCAPLogger::log_protobuf_message(std::shared_ptr<google::protobuf::Mes
 /****************************************************************
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
+core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) : _options(options) {
+    // TODO: spawn logging thread
+}
+
 void core::MCAPLogger::_handle_log_to_file() {
     static std::deque<RawMessage_s> write_buffer; // The buffer to be copied over to
     
@@ -131,4 +165,15 @@ void core::MCAPLogger::_handle_log_to_file() {
     }
 }   
 
+void core::MCAPLogger::_handle_param_log() {
+    std::chrono::seconds param_log_time(1);    
+    while(true) {
+        std::unique_lock lk(_param_mutex);
+        if(_param_cv.wait_for(lk, param_log_time, [this] { return !_logging; }) || !_running) {
+            spdlog::info("Logging stopped/logger is no longer running. Exiting...");
+            return;
+        }
+
+    }
+}
 

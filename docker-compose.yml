@@ -1,0 +1,14 @@
+services:
+  dev:
+    image: kkittur/drivebrain_cross_compile
+    volumes:
+      - conan-cache:/root/.conan2
+      - ./:/app
+    working_dir: /app
+    tty: true
+    stdin_open: true
+    command: ["/bin/bash"]
+    restart: "no"
+
+volumes:
+  conan-cache:

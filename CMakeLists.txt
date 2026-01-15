@@ -22,6 +22,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
+find_package(GTest REQUIRED)
 
 #################################
 # Upstreams (non-conan)
