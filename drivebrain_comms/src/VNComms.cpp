@@ -52,9 +52,9 @@ namespace comms
         return true;
     }
 
-    VNDriver::VNDriver(core::JsonFileHandler &json_file_handler, std::shared_ptr<core::StateEstimator> state_estimator, boost::asio::io_context& io, bool &init_not_successful)
+    VNDriver::VNDriver(core::JsonFileHandler &json_file_handler, std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context& io, bool &init_not_successful)
         : core::common::Configurable(json_file_handler, "VNDriver"),
-          _state_estimator(state_estimator),
+          _state_tracker(state_tracker),
           _serial(io) {
         init_not_successful = !init();
 
@@ -67,7 +67,7 @@ namespace comms
     }
 
     void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg) {
-        _state_estimator->handle_recv_process(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
+        _state_tracker->handle_recv_process(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
         this->log(msg);
     }
 

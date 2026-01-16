@@ -2,7 +2,7 @@
 
 #include <Configurable.hpp>
 #include <Loggable.hpp>
-#include <StateEstimator.hpp>
+#include <StateTracker.hpp>
 
 // protobuf
 #include <google/protobuf/any.pb.h>
@@ -41,7 +41,7 @@ namespace comms {
                      public core::common::Configurable
     {
         public:
-            VNDriver(core::JsonFileHandler &json_file_handler, std::shared_ptr<core::StateEstimator> state_estimator, boost::asio::io_context &io_context, bool &init_successful); 
+            VNDriver(core::JsonFileHandler &json_file_handler, std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context &io_context, bool &init_successful); 
             ~VNDriver() {
                 spdlog::info("destructed %s", this->get_name());
             }
@@ -52,7 +52,7 @@ namespace comms {
             };
 
         private: 
-            std::shared_ptr<core::StateEstimator> _state_estimator;
+            std::shared_ptr<core::StateTracker> _state_tracker;
 
 
             vn::protocol::uart::PacketFinder _processor;
