@@ -1,4 +1,5 @@
 #ifndef ETHERNET_RECEIVE_COMMS_H
+
 #define ETHERNET_RECEIVE_COMMS_H
 
 #include <foxglove/websocket/base64.hpp>
@@ -11,6 +12,8 @@
 #include <string> 
 #include <fstream> 
 #include <thread>
+#include <atomic>
+#include <cassert>
 
 #include "hytech_msgs.pb.h"
 
@@ -18,12 +21,19 @@ namespace core {
     class FoxgloveServer {
         public: 
             /**
-             * Instantiates the foxglove server instance
+             *  Initialzes a new Foxglove server singleton instance 
              * 
              * @param parameters_file the json containing parameters for putting on foxglove
              */
-            FoxgloveServer(std::string parameters_file);
+            static void create(const std::string &parameters_file);
 
+            /**
+             * Fetches Foxglove server singleton instance
+             *
+             * @retun FoxgloveServer instance
+             */
+            static FoxgloveServer& instance();
+            
             /**
              * Destructs the foxglove server instance by stopping the server. 
              */
@@ -31,7 +41,7 @@ namespace core {
                 _server->stop(); 
                 std::cout << "Destructed and stopped foxglove websocket server" << std::endl; 
             }
-
+            
             /**
              * Sends a protobuf to be viewed in foxglove. 
              * broadcastMessage() is thread safe so this method can be called
@@ -47,6 +57,7 @@ namespace core {
              * @param param_name name of the parameter the user wants to get
              * @return the parameter value
              */
+             // TODO: investigate the type conversion conflicts that arrise from this
             template <typename param_type> 
             param_type get_param(std::string param_name) {
                 std::unique_lock lock(_parameter_mutex); 
@@ -57,12 +68,19 @@ namespace core {
                 
                 return _foxglove_params_map.at(param_name).getValue<param_type>();
             }
-            
 
         private: 
+            FoxgloveServer(std::string parameters_file);
+
+            /* Singleton move semantics */
+            FoxgloveServer(const FoxgloveServer&) = delete;
+            FoxgloveServer& operator=(const FoxgloveServer&) = delete;
+
+            /* Singleton instance */
+            inline static std::atomic<FoxgloveServer*> _s_instance;
+
             std::unordered_map<std::string, foxglove::ParameterValue> _foxglove_params_map; 
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
-            
             
             std::unique_ptr<foxglove::ServerInterface<websocketpp::connection_hdl>> _server;
             foxglove::ServerOptions _server_options;

@@ -7,13 +7,13 @@
 class MCAPLoggerTest : public testing::Test {
 
 protected:
-  core::FoxgloveServer server;
 
-  MCAPLoggerTest()
-   : server(std::string(TEST_CONFIG_DIR) + "/fake_foxglove_params.json") {};
+  MCAPLoggerTest() {
+    core::FoxgloveServer::create(TEST_CONFIG_DIR + std::string("/fake_foxglove_params.json"));
+   };
 };
 
 TEST_F(MCAPLoggerTest, ParamFetch) {
-  ASSERT_EQ(server.get_param<int64_t>("rpm_limit"), 10000);
-  ASSERT_EQ(server.get_param<bool>("enable_logging"), true);
+  ASSERT_EQ(core::FoxgloveServer::instance().get_param<int64_t>("rpm_limit"), 10000);
+  ASSERT_EQ(core::FoxgloveServer::instance().get_param<bool>("enable_logging"), true);
 }

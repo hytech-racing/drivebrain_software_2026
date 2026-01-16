@@ -12,7 +12,7 @@ This guide explains how to build the DriveBrain Software 2026 using the provided
 ## 0. Build the dockerfile (you only need to do this once)
 Run the following command to build the dockerfile: 
 ```
-docker build -t rpi-cross-compile .
+docker build -t kkittur/drivebrain_cross_compile .
 ```
 It may take a few minutes. 
 
@@ -33,7 +33,7 @@ docker run -it \
   --memory=16g \
   --cpus=4 \ 
   -w /app \
-  rpi-cross-compile /bin/bash 
+  kkittur/drivebrain_cross_compile /bin/bash 
 ```
 and pass in whatever flags you see fit. 
 
