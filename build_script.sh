@@ -10,7 +10,7 @@ if [ "$1" = "--test" ]; then
 fi
 
 rm -rf .venv
-rm -rf "$build_folder"
+# rm -rf "$build_folder"
 rm -rf cmake
 
 python3 -m venv .venv
@@ -46,3 +46,6 @@ make -j
 if [ "$1" = "--test" ]; then
   ctest --rerun-failed --output-on-failure
 fi
+
+cd ..
+ln -sf "$build_folder"/compile_commands.json compile_commands.json
