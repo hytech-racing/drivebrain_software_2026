@@ -9,6 +9,7 @@
 #include <mcap/writer.hpp>
 #include <google/protobuf/descriptor.pb.h>
 #include <foxglove/websocket/base64.hpp>
+#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace core {
@@ -30,7 +31,7 @@ namespace core {
              * @param base_dir the directory in which the log file should be created
              * @param options options to create the mcap with 
              */
-            static void create(const std::string &base_dir, const mcap::McapWriterOptions &options);
+            static void create(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file);
 
             /**
              * Fetches MCAPLogger singleton instance
@@ -115,7 +116,7 @@ namespace core {
         private: 
           
             /* Private constructor to be called by init method */
-            MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options);
+            MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file);
 
             /**
              * Spawned by thread, loops until end of program life or error occurs. 
@@ -154,7 +155,6 @@ namespace core {
             /* State */
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             std::string _log_name = "NONE";
-            bool _param_schema_written = false;
             bool _logging = false;
             bool _running = true;
 

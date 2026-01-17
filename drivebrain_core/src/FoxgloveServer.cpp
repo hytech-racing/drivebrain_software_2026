@@ -110,17 +110,14 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
     {
-
+        std::unique_lock lock(_parameter_mutex);
         std::unordered_map<std::string, foxglove::ParameterValue> params_map; 
 
         for (const auto &param_to_change : params) {
-            params_map[param_to_change.getName()] = param_to_change.getValue();
+            _foxglove_params_map[param_to_change.getName()] = param_to_change.getValue();
+            std::cout << param_to_change.getName() << std::endl;
         }
         
-        {
-            std::unique_lock lock(_parameter_mutex); 
-            _foxglove_params_map = std::move(params_map); 
-        }
     };
 
     hdlrs.parameterRequestHandler = [this](const std::vector<std::string> &param_names, const std::optional<std::string> &request_id,
@@ -136,6 +133,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     auto descriptors = get_pb_descriptors({"hytech_msgs.proto"});
     std::vector<foxglove::ChannelWithoutId> channels;
+
 
     for (const auto &file_descriptor : descriptors) {
 

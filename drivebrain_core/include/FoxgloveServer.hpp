@@ -1,6 +1,4 @@
-#ifndef ETHERNET_RECEIVE_COMMS_H
-
-#define ETHERNET_RECEIVE_COMMS_H
+#pragma once
 
 #include <foxglove/websocket/base64.hpp>
 #include <foxglove/websocket/websocket_notls.hpp>
@@ -8,6 +6,7 @@
 #include <foxglove/websocket/server_factory.hpp>
 #include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/util/time_util.h>
+#include <boost/signals2.hpp>
 #include <vector> 
 #include <string> 
 #include <fstream> 
@@ -52,12 +51,17 @@ namespace core {
             void send_live_telem_msg(std::shared_ptr<google::protobuf::Message> msg);
 
             /**
+             * Returns all the current parameter values in a JSON format. Mostly used to log the current parameters in an MCAP file
+            */
+            nlohmann::json get_all_params();
+
+            /**
              * Thread-safe method to get a foxglove param
              * 
              * @param param_name name of the parameter the user wants to get
              * @return the parameter value
              */
-             // TODO: investigate the type conversion conflicts that arrise from this
+             // TODO: investigate the type conversion conflicts that arrise from this (i.e. int64_t vs plain int)
             template <typename param_type> 
             param_type get_param(std::string param_name) {
                 std::unique_lock lock(_parameter_mutex); 
@@ -79,6 +83,8 @@ namespace core {
             /* Singleton instance */
             inline static std::atomic<FoxgloveServer*> _s_instance;
 
+            // boost::signals2::
+
             std::unordered_map<std::string, foxglove::ParameterValue> _foxglove_params_map; 
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             
@@ -89,4 +95,3 @@ namespace core {
     };
 }
 
-#endif // ETHERNET_RECEIVE_COMMS_H

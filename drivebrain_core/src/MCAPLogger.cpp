@@ -1,7 +1,8 @@
+#define MCAP_IMPLEMENTATION
 #include <atomic>
 #include <mutex>
 #include <stdexcept>
-#define MCAP_IMPLEMENTATION
+#include <fstream>
 
 #include <MCAPLogger.hpp>
 
@@ -55,9 +56,9 @@ static std::string create_log_name() {
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
 
-void core::MCAPLogger::create(const std::string &base_dir, const mcap::McapWriterOptions &options) {
+void core::MCAPLogger::create(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) {
     MCAPLogger* expected = nullptr;
-    MCAPLogger* local = new MCAPLogger(base_dir, options);
+    MCAPLogger* local = new MCAPLogger(base_dir, options, params_file);
     if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
         // Already initialized, delete local instance
         delete local;
@@ -132,7 +133,17 @@ int core::MCAPLogger::log_msg(core::MsgType message) {
 /****************************************************************
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) : _options(options) {
+core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) : _options(options) {
+    // get param schema
+    std::fstream raw_param_file(params_file);
+    nlohmann::json params_schema_json = nlohmann::json::parse(raw_param_file);    
+
+    mcap::Schema config_schema("drivebrain_configuration", "jsonschema", (params_schema_json).dump());
+    _writer.addSchema(config_schema);
+    mcap::Channel config_channel("drivebrain_configuration", "json", config_schema.id);
+    _writer.addChannel(config_channel);
+    _name_to_id_map["drivebrain_configuration"] = config_channel.id;
+
     // TODO: spawn logging thread
 }
 
