@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Configurable.hpp>
-#include <Loggable.hpp>
 #include <StateTracker.hpp>
 
 // protobuf
@@ -30,20 +28,19 @@
 #include "libvncxx/vntime.h"
 #include "libvncxx/packetfinder.h"
 #include "libvncxx/packet.h"
+#include <spdlog/spdlog.h>
 
 using namespace vn::xplat;
 using namespace vn::protocol::uart;
 using SerialPort = boost::asio::serial_port;
-using loggertype = core::MsgLogger<std::shared_ptr<google::protobuf::Message>>;
 
 namespace comms {
-    class VNDriver : public core::common::Loggable<std::shared_ptr<google::protobuf::Message>>,
-                     public core::common::Configurable
+    class VNDriver
     {
         public:
-            VNDriver(core::JsonFileHandler &json_file_handler, std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context &io_context, bool &init_successful); 
+            VNDriver(std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context &io_context, bool &init_successful); 
             ~VNDriver() {
-                spdlog::info("destructed %s", this->get_name());
+                spdlog::info("destructed %s");
             }
             bool init();
             struct config {

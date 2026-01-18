@@ -20,16 +20,16 @@ namespace comms
     bool VNDriver::init() {
         // Try to establish a connection to the driver
         spdlog::info("Opening vn driver.");
-        auto device_name = get_parameter_value<std::string>("device_name");
-        _config.baud_rate = get_parameter_value<int>("baud_rate").value();
-        _config.freq_divisor = get_parameter_value<int>("freq_divisor").value();
-        auto port = get_parameter_value<int>("port");
+        // auto device_name = get_parameter_value<std::string>("device_name");
+        // _config.baud_rate = get_parameter_value<int>("baud_rate").value();
+        // _config.freq_divisor = get_parameter_value<int>("freq_divisor").value();
+        // auto port = get_parameter_value<int>("port");
 
         _processor.registerPossiblePacketFoundHandler(this, &VNDriver::_handle_recieve);
         
         boost::system::error_code ec;
 
-        auto ec_ret = _serial.open(device_name.value(), ec);
+        // auto ec_ret = _serial.open(device_name.value(), ec);
 
         if (ec) {
             spdlog::warn("Error: {}", ec.message());
@@ -38,7 +38,7 @@ namespace comms
         }
 
         // Set the baud rate of the device along with other configs
-        _serial.set_option(SerialPort::baud_rate(_config.baud_rate));
+        // _serial.set_option(SerialPort::baud_rate(_config.baud_rate));
         _serial.set_option(SerialPort::character_size(8));
         _serial.set_option(SerialPort::parity(SerialPort::parity::none));
         _serial.set_option(SerialPort::stop_bits(SerialPort::stop_bits::one));
@@ -48,13 +48,11 @@ namespace comms
         spdlog::info("Configuring binary outputs.");
         _configure_binary_outputs();
 
-        set_configured();
         return true;
     }
 
-    VNDriver::VNDriver(core::JsonFileHandler &json_file_handler, std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context& io, bool &init_not_successful)
-        : core::common::Configurable(json_file_handler, "VNDriver"),
-          _state_tracker(state_tracker),
+    VNDriver::VNDriver(std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context& io, bool &init_not_successful)
+        : _state_tracker(state_tracker),
           _serial(io) {
         init_not_successful = !init();
 
@@ -67,8 +65,7 @@ namespace comms
     }
 
     void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg) {
-        _state_tracker->handle_recv_process(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
-        this->log(msg);
+        _state_tracker->handle_receive_protobuf_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
     }
 
     void VNDriver::_configure_binary_outputs() {
