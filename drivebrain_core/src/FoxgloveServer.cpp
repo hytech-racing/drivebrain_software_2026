@@ -1,5 +1,6 @@
 #include <FoxgloveServer.hpp>
 #include <boost/signals2/connection.hpp>
+#include <foxglove/websocket/parameter.hpp>
 
 static uint64_t nanosecondsSinceEpoch() {
     return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -112,16 +113,15 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
     hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
     {
 
-        // TODO: use std::move so that this doesnt lock for as long
-        std::unique_lock lock(_parameter_mutex);
-        std::unordered_map<std::string, foxglove::ParameterValue> params_map; 
-
-        for (const auto &param_to_change : params) {
-            _foxglove_params_map[param_to_change.getName()] = param_to_change.getValue();
-            std::cout << param_to_change.getName() << std::endl;
+        std::unordered_map<std::string, foxglove::ParameterValue> param_copy;
+        {
+            std::unique_lock lock(_parameter_mutex);
+            for (const auto &param_to_change : params) {
+                _foxglove_params_map[param_to_change.getName()] = param_to_change.getValue();
+            }
+            param_copy = _foxglove_params_map;
         }
-
-        _param_update_signal(_foxglove_params_map);
+        _param_update_signal(param_copy);
     };
 
     hdlrs.parameterRequestHandler = [this](const std::vector<std::string> &param_names, const std::optional<std::string> &request_id,
@@ -165,6 +165,29 @@ boost::signals2::connection core::FoxgloveServer::register_param_callback(std::f
     return _param_update_signal.connect(callback);
 }
 
+nlohmann::json core::FoxgloveServer::get_all_params() {
+    nlohmann::json params_json;
+    params_json["type"] = "object";
+    
+    for (const auto& [name, param_value] : _foxglove_params_map) {
+        auto type = param_value.getType();
+
+        if (type == foxglove::ParameterType::PARAMETER_BOOL) {
+            params_json[name] = param_value.getValue<bool>();
+        } 
+        else if (type == foxglove::ParameterType::PARAMETER_DOUBLE) {
+            params_json[name] = param_value.getValue<double>();
+        } 
+        else if (type == foxglove::ParameterType::PARAMETER_INTEGER) {
+            params_json[name] = param_value.getValue<int64_t>();
+        } 
+        else if (type == foxglove::ParameterType::PARAMETER_STRING) {
+            params_json[name] = param_value.getValue<std::string>();
+        }
+    }
+
+    return params_json;
+}
 void core::FoxgloveServer::send_live_telem_msg(std::shared_ptr<google::protobuf::Message> msg) {
     auto msg_chan_id = _name_to_id_map[msg->GetDescriptor()->name()];
     const auto serialized_msg = msg->SerializeAsString(); 

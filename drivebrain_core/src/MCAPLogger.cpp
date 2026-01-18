@@ -109,9 +109,6 @@ int core::MCAPLogger::close_active_mcap() {
 void core::MCAPLogger::init_logging() {
     _msg_log_thread = std::thread([this]() { _handle_log_to_file(); });
     spdlog::info("Msg log thread spawned");
-    _param_log_thread = std::thread([this]() { _handle_param_log(); });
-    spdlog::info("Param log thread spawned");
-
     _logging = true;
 }
 
@@ -176,15 +173,21 @@ void core::MCAPLogger::_handle_log_to_file() {
     }
 }   
 
-void core::MCAPLogger::_handle_param_log() {
-    std::chrono::seconds param_log_time(1);    
-    while(true) {
-        std::unique_lock lk(_param_mutex);
-        if(_param_cv.wait_for(lk, param_log_time, [this] { return !_logging; }) || !_running) {
-            spdlog::info("Logging stopped/logger is no longer running. Exiting...");
-            return;
-        }
 
+int core::MCAPLogger::log_params(nlohmann::json new_config) {
+    mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    RawMessage_s msg;
+    msg.log_time = log_time;
+    msg.serialized_data = new_config.dump();
+    msg.message_name = "drivebrain_configuration";
+
+    {
+        std::unique_lock lock(_input_buffer_mutex);
+        _input_buffer.push_back(std::move(msg));
+        _input_buffer_cv.notify_one();
     }
+
+    return 0;
 }
 

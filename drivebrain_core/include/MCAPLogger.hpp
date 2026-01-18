@@ -107,11 +107,12 @@ namespace core {
             int log_msg(MsgType message); 
 
             /**
-             * Logs the json params to the current MCAP file. Doesn't need an input because the schema has already been created. 
-             * 
+             * Logs the json params to the current MCAP file
+             *
+
              * @return 0 on success, negative err code on failure
              */
-            int log_params();
+            int log_params(nlohmann::json new_config);
 
         private: 
           
@@ -123,12 +124,6 @@ namespace core {
              * Logs all queued messages to a file. 
              */
             void _handle_log_to_file();     
-
-            /**
-             * Spawned by thread, loops until end of program life or error occurs.
-             * Logs all active params.
-            */
-            void _handle_param_log();
 
             /* Singleton move semantics */
             MCAPLogger(const MCAPLogger&) = delete;
