@@ -1,6 +1,7 @@
 #pragma once
 
 #include <foxglove/websocket/base64.hpp>
+#include <foxglove/websocket/parameter.hpp>
 #include <foxglove/websocket/websocket_notls.hpp>
 #include <foxglove/websocket/websocket_server.hpp>
 #include <foxglove/websocket/server_factory.hpp>
@@ -51,6 +52,13 @@ namespace core {
             void send_live_telem_msg(std::shared_ptr<google::protobuf::Message> msg);
 
             /**
+             * Registers a callback function to be run whenever a parameter is updated in Foxglove.
+             * @param The function to be reigstered, which takes the form of (const string, param) -> void
+             * @return The newly created boost connection
+            */
+            boost::signals2::connection register_param_callback(std::function<void(const std::unordered_map<std::string, foxglove::ParameterValue>&)> callback);
+
+            /**
              * Returns all the current parameter values in a JSON format. Mostly used to log the current parameters in an MCAP file
             */
             nlohmann::json get_all_params();
@@ -83,8 +91,9 @@ namespace core {
             /* Singleton instance */
             inline static std::atomic<FoxgloveServer*> _s_instance;
 
-            // boost::signals2::
-
+            /* Boost signal for parameter updates */
+            boost::signals2::signal<void(const std::unordered_map<std::string, foxglove::ParameterValue>&)> _param_update_signal;
+            
             std::unordered_map<std::string, foxglove::ParameterValue> _foxglove_params_map; 
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             

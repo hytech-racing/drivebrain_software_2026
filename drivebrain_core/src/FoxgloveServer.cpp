@@ -1,4 +1,5 @@
 #include <FoxgloveServer.hpp>
+#include <boost/signals2/connection.hpp>
 
 static uint64_t nanosecondsSinceEpoch() {
     return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -110,6 +111,8 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
     {
+
+        // TODO: use std::move so that this doesnt lock for as long
         std::unique_lock lock(_parameter_mutex);
         std::unordered_map<std::string, foxglove::ParameterValue> params_map; 
 
@@ -117,7 +120,8 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
             _foxglove_params_map[param_to_change.getName()] = param_to_change.getValue();
             std::cout << param_to_change.getName() << std::endl;
         }
-        
+
+        _param_update_signal(_foxglove_params_map);
     };
 
     hdlrs.parameterRequestHandler = [this](const std::vector<std::string> &param_names, const std::optional<std::string> &request_id,
@@ -155,6 +159,10 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
     _server->start("0.0.0.0", 5555);
 
     params_file.close(); 
+}
+
+boost::signals2::connection core::FoxgloveServer::register_param_callback(std::function<void (const std::unordered_map<std::string, foxglove::ParameterValue> &)> callback) {
+    return _param_update_signal.connect(callback);
 }
 
 void core::FoxgloveServer::send_live_telem_msg(std::shared_ptr<google::protobuf::Message> msg) {
