@@ -1,3 +1,5 @@
+#pragma once 
+
 #include <deque> 
 #include <thread> 
 #include <mutex> 
@@ -109,10 +111,10 @@ namespace core {
             /**
              * Logs the json params to the current MCAP file
              *
-
+             * @param The parameters to be logged, in JSON format
              * @return 0 on success, negative err code on failure
              */
-            int log_params(nlohmann::json new_config);
+            int log_params(nlohmann::json params);
 
         private: 
           
@@ -148,6 +150,8 @@ namespace core {
             mcap::McapWriterOptions _options;
             
             /* State */
+            nlohmann::json _params_schema_json;
+            nlohmann::json _initial_params;
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             std::string _log_name = "NONE";
             bool _logging = false;

@@ -51,6 +51,35 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
 static std::string create_log_name() {
     
 }
+
+static nlohmann::json generate_json_schema(const nlohmann::json& obj) {
+    nlohmann::json schema;
+    
+    if (obj.is_object()) {
+        schema["type"] = "object";
+        schema["properties"] = nlohmann::json::object();
+        for (auto& [key, value] : obj.items()) {
+            schema["properties"][key] = generate_json_schema(value);
+        }
+    } else if (obj.is_array()) {
+        schema["type"] = "array";
+        if (!obj.empty()) {
+            schema["items"] = generate_json_schema(obj[0]);
+        }
+    } else if (obj.is_boolean()) {
+        schema["type"] = "boolean";
+    } else if (obj.is_number_integer()) {
+        schema["type"] = "integer";
+    } else if (obj.is_number_float()) {
+        schema["type"] = "number";
+    } else if (obj.is_string()) {
+        schema["type"] = "string";
+    } else if (obj.is_null()) {
+        schema["type"] = "null";
+    }
+    
+    return schema;
+}
  
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
@@ -84,7 +113,7 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
     auto descriptors = get_pb_descriptors(proto_names);
 
     for (const auto &file_descriptor : descriptors) {
-        for (int i = 1; i <= file_descriptor->message_type_count(); i++) {
+        for (int i = 0; i < file_descriptor->message_type_count(); i++) {
             const google::protobuf::Descriptor *message_descriptor = file_descriptor->message_type(i);
             mcap::Schema schema(message_descriptor->full_name(), "protobuf", serialize_fd_set(message_descriptor));
             _writer.addSchema(schema);
@@ -95,7 +124,18 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
         }
     }
 
-    std::cout << "Successfully opened and added message descriptions to mcap" << std::endl;
+    std::cout << "Successfully added message descriptions to mcap" << std::endl;
+
+    mcap::Schema config_schema("drivebrain_configuration", "jsonschema", _params_schema_json.dump());
+    _writer.addSchema(config_schema);
+    mcap::Channel config_channel("drivebrain_configuration", "json", config_schema.id);
+    _writer.addChannel(config_channel);
+    _name_to_id_map["drivebrain_configuration"] = config_channel.id;
+
+    log_params(_initial_params);
+
+    std::cout << "Successfully added params schema" << std::endl;
+    
     return 0;
 }
 
@@ -131,17 +171,10 @@ int core::MCAPLogger::log_msg(core::MsgType message) {
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
 core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) : _options(options) {
-    // get param schema
     std::fstream raw_param_file(params_file);
-    nlohmann::json params_schema_json = nlohmann::json::parse(raw_param_file);    
-
-    mcap::Schema config_schema("drivebrain_configuration", "jsonschema", (params_schema_json).dump());
-    _writer.addSchema(config_schema);
-    mcap::Channel config_channel("drivebrain_configuration", "json", config_schema.id);
-    _writer.addChannel(config_channel);
-    _name_to_id_map["drivebrain_configuration"] = config_channel.id;
-
-    // TODO: spawn logging thread
+    nlohmann::json params_config = nlohmann::json::parse(raw_param_file);
+    _initial_params = params_config; // Used in open_new_mcap to log initial params
+    _params_schema_json = generate_json_schema(params_config);
 }
 
 void core::MCAPLogger::_handle_log_to_file() {
@@ -173,15 +206,13 @@ void core::MCAPLogger::_handle_log_to_file() {
     }
 }   
 
-
-int core::MCAPLogger::log_params(nlohmann::json new_config) {
+int core::MCAPLogger::log_params(nlohmann::json params) {
     mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     RawMessage_s msg;
     msg.log_time = log_time;
-    msg.serialized_data = new_config.dump();
+    msg.serialized_data = params.dump();
     msg.message_name = "drivebrain_configuration";
-
     {
         std::unique_lock lock(_input_buffer_mutex);
         _input_buffer.push_back(std::move(msg));

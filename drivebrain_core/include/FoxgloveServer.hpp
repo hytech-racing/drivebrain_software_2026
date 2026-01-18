@@ -5,9 +5,12 @@
 #include <foxglove/websocket/websocket_notls.hpp>
 #include <foxglove/websocket/websocket_server.hpp>
 #include <foxglove/websocket/server_factory.hpp>
+#include <foxglove/websocket/parameter.hpp>
+#include <boost/signals2/connection.hpp>
 #include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/util/time_util.h>
 #include <boost/signals2.hpp>
+#include <MCAPLogger.hpp>
 #include <vector> 
 #include <string> 
 #include <fstream> 

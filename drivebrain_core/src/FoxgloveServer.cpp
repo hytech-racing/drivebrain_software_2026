@@ -1,6 +1,4 @@
 #include <FoxgloveServer.hpp>
-#include <boost/signals2/connection.hpp>
-#include <foxglove/websocket/parameter.hpp>
 
 static uint64_t nanosecondsSinceEpoch() {
     return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -112,7 +110,6 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
     {
-
         std::unordered_map<std::string, foxglove::ParameterValue> param_copy;
         {
             std::unique_lock lock(_parameter_mutex);
@@ -121,6 +118,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
             }
             param_copy = _foxglove_params_map;
         }
+        MCAPLogger::instance().log_params(get_all_params());
         _param_update_signal(param_copy);
     };
 
