@@ -8,12 +8,9 @@
 #include <FoxgloveServer.hpp>
 #include <MCAPLogger.hpp>
 #include <mcap/writer.hpp>
-<<<<<<< HEAD
 #include <CANComms.hpp> 
-=======
 #include <memory>
 #include <thread>
->>>>>>> main
 
 std::atomic<bool> running = true;
 
@@ -32,23 +29,13 @@ void get_param_task(int wait_time, core::MsgType msg) {
 }
 
 int main(int argc, char* argv[]) {
-    
-
-<<<<<<< HEAD
     comms::CANComms primary_can("can_primary", argv[2]);
-
-    // core::FoxgloveServer server(argv[1]);
-    // core::MCAPLogger mcap_logger("recordings/", mcap::McapWriterOptions(""));
-
-    // mcap_logger.open_new_mcap("test_1.mcap");
-=======
     core::FoxgloveServer::create(argv[1]);
     core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""));
     core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
     core::MCAPLogger::instance().init_logging();
 
     std::signal(SIGINT, sig_handler);
->>>>>>> main
     
     auto vel_msg = std::make_shared<hytech::velocities>();
     vel_msg->set_velocity_x(1000);
@@ -57,12 +44,8 @@ int main(int argc, char* argv[]) {
     auto acu_data = std::make_shared<hytech_msgs::ACUAllData>();
     acu_data->set_max_cell_temp_id(676767);
 
-<<<<<<< HEAD
-        // std::cout << server.get_param<int>("sdfsdfsdf") << std::endl;
-=======
     std::thread t1(get_param_task, 20, vel_msg);
     std::thread t2(get_param_task, 40, acu_data);
->>>>>>> main
 
     if(t1.joinable()) t1.join();
     if(t2.joinable()) t2.join();

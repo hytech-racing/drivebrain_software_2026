@@ -10,7 +10,7 @@ static std::string string_to_lowercase(std::string input_string) {
     return input_string;
 }
 
-static std::shared_ptr<google::protobuf::Message> comms::CANComms::get_proto_message_from_name(const std::string &name) {
+static std::shared_ptr<google::protobuf::Message> get_proto_message_from_name(const std::string &name) {
     std::shared_ptr<google::protobuf::Message> proto_message; 
     const google::protobuf::Descriptor *desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName("hytech." + name);
     if (!desc) {
@@ -47,10 +47,11 @@ void comms::CANComms::send_message(std::shared_ptr<google::protobuf::Message> me
  ****************************************************************/
 int comms::CANComms::_init(const std::string &device_name, const std::string &dbc_file_path) {
     // Initialize the CAN socket
+    std::cout << "Beginning CAN initialization" << std::endl; 
     struct sockaddr_can addr;
     struct ifreq ifr;
 
-    _socket = socket(PF_CAN, SOCK_RAW | SOCK_NONBLOCK, CAN_RAW); // TODO Make sure this works
+    _socket = socket(PF_CAN, SOCK_RAW, CAN_RAW); // TODO Make sure this works
 
     strcpy(ifr.ifr_name, device_name.c_str());
     ioctl(_socket, SIOCGIFINDEX, &ifr);
@@ -73,6 +74,8 @@ int comms::CANComms::_init(const std::string &device_name, const std::string &db
 
     // Spawn reader thread
     _reader_thread = std::thread(&comms::CANComms::_receive_handler, this);
+
+    std::cout << "Successfully initialized CAN driver" << std::endl;
 
     return 0;
 }
@@ -152,6 +155,7 @@ int comms::CANComms::_encode_can_frame(std::shared_ptr<google::protobuf::Message
     const google::protobuf::Reflection *reflection = proto_message->GetReflection(); 
 
     if (_names_to_can_id.find(messageTypeName) == _names_to_can_id.end()) {
+        std::cout << "Could not find message in known CAN description. Ensure that the message is in the DBC file." << std::endl;
         return -EINVAL;
     }
         
@@ -159,6 +163,8 @@ int comms::CANComms::_encode_can_frame(std::shared_ptr<google::protobuf::Message
     auto dbc_message = _messages[id]->Clone();   
     frame->can_id = id;
     frame->len = dbc_message->MessageSize();
+
+    std::cout << "ID: " << id << std::endl;
 
     for (const auto &sig : dbc_message->Signals()) {
         const google::protobuf::FieldDescriptor *field = descriptor->FindFieldByName(sig.Name());
