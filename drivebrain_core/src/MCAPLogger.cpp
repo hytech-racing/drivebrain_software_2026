@@ -153,6 +153,7 @@ void core::MCAPLogger::init_logging() {
 }
 
 int core::MCAPLogger::log_msg(core::MsgType message) {
+    std::cout << "Attempting to log message" << std::endl;
     mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     RawMessage_s new_message; 
     new_message.log_time = log_time;

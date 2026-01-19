@@ -23,8 +23,12 @@ void sig_handler(int signal) {
 
 void get_param_task(int wait_time, core::MsgType msg) {
     while(running) {
-        std::cout << core::FoxgloveServer::instance().get_param<int64_t>("rpm_limit") << std::endl;
-        core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
+        std::optional<int64_t> param_value1 = core::FoxgloveServer::instance().get_param<int64_t>("rpm_limit");
+        std::optional<double> param_value = core::FoxgloveServer::instance().get_param<double>("test_two");
+        if (param_value) {
+            std::cout << param_value.value() << std::endl;
+        } 
+        // core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
         std::this_thread::sleep_for((std::chrono::milliseconds(wait_time)));
     }
 }

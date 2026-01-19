@@ -113,8 +113,16 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
         std::unordered_map<std::string, foxglove::ParameterValue> param_copy;
         {
             std::unique_lock lock(_parameter_mutex);
-            for (const auto &param_to_change : params) {
-                _foxglove_params_map[param_to_change.getName()] = param_to_change.getValue();
+            for (const auto &incoming_param : params) {
+                if (_foxglove_params_map.find(incoming_param.getName()) == _foxglove_params_map.end()) {
+                    spdlog::warn("Couldn't find updated param in params map. Please get good.");
+                    continue;
+                }
+                foxglove::Parameter current_param = foxglove::Parameter(incoming_param.getName(), _foxglove_params_map[incoming_param.getName()]);
+                std::optional<foxglove::Parameter> converted_param = _convert_foxglove_parameter(current_param, incoming_param);
+                if (converted_param) {
+                    _foxglove_params_map[incoming_param.getName()] = converted_param.value().getValue();
+                }
             }
             param_copy = _foxglove_params_map;
         }
@@ -167,6 +175,7 @@ nlohmann::json core::FoxgloveServer::get_all_params() {
     nlohmann::json params_json;
     params_json["type"] = "object";
     
+    std::cout << "Entering get all params loop" << std::endl;
     for (const auto& [name, param_value] : _foxglove_params_map) {
         auto type = param_value.getType();
 
@@ -185,7 +194,21 @@ nlohmann::json core::FoxgloveServer::get_all_params() {
     }
 
     return params_json;
+} 
+
+std::optional<foxglove::Parameter> core::FoxgloveServer::_convert_foxglove_parameter(foxglove::Parameter current_param, foxglove::Parameter incoming_param) {
+    if (current_param.getType() == incoming_param.getType()) {
+        return incoming_param; 
+    } else if (current_param.getType() == foxglove::ParameterType::PARAMETER_INTEGER && incoming_param.getType() == foxglove::ParameterType::PARAMETER_DOUBLE) {
+        return foxglove::Parameter(current_param.getName(), static_cast<int64_t>(incoming_param.getValue().getValue<double>()));
+    } else if (current_param.getType() == foxglove::ParameterType::PARAMETER_DOUBLE && incoming_param.getType() == foxglove::ParameterType::PARAMETER_INTEGER) {
+        return foxglove::Parameter(current_param.getName(), static_cast<double>(incoming_param.getValue().getValue<int64_t>()));
+    } else {
+        spdlog::warn("Invalid parameter type conversion!");
+        return std::nullopt;
+    }
 }
+
 void core::FoxgloveServer::send_live_telem_msg(std::shared_ptr<google::protobuf::Message> msg) {
     auto msg_chan_id = _name_to_id_map[msg->GetDescriptor()->name()];
     const auto serialized_msg = msg->SerializeAsString(); 

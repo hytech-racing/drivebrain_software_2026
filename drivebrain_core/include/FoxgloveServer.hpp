@@ -17,6 +17,7 @@
 #include <thread>
 #include <atomic>
 #include <cassert>
+#include <optional>
 
 #include "hytech_msgs.pb.h"
 
@@ -74,14 +75,15 @@ namespace core {
              */
              // TODO: investigate the type conversion conflicts that arrise from this (i.e. int64_t vs plain int)
             template <typename param_type> 
-            param_type get_param(std::string param_name) {
+            std::optional<param_type> get_param(std::string param_name) {
                 std::unique_lock lock(_parameter_mutex); 
 
-                // if (_foxglove_params_map.find(param_name) == _foxglove_params_map.end()) {
-                //     return NULL;
-                // }
-                
-                return _foxglove_params_map.at(param_name).getValue<param_type>();
+                if (_foxglove_params_map.find(param_name) == _foxglove_params_map.end()) {
+                    spdlog::warn("The following parameter was not found in the params json: " + param_name);
+                    return std::nullopt;
+                }
+
+                return _foxglove_params_map[param_name].getValue<param_type>();
             }
 
         private: 
@@ -96,6 +98,9 @@ namespace core {
 
             /* Boost signal for parameter updates */
             boost::signals2::signal<void(const std::unordered_map<std::string, foxglove::ParameterValue>&)> _param_update_signal;
+
+            /* Method to handle converting foxglove params to avoid type conflicts */
+            std::optional<foxglove::Parameter> _convert_foxglove_parameter(foxglove::Parameter current_param, foxglove::Parameter incoming_param);
             
             std::unordered_map<std::string, foxglove::ParameterValue> _foxglove_params_map; 
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
