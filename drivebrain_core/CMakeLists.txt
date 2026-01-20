@@ -11,6 +11,7 @@ add_library(drivebrain_core
     src/FoxgloveServer.cpp
     src/MCAPLogger.cpp
     src/StateTracker.cpp
+    src/LapTracker.cpp
 )
 
 target_include_directories(drivebrain_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

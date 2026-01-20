@@ -209,6 +209,13 @@ namespace core {
         float min_cell_voltage;
         float pack_voltage;
     };
+     /**
+     * @struct Laptime info
+     */
+    struct LaptimeInfo {
+        float laptime_seconds;
+        int lapcount;
+    };
 
     /**
      * @struct Contains a wealth of data
@@ -239,6 +246,7 @@ namespace core {
         float old_energy_meter_kw;
         DrivetrainData dt_data;
         AccumulatorData acc_data;
+        LaptimeInfo laptime_info;
     };
 
     /**
@@ -249,10 +257,9 @@ namespace core {
 
         public: 
 
-            /**
-             * Constructs a new state tracker.
-             */
-            StateTracker() = default;
+            /* Singleton move semantics */
+            StateTracker(const StateTracker&) = delete;
+            StateTracker& operator=(const StateTracker&) = delete;
 
             /**
              * Receives a protobuf message and adds any useful information to the internal 
@@ -276,8 +283,19 @@ namespace core {
              */
             std::pair<core::VehicleState, bool> get_latest_state_and_validity();
 
-            
+            /**
+             * Creates a new instance of the state tracker
+             */
+            static void create(); 
+
+            /**
+             * Returns the state tracker instance
+             */
+            static StateTracker& instance(); 
+
         private: 
+
+            StateTracker(); 
 
             template <size_t index, typename inverter_dynamics_message>
             void _handle_set_inverter_dynamics(std::shared_ptr<google::protobuf::Message> msg);
@@ -296,6 +314,8 @@ namespace core {
             RawInputData _raw_input_data = { };
             std::mutex _state_mutex;
             std::array<std::chrono::microseconds, 4> _timestamp_array; 
+
+            inline static std::atomic<StateTracker*> _s_instance;
 
 
     };

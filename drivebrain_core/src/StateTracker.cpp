@@ -52,8 +52,14 @@ void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::proto
             std::unique_lock lk(_state_mutex);
             _vehicle_state.acc_data.min_cell_voltage = in_msg->core_data().min_cell_voltage();
         }
-    }
-    else {
+    } else if (msg->GetDescriptor() == hytech_msgs::LapTime::descriptor()) {
+        auto in_msg = std::static_pointer_cast<hytech_msgs::LapTime>(msg);
+        {
+            std::unique_lock lk(_state_mutex); 
+            _vehicle_state.laptime_info.laptime_seconds = in_msg->laptime_seconds();
+            _vehicle_state.laptime_info.lapcount = in_msg->lapcount(); 
+        }
+    } else {
         _receive_low_level_state(msg);
     }
 }
@@ -263,4 +269,19 @@ bool StateTracker::_validate_timestamps(const std::array<std::chrono::microsecon
         (std::chrono::duration_cast<std::chrono::microseconds>(curr_time - max_stamp)) < threshold;
 
     return within_threshold && all_members_received && last_update_recent_enough;
+}
+
+void core::StateTracker::create() {
+    StateTracker* expected = nullptr;
+    StateTracker* local = new StateTracker();
+    if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+        // Already initialized, delete local instance
+        delete local;
+    }
+}
+
+core::StateTracker& core::StateTracker::instance() {
+    StateTracker* instance = _s_instance.load(std::memory_order_acquire);
+    assert(instance != nullptr && "StateTracker has not been initialized");
+    return *instance;
 }
