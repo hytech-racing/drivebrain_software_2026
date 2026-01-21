@@ -54,11 +54,11 @@
 //new way to define param struct. 
 //this is a macro for the actual implementation in Configurable.hpp
 BEGIN_PARAMS(ControllerManagerParams)
-    Param<float, true> max_controller_switch_speed_ms;
-    Param<float, true> max_torque_switch_nm;
-    Param<float, true> max_accel_switch_float;
-    Param<float, true> max_requested_rpm;
-END_PARAMS()
+    REGISTER_PARAM(float, max_controller_switch_speed_ms)
+    REGISTER_PARAM(float, max_torque_switch_nm)
+    REGISTER_PARAM(float, max_accel_switch_float)
+    REGISTER_PARAM(float, max_requested_rpm)
+END_PARAMS(ControllerManagerParams)
 
 template <typename ControllerType, size_t NumControllers>
 class ControllerManager : public core::common::Configurable<ControllerManagerParams>
@@ -66,7 +66,6 @@ class ControllerManager : public core::common::Configurable<ControllerManagerPar
 public:
     /// @brief contructs instance of the controller manager
     /// @param controllers list of controllers that the manager will mux between and manager
-    /// @param state_estimator instance to allow for direct communication between controllers and state estimator
     ControllerManager(std::array<std::shared_ptr<ControllerType>, NumControllers> controllers)
         :_controllers(std::move(controllers)) //std move for fast memory transfer
     {
@@ -130,7 +129,7 @@ private:
     size_t _current_controller_index = 0;
     core::control::ControllerManagerState _current_ctr_manager_state;
     std::array<std::shared_ptr<ControllerType>, NumControllers> _controllers;
-            float _max_switch_rpm, _max_torque_switch, _max_accel_switch_req, _max_requested_rpm;
+    float _max_switch_rpm, _max_torque_switch, _max_accel_switch_req, _max_requested_rpm;
 };
 
 #include "ControllerManager.tpp"
