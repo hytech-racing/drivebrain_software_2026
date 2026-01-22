@@ -80,8 +80,7 @@ void core::FoxgloveServer::_init_params(const nlohmann::json &json_obj, const st
             } else if (value.type() == nlohmann::detail::value_t::number_integer || value.type() == nlohmann::detail::value_t::number_unsigned) {
                 int64_t raw_value = value.get<int64_t>();
                 param_value = foxglove::ParameterValue(raw_value);
-            }
-            else if (value.type() == nlohmann::detail::value_t::string) {
+            } else if (value.type() == nlohmann::detail::value_t::string) {
                 std::string raw_value = value.get<std::string>();
                 param_value = foxglove::ParameterValue(raw_value);
             } else {
