@@ -10,9 +10,8 @@
 
 #include <Controller.hpp>
 #include <Configurable.hpp>
-#include <Utils.hpp>
 #include <DriverBus.hpp>
-#include <VehicleDataTypes.hpp>
+#include <StateTracker.hpp>
 
 // TODO look into sharing tc mux between MCU and drivebrain software
 
