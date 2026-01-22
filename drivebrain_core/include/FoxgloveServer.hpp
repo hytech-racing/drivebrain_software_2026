@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <foxglove/websocket/base64.hpp>
 #include <foxglove/websocket/parameter.hpp>
 #include <foxglove/websocket/websocket_notls.hpp>
@@ -45,6 +46,17 @@ namespace core {
                 _server->stop(); 
                 std::cout << "Destructed and stopped foxglove websocket server" << std::endl; 
             }
+
+            /**
+             * Transforms a string to all lowercase. Ensures consistency across all Foxglove parameter names
+             *
+             * @param The string to transform into lowercase
+            */
+            static std::string to_lowercase(std::string s) {
+               std::transform(s.begin(), s.end(), s.begin(),
+                                   [](unsigned char c){ return static_cast<unsigned char>(std::tolower(c)); });
+               return s;
+            }
             
             /**
              * Sends a protobuf to be viewed in foxglove. 
@@ -76,18 +88,28 @@ namespace core {
              // TODO: investigate the type conversion conflicts that arrise from this (i.e. int64_t vs plain int)
             template <typename param_type> 
             std::optional<param_type> get_param(std::string param_name) {
+                
                 std::unique_lock lock(_parameter_mutex); 
+                std::string lowered = to_lowercase(param_name);
 
-                if (_foxglove_params_map.find(param_name) == _foxglove_params_map.end()) {
-                    spdlog::warn("The following parameter was not found in the params json: " + param_name);
+                if (_foxglove_params_map.find(lowered) == _foxglove_params_map.end()) {
+                    spdlog::warn("The following parameter was not found in the params json: " + lowered);
                     return std::nullopt;
                 }
 
-                return _foxglove_params_map[param_name].getValue<param_type>();
+                try {
+                    return _foxglove_params_map[lowered].getValue<param_type>();
+                } catch (const std::exception& e) {
+                    spdlog::warn("Incorrect parameter type for param {}: {}", lowered, e.what());
+                    return std::nullopt;
+                }
             }
 
         private: 
             FoxgloveServer(std::string parameters_file);
+
+            /* Registers JSON params on init. Recursively called to support multi-level JSON */
+            void _init_params(const nlohmann::json &json_obj, const std::string &prefix);
 
             /* Singleton move semantics */
             FoxgloveServer(const FoxgloveServer&) = delete;

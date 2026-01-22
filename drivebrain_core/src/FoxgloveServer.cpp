@@ -1,11 +1,13 @@
 #include <FoxgloveServer.hpp>
+#include <foxglove/websocket/parameter.hpp>
+#include <nlohmann/detail/value_t.hpp>
+
 
 static uint64_t nanosecondsSinceEpoch() {
     return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
                         std::chrono::system_clock::now().time_since_epoch())
                         .count());
 }
-
 
 static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(const std::vector<std::string> &filenames) {
     std::vector<const google::protobuf::FileDescriptor *> descriptors;
@@ -61,32 +63,49 @@ core::FoxgloveServer& core::FoxgloveServer::instance() {
     return *instance;
 }
 
+void core::FoxgloveServer::_init_params(const nlohmann::json &json_obj, const std::string &prefix) {
+    for (auto &[key, value] : json_obj.items()) {
+        std::string param_name = prefix.empty() ? to_lowercase(key) : prefix + "/" + to_lowercase(key);
+        
+        if (value.type() == nlohmann::detail::value_t::object) {
+            _init_params(value, param_name);
+        } else {
+            foxglove::ParameterValue param_value;
+            if (value.type() == nlohmann::detail::value_t::boolean) {
+                bool raw_value = value.get<bool>();
+                param_value = foxglove::ParameterValue(raw_value);
+            } else if (value.type() == nlohmann::detail::value_t::number_float) {
+                float raw_value = value.get<float>();
+                param_value = foxglove::ParameterValue(raw_value);
+            } else if (value.type() == nlohmann::detail::value_t::number_integer || value.type() == nlohmann::detail::value_t::number_unsigned) {
+                int64_t raw_value = value.get<int64_t>();
+                param_value = foxglove::ParameterValue(raw_value);
+            }
+            else if (value.type() == nlohmann::detail::value_t::string) {
+                std::string raw_value = value.get<std::string>();
+                param_value = foxglove::ParameterValue(raw_value);
+            } else {
+                std::cerr << "Invalid parameter config type: " << value.type_name() << " for key: " << param_name << std::endl;
+                continue;
+            }
+
+            if (_foxglove_params_map.find(param_name) != _foxglove_params_map.end()) {
+                std::cerr << "Duplicate parameter detected: " << param_name << std::endl;
+            } else {
+                _foxglove_params_map[param_name] = param_value;
+                std::cout << "Added parameter: " << param_name << std::endl;
+            }
+        }
+    }
+}
+
 core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     // Read params data
     std::fstream params_file(file_name);
     nlohmann::json init_param_data = nlohmann::json::parse(params_file); 
 
-    for (auto &[key, value]: init_param_data.items()) {
-        std::string param_name = key;
-        foxglove::ParameterValue param_value; 
-        if (value.type() == nlohmann::detail::value_t::boolean) {
-            bool raw_value = value.get<bool>(); 
-            param_value = foxglove::ParameterValue(raw_value);
-        } else if (value.type() == nlohmann::detail::value_t::number_float) {
-            float raw_value = value.get<float>(); 
-            param_value = foxglove::ParameterValue(raw_value);
-        } else if (value.type() == nlohmann::detail::value_t::number_integer || value.type() == nlohmann::detail::value_t::number_unsigned) {
-            int64_t raw_value = value.get<int64_t>();
-            param_value = foxglove::ParameterValue(raw_value);
-        } else {
-            std::cerr << "Invalid parameter config type: " << value.type_name() << std::endl;
-            return;
-        }
-
-        _foxglove_params_map[param_name] = param_value;
-        std::cout << "Added parameter: " << param_name << std::endl;
-    }
+    _init_params(init_param_data, "");
 
     // Instantiate handlers and create foxglove server 
     const auto logHandler = [](foxglove::WebSocketLogLevel, char const *msg) {
@@ -175,7 +194,6 @@ nlohmann::json core::FoxgloveServer::get_all_params() {
     nlohmann::json params_json;
     params_json["type"] = "object";
     
-    std::cout << "Entering get all params loop" << std::endl;
     for (const auto& [name, param_value] : _foxglove_params_map) {
         auto type = param_value.getType();
 
