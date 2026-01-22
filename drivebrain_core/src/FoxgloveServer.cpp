@@ -191,6 +191,7 @@ boost::signals2::connection core::FoxgloveServer::register_param_callback(std::f
 }
 
 nlohmann::json core::FoxgloveServer::get_all_params() {
+    std::unique_lock lock(_parameter_mutex);
     nlohmann::json params_json;
     params_json["type"] = "object";
     
