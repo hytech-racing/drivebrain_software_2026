@@ -30,3 +30,22 @@ bool control::ControllerManager<ControllerType, NumControllers>::init()
     return true;
 
 }
+
+
+template<typename ControllerType, size_t NumControllers>
+core::control::ControllerManagerStatus control::ControllerManager<ControllerType, NumControllers>::_can_switch_controller(const core::VehicleState &current_state,
+                                                                                                                       const core::ControllerOutput &previous_output,
+                                                                                                                       const core::ControllerOutput &next_controller_output)
+{
+
+    
+    
+}
+
+
+template <typename ControllerType, size_t NumControllers>
+bool control::ControllerManager<ControllerType, NumControllers>::swap_active_controller(size_t new_controller_index, const core::VehicleState& input)
+{
+    
+}
+
