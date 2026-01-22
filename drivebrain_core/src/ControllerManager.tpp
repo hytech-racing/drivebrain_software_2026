@@ -1,5 +1,6 @@
 #include "ControllerManager.hpp"
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 template <typename ControllerType, size_t NumControllers>
 bool control::ControllerManager<ControllerType, NumControllers>::init()
@@ -131,7 +132,8 @@ bool control::ControllerManager<ControllerType, NumControllers>::swap_active_con
 {
     using status_type = core::control::ControllerManagerStatus;
     static const size_t num_controllers = _controllers.size();
-    if (new_controller_index > (num_controllers - 1) || new_controller_index < 0)
+    //size_t is unsigned, new_controller_index being less than 0 is always false. 
+    if (new_controller_index >= num_controllers)
     {
         _current_ctr_manager_state.current_status = status_type::ERROR_CONTROLLER_INDEX_OUT_OF_RANGE;
         spdlog::info("switch mode failed with error code: " + std::to_string(static_cast<int>(_current_ctr_manager_state.current_status)));
@@ -152,8 +154,13 @@ bool control::ControllerManager<ControllerType, NumControllers>::swap_active_con
         spdlog::error("switch mode failed due to nullptr controller with error code: " + std::to_string(static_cast<int>(_current_ctr_manager_state.current_status)));
         return false;
     }
-     
-    if(_can_switch_controller(input, {_controllers[_current_controller_index]->step_controller(input)}, {_controllers[new_controller_index]->step_controller(input)}) == status_type::NO_ERROR)
+
+    core::ControllerOutput next_output = _controllers[new_controller_index] -> step_controller(input); 
+    //store previous controller output instead of evaluating simultaneously. 
+    
+    if(_can_switch_controller(input,
+         {_controllers[_current_controller_index]->step_controller(input)}, 
+         next_output) == status_type::NO_ERROR)
     {
         _current_controller_index = new_controller_index;
         spdlog::info("switched mode: " + std::to_string(new_controller_index));
@@ -165,5 +172,6 @@ bool control::ControllerManager<ControllerType, NumControllers>::swap_active_con
         return false;
     }
     //TODO: swap drivetrain controller when new controller mode wants to
+
 }
 
