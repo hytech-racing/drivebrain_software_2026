@@ -1,6 +1,7 @@
 #include <FoxgloveServer.hpp>
 #include <foxglove/websocket/parameter.hpp>
 #include <nlohmann/detail/value_t.hpp>
+#include <spdlog/spdlog.h>
 
 
 static uint64_t nanosecondsSinceEpoch() {
@@ -85,12 +86,12 @@ void core::FoxgloveServer::_init_params(const nlohmann::json &json_obj, const st
                 std::string raw_value = value.get<std::string>();
                 param_value = foxglove::ParameterValue(raw_value);
             } else {
-                std::cerr << "Invalid parameter config type: " << value.type_name() << " for key: " << param_name << std::endl;
+                spdlog::error("Invalid parameter config type: {} for key: {}", value.type_name(), param_name);
                 continue;
             }
 
             if (_foxglove_params_map.find(param_name) != _foxglove_params_map.end()) {
-                std::cerr << "Duplicate parameter detected: " << param_name << std::endl;
+                spdlog::warn("Duplicate parameter detected: {}", param_name);
             } else {
                 _foxglove_params_map[param_name] = param_value;
                 std::cout << "Added parameter: " << param_name << std::endl;
