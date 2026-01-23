@@ -1,3 +1,5 @@
+#include "EthernetComms.hpp"
+#include <boost/asio/io_context.hpp>
 #include <chrono>
 #include <csignal>
 #include <google/protobuf/message.h>
@@ -12,6 +14,9 @@
 #include <thread>
 
 std::atomic<bool> running = true;
+boost::asio::io_context io_context;
+comms::ETHDriver<> eth_sender{io_context, 1155, "127.0.0.1"};
+comms::ETHDriver<hytech_msgs::ACUAllData> eth_recver{io_context, 1155};
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
@@ -27,6 +32,21 @@ void get_param_task(int wait_time, core::MsgType msg) {
     }
 }
 
+void eth_send_msg() {
+    while(running) {
+        auto msg = std::make_shared<hytech_msgs::ACUAllData>();
+        msg->set_soc(67.0);
+        std::this_thread::sleep_for((std::chrono::seconds(1)));
+        eth_sender.enqueue_msg_send(msg);
+    }
+}
+
+// void eth_recv_msg() {
+//     while(running) {
+//         eth_recver
+//     }
+// }
+
 int main(int argc, char* argv[]) {
     
 
@@ -37,18 +57,16 @@ int main(int argc, char* argv[]) {
 
     std::signal(SIGINT, sig_handler);
     
-    auto vel_msg = std::make_shared<hytech::velocities>();
-    vel_msg->set_velocity_x(1000);
-    vel_msg->set_velocity_y(10000);
+    // auto vel_msg = std::make_shared<hytech::velocities>();
+    // vel_msg->set_velocity_x(1000);
+    // vel_msg->set_velocity_y(10000);
 
-    auto acu_data = std::make_shared<hytech_msgs::ACUAllData>();
-    acu_data->set_max_cell_temp_id(676767);
+    // auto acu_data = std::make_shared<hytech_msgs::ACUAllData>();
+    // acu_data->set_max_cell_temp_id(676767);
 
-    std::thread t1(get_param_task, 20, vel_msg);
-    std::thread t2(get_param_task, 40, acu_data);
+    std::thread t1(eth_send_msg);
 
     if(t1.joinable()) t1.join();
-    if(t2.joinable()) t2.join();
     core::MCAPLogger::instance().close_active_mcap();
 
 }

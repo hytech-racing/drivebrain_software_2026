@@ -69,7 +69,6 @@ namespace comms
         std::array<uint8_t, 4096> _recv_buffer;
         std::shared_ptr<MsgType> _received_eth_msg;
 
-        // std::shared_ptr<core::StateEstimator> _state_estimator = nullptr; //TODO: uncomment when state estimator is added
         std::atomic<bool> _running = false;
         boost::asio::ip::udp::socket _socket;
         boost::asio::ip::udp::endpoint _remote_endpoint;

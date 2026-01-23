@@ -1,4 +1,5 @@
 #include "EthernetComms.hpp"
+#include "MCAPLogger.hpp"
 #include "hytech_msgs.pb.h"
 #include <boost/asio.hpp>
 #include <boost/system/detail/error_code.hpp>
@@ -47,7 +48,8 @@ namespace comms
         if (_running && !error) {
             _received_eth_msg ->ParseFromArray(_recv_buffer.data(), size);
             auto out_msg = static_cast<std::shared_ptr<google::protobuf::Message>>(_received_eth_msg);
-            // log to outputs
+            core::MCAPLogger::instance().log_msg(out_msg);
+            std::cout<<"recieved msg" << std::endl;
             // TODO: log to state estimator
             _start_receive();
         }

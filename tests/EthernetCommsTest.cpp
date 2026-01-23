@@ -51,7 +51,7 @@ TEST_F(EthernetSendTest, SendMultipleMsgs) {
   SUCCEED();
 }
 
-TEST_F(EthernetDuplexTest, SendRecvMsgs) {
+// TEST_F(EthernetDuplexTest, SendRecvMsgs) {
   
-}
+// }
 
