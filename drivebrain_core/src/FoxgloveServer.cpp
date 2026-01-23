@@ -4,6 +4,12 @@
 #include <spdlog/spdlog.h>
 
 
+static std::string to_lowercase(std::string s) {
+   std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c){ return static_cast<unsigned char>(std::tolower(c)); });
+   return s;
+}
+
 static uint64_t nanosecondsSinceEpoch() {
     return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(
                         std::chrono::system_clock::now().time_since_epoch())

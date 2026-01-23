@@ -46,17 +46,6 @@ namespace core {
                 _server->stop(); 
                 std::cout << "Destructed and stopped foxglove websocket server" << std::endl; 
             }
-
-            /**
-             * Transforms a string to all lowercase. Ensures consistency across all Foxglove parameter names
-             *
-             * @param The string to transform into lowercase
-            */
-            static std::string to_lowercase(std::string s) {
-               std::transform(s.begin(), s.end(), s.begin(),
-                                   [](unsigned char c){ return static_cast<unsigned char>(std::tolower(c)); });
-               return s;
-            }
             
             /**
              * Sends a protobuf to be viewed in foxglove. 
@@ -85,22 +74,22 @@ namespace core {
              * @param param_name name of the parameter the user wants to get
              * @return the parameter value
              */
-             // TODO: investigate the type conversion conflicts that arrise from this (i.e. int64_t vs plain int)
             template <typename param_type> 
             std::optional<param_type> get_param(std::string param_name) {
                 
                 std::unique_lock lock(_parameter_mutex); 
-                std::string lowered = to_lowercase(param_name);
+                std::transform(param_name.begin(), param_name.end(), param_name.begin(),
+                    [](unsigned char c){ return static_cast<unsigned char>(std::tolower(c)); });
 
-                if (_foxglove_params_map.find(lowered) == _foxglove_params_map.end()) {
-                    spdlog::warn("The following parameter was not found in the params json: " + lowered);
+                if (_foxglove_params_map.find(param_name) == _foxglove_params_map.end()) {
+                    spdlog::warn("The following parameter was not found in the params json: " + param_name);
                     return std::nullopt;
                 }
 
                 try {
-                    return _foxglove_params_map[lowered].getValue<param_type>();
+                    return _foxglove_params_map[param_name].getValue<param_type>();
                 } catch (const std::exception& e) {
-                    spdlog::warn("Incorrect parameter type for param {}: {}", lowered, e.what());
+                    spdlog::warn("Incorrect parameter type for param {}: {}", param_name, e.what());
                     return std::nullopt;
                 }
             }
