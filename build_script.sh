@@ -38,7 +38,8 @@ cd "$build_folder"
 cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON 
+  # -DCMAKE_EXE_LINKER_FLAGS="-static"
 
 make -j
 

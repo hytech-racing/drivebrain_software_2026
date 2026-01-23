@@ -2,6 +2,7 @@
 #include <boost/asio/io_context.hpp>
 #include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <google/protobuf/message.h>
 #include <iostream>
 #include <atomic> 
@@ -27,7 +28,12 @@ void sig_handler(int signal) {
 
 void get_param_task(int wait_time, core::MsgType msg) {
     while(running) {
-        core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
+        std::optional<int64_t> param_value1 = core::FoxgloveServer::instance().get_param<int64_t>("rpm_limit");
+        std::optional<double> param_value = core::FoxgloveServer::instance().get_param<int>("level_1/kI");
+        if (param_value) {
+            std::cout << param_value.value() << std::endl;
+        } 
+        // core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
         std::this_thread::sleep_for((std::chrono::milliseconds(wait_time)));
     }
 }
@@ -48,10 +54,9 @@ void eth_send_msg() {
 // }
 
 int main(int argc, char* argv[]) {
-    
 
     core::FoxgloveServer::create(argv[1]);
-    core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""));
+    core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), argv[1]);
     core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
     core::MCAPLogger::instance().init_logging();
 
@@ -68,5 +73,4 @@ int main(int argc, char* argv[]) {
 
     if(t1.joinable()) t1.join();
     core::MCAPLogger::instance().close_active_mcap();
-
 }
