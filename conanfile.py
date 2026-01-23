@@ -25,4 +25,6 @@ class DrivebrainSoftware(ConanFile):
         self.requires("mcap/2.0.2")
         
     def build_requirements(self): 
+        if not self.settings_build.get_safe("cross_build"):
+            self.requires("gtest/1.17.0")
         self.tool_requires("protobuf/5.29.3")

@@ -1,6 +1,6 @@
 services:
   dev:
-    image: rpi-cross-compile
+    image: kkittur/drivebrain_cross_compile
     volumes:
       - conan-cache:/root/.conan2
       - ./:/app

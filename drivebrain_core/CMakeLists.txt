@@ -10,6 +10,7 @@ find_package(mcap REQUIRED)
 add_library(drivebrain_core
     src/FoxgloveServer.cpp
     src/MCAPLogger.cpp
+    src/StateTracker.cpp
 )
 
 target_include_directories(drivebrain_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
