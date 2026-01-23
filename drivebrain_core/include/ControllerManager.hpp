@@ -12,6 +12,8 @@
 #include <Configurable.hpp>
 #include <DriverBus.hpp>
 #include <StateTracker.hpp>
+#include <Literals.hpp>
+#include <StateTracker.hpp>
 
 // TODO look into sharing tc mux between MCU and drivebrain software
 
