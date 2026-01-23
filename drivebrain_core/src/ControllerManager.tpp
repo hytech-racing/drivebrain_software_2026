@@ -1,6 +1,7 @@
 #include "ControllerManager.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
+#include <iostream>
 
 template <typename ControllerType, size_t NumControllers>
 bool control::ControllerManager<ControllerType, NumControllers>::init()
@@ -13,11 +14,12 @@ bool control::ControllerManager<ControllerType, NumControllers>::init()
     //todo: implement register_all
     params.register_all(this); 
 
-    if(params.max_accel_switch_float > 1.0){
+    if(params.max_accel_switch_float.val > 1.0){
         std::cout << "ERROR: max accel switch float > 1.0" << std::endl;
         return false;
     }
     //assign params to member variables
+    //this value came from the old literals.hpp. im not sure if we're reusing that file. 
     _max_switch_rpm = params.max_controller_switch_speed_ms.val * constants::METERS_PER_SECOND_TO_RPM;
     _max_torque_switch = params.max_torque_switch_nm.val;
     _max_accel_switch_req = params.max_accel_switch_float.val;
@@ -159,10 +161,11 @@ bool control::ControllerManager<ControllerType, NumControllers>::swap_active_con
     //store previous controller output instead of evaluating simultaneously. 
     
     if(_can_switch_controller(input,
-         {_controllers[_current_controller_index]->step_controller(input)}, 
+         {_controllers[_current_controller_index]->step_controller(input).current_controller_output}, 
          next_output) == status_type::NO_ERROR)
     {
         _current_controller_index = new_controller_index;
+        _current_ctr_manager_state.current_controller_output = next_output; 
         spdlog::info("switched mode: " + std::to_string(new_controller_index));
         return true;
     }
