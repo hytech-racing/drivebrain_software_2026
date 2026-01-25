@@ -41,6 +41,13 @@ namespace core {
             inline static std::atomic<LapTracker*> _s_instance;
             
             // TODO put variables here to keep track of the lap tracker's internal state
+            const float _error = 0.001;
+            int _lapcount = 0;
+            float _laptime = 0.0;
+            double _start_lat;
+            double _start_lon;
+            bool _started = false;
+            std::chrono::steady_clock::time_point _last_timestamp = std::chrono::steady_clock::now();
             
     };
 

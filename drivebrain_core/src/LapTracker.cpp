@@ -9,8 +9,55 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
      * in the latest state to update it's local variables, create a LapTime protobuf, and invoke handle_receive_protobuf_message
      * on the state tracker. Some of this is completed for you. Good luck!
      */
-    core::StateTracker::instance().handle_receive_protobuf_message(laptime_information); // What "records" the information
+    
+     // Assuming 1 rpms correponds to 1 real life RPM
 
+
+    auto now = std::chrono::steady_clock::now();
+    float time_differential = std::chrono::duration<float>(now - _last_timestamp).count();
+    _last_timestamp = now;
+
+    if (_lapcount == 0
+        && latest_state.is_ready_to_drive
+        && std::abs(latest_state.current_rpms.FL) < _error
+        && std::abs(latest_state.current_rpms.FR) < _error
+        && std::abs(latest_state.current_rpms.RL) < _error
+        && std::abs(latest_state.current_rpms.RR) < _error
+        && std::abs(latest_state.current_body_vel_ms.x) < _error
+        && std::abs(latest_state.current_body_vel_ms.y) < _error)
+    {
+        // Assume car is in start box
+        _start_lat = latest_state.vehicle_position.lat;
+        _start_lon = latest_state.vehicle_position.lon;
+    }
+    else if (!_started
+        && std::abs(latest_state.current_rpms.FL) > 10
+        && std::abs(latest_state.current_rpms.FR) > 10
+        && std::abs(latest_state.current_rpms.RL) > 10
+        && std::abs(latest_state.current_rpms.RR) > 10
+        && (std::abs(latest_state.current_body_vel_ms.x) > 0.2
+        || std::abs(latest_state.current_body_vel_ms.y) > 0.2))
+    {
+        // Assume car has started
+        _started = true;
+    }
+    else if (_started && std::abs(latest_state.vehicle_position.lat - _start_lat) < 0.000027
+            && std::abs(latest_state.vehicle_position.lon - _start_lon) < 0.000027
+            && _laptime > 10.0f)
+    {
+        // Assume track width ~3m
+        // Assume car crossed start line during race
+        _lapcount++;
+        _laptime = 0.0f;
+    }
+    else if (_started)
+    {
+        _laptime += time_differential;
+    }
+    laptime_information->set_laptime_seconds(_laptime);
+    laptime_information->set_lapcount(_lapcount);
+
+    core::StateTracker::instance().handle_receive_protobuf_message(laptime_information); // What "records" the information
 }
 
 void core::LapTracker::create() {
