@@ -85,6 +85,7 @@ int main(int argc, char* argv[]) {
     // Argument Handling
     int return_code = parse_arguments(argc, argv);
     if (return_code != 0) {
+        spdlog::error("Expected Usage: ./drivebrain -c path/to/config.json -d path/to/hytech.dbc");
         return return_code;
     }
 
