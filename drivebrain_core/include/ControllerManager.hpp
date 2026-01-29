@@ -52,17 +52,11 @@
 // on a side note, how are we going to prevent mutex deadlocking on the shared state?
 // we will do this by having the state estimator and the controller ticking in the same loop so no need for worrying about threading
 
-//new way to define param struct. 
-//this is a macro for the actual implementation in Configurable.hpp
-BEGIN_PARAMS(ControllerManagerParams)
-    REGISTER_PARAM(float, max_controller_switch_speed_ms)
-    REGISTER_PARAM(float, max_torque_switch_nm)
-    REGISTER_PARAM(float, max_accel_switch_float)
-    REGISTER_PARAM(float, max_requested_rpm)
-END_PARAMS(ControllerManagerParams)
 
+//getting rid of old macros block in order to remove configurable dependency. 
+//now based off foxglove params
 template <typename ControllerType, size_t NumControllers>
-class ControllerManager : public core::common::Configurable<ControllerManagerParams>
+class ControllerManager
 {
 public:
     /// @brief contructs instance of the controller manager
@@ -70,12 +64,22 @@ public:
     ControllerManager(std::array<std::shared_ptr<ControllerType>, NumControllers> controllers)
         :_controllers(std::move(controllers)) //std move for fast memory transfer
     {
-        ControllerManagerParams params; 
-        params.register_all(this);
+        auto& foxglove = core::FoxgloveServer::instance();
+        auto max_speed = f oxglove.get_param<double>("controllermanager/max_controller_switch_speed_ms");
+        auto max_torque = foxglove.get_param<double>("controllermanager/max_torque_switch_nm");
+        auto max_accel = foxglove.get_param<double>("controllermanager/max_accel_switch_float");
+        auto max_rpm = foxglove.get_param<double>("controllermanager/max_requested_rpm");
+        //check the name 
+        // Assign with defaults if not found
+        _max_switch_rpm = max_speed.value_or(5.0f) * constants::METERS_PER_SECOND_TO_RPM;
+        _max_torque_switch = max_torque.value_or(10.0f);
+        _max_accel_switch_req = max_accel.value_or(0.5f);
+        _max_requested_rpm = max_rpm.value_or(20000.0);
+        
+        
     }
     ~ControllerManager() = default;
 
-    /// @brief configurable required init function
     /// @return true or false depending on success of init
     bool init();
 
