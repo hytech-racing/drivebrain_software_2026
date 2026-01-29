@@ -1,5 +1,6 @@
 #include "EthernetComms.hpp"
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/executor_work_guard.hpp>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
@@ -16,25 +17,13 @@
 
 std::atomic<bool> running = true;
 boost::asio::io_context io_context;
-comms::ETHDriver<> eth_sender{io_context, 1155, "127.0.0.1"};
-comms::ETHDriver<hytech_msgs::ACUAllData> eth_recver{io_context, 1155};
+comms::ETHDriver<> eth_sender{io_context, 2222, "127.0.0.1"};
+comms::ETHDriver<hytech_msgs::ACUAllData> eth_recver{io_context, 2222};
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
         std::cout << "halting\n";
         running = false;
-    }
-}
-
-void get_param_task(int wait_time, core::MsgType msg) {
-    while(running) {
-        std::optional<int64_t> param_value1 = core::FoxgloveServer::instance().get_param<int64_t>("rpm_limit");
-        std::optional<double> param_value = core::FoxgloveServer::instance().get_param<int>("level_1/kI");
-        if (param_value) {
-            std::cout << param_value.value() << std::endl;
-        } 
-        // core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
-        std::this_thread::sleep_for((std::chrono::milliseconds(wait_time)));
     }
 }
 
@@ -47,14 +36,7 @@ void eth_send_msg() {
     }
 }
 
-// void eth_recv_msg() {
-//     while(running) {
-//         eth_recver
-//     }
-// }
-
 int main(int argc, char* argv[]) {
-
     core::FoxgloveServer::create(argv[1]);
     core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), argv[1]);
     core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
@@ -69,8 +51,16 @@ int main(int argc, char* argv[]) {
     // auto acu_data = std::make_shared<hytech_msgs::ACUAllData>();
     // acu_data->set_max_cell_temp_id(676767);
 
+    auto work_guard = boost::asio::make_work_guard(io_context);
+    std::thread io_thread([&]() {
+        io_context.run();
+    });
+
     std::thread t1(eth_send_msg);
 
     if(t1.joinable()) t1.join();
+    work_guard.reset();
+    io_context.stop();
+    if(io_thread.joinable()) io_thread.join();
     core::MCAPLogger::instance().close_active_mcap();
 }

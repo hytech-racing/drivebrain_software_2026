@@ -12,7 +12,7 @@ namespace comms
 {
     template <typename MsgType>
     ETHDriver<MsgType>::ETHDriver(boost::asio::io_context &io_context, uint16_t port, std::string send_ip) 
-        : _socket(io_context, udp::endpoint(udp::v4(), port)),
+        : _socket(io_context, udp::v4()), 
         _send_endp(send_ip.empty()
                     ? udp::endpoint(udp::v4(), port)
                     : udp::endpoint(boost::asio::ip::make_address(send_ip.c_str()), port))
@@ -22,13 +22,12 @@ namespace comms
 
         if constexpr (!std::is_same_v<MsgType, void>)  {
             _socket.bind(udp::endpoint(udp::v4(), port));
-           _received_eth_msg = std::make_shared<MsgType>();
+            _received_eth_msg = std::make_shared<MsgType>();
             _start_receive();
             spdlog::info("ETHDriver full duplex mode initialized for port {}", port);
         } else {
             spdlog::info("ETHDriver send-only mode initialized for port {}", port);
         }
-
     }
 
     template <typename MsgType>
@@ -48,9 +47,8 @@ namespace comms
         if (_running && !error) {
             _received_eth_msg ->ParseFromArray(_recv_buffer.data(), size);
             auto out_msg = static_cast<std::shared_ptr<google::protobuf::Message>>(_received_eth_msg);
-            core::MCAPLogger::instance().log_msg(out_msg);
             std::cout<<"recieved msg" << std::endl;
-            // TODO: log to state estimator
+            core::MCAPLogger::instance().log_msg(out_msg);
             _start_receive();
         }
     }
@@ -91,14 +89,12 @@ namespace comms
                 _send_msg_queue.deque.swap(temp_msg_queue);
             }
 
-        }
+            for (const auto &msg : temp_msg_queue) {
+                _send_message(msg);
+            }
 
-        for (const auto &msg : temp_msg_queue) {
-            _send_message(msg);
-            // this->log(msg);
+            temp_msg_queue.clear();
         }
-
-        temp_msg_queue.clear();
     }
 
     template<typename MsgType>
