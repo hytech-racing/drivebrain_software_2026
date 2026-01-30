@@ -2,8 +2,6 @@
 #include <hytech_msgs.pb.h> 
 #include <memory>
 
-// TODO Add any imports you might think are neccesary here
-
 namespace core {
 
     class LapTracker {

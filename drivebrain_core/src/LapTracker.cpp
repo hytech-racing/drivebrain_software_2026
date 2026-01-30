@@ -1,17 +1,9 @@
 #include <LapTracker.hpp> 
 
 void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
-    std::shared_ptr<hytech_msgs::LapTime> laptime_information = std::make_shared<hytech_msgs::LapTime>(); // TODO you need to fill in the fields of this protobuf message
-    /**
-     * TODO it is your responsibility to fill in this method. Look at the VehicleState 
-     * struct to see all the things it gives you (you should see vn position from there). Using this
-     * and the private variables you added in the header, complete this method. It should use all of the information
-     * in the latest state to update it's local variables, create a LapTime protobuf, and invoke handle_receive_protobuf_message
-     * on the state tracker. Some of this is completed for you. Good luck!
-     */
+    std::shared_ptr<hytech_msgs::LapTime> laptime_information = std::make_shared<hytech_msgs::LapTime>();
     
-     // Assuming 1 rpms correponds to 1 real life RPM
-
+    // Assuming 1 rpms correponds to 1 real life RPM
 
     auto now = std::chrono::steady_clock::now();
     float time_differential = std::chrono::duration<float>(now - _last_timestamp).count();
@@ -41,8 +33,8 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
         // Assume car has started
         _started = true;
     }
-    else if (_started && std::abs(latest_state.vehicle_position.lat - _start_lat) < 0.000027
-            && std::abs(latest_state.vehicle_position.lon - _start_lon) < 0.000027
+    else if (_started && std::abs(latest_state.vehicle_position.lat - _start_lat) < FINISH_LINE_POSITION_TOLERANCE
+            && std::abs(latest_state.vehicle_position.lon - _start_lon) < FINISH_LINE_POSITION_TOLERANCE
             && _laptime > 10.0f)
     {
         // Assume track width ~3m

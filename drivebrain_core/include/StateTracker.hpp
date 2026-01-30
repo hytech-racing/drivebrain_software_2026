@@ -15,6 +15,12 @@
 #include "hytech.pb.h"
 
 /**
+ * Tolerance for crossing finish line.
+ * Equal to ~3 meters of tolerance in latitude and longitude.
+ */
+#define FINISH_LINE_POSITION_TOLERANCE 0.000027
+
+/**
  * The state tracker acts 
  * as a thread-safe translation unit
  * between our comms interfaces and 
