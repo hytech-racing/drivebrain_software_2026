@@ -41,6 +41,11 @@ namespace core {
              * @retun MCAPLogger instance
              */
             static MCAPLogger& instance();
+
+            /**
+             * Destroys the MCAPLogger singleton instance, stopping logging and freeing resources
+             */
+            static void destroy();
             
             /**
              * Destructs MCAPLogger instance, frees singleton instance and joins all running log threads
@@ -54,6 +59,7 @@ namespace core {
               spdlog::info("Msg logger singleton instance released");
 
               _param_cv.notify_all();
+              _input_buffer_cv.notify_all();
               if(_param_log_thread.joinable()) _param_log_thread.join();
               if(_msg_log_thread.joinable()) _msg_log_thread.join();
             }

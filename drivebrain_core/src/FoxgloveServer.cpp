@@ -70,6 +70,13 @@ core::FoxgloveServer& core::FoxgloveServer::instance() {
     return *instance;
 }
 
+void core::FoxgloveServer::destroy() {
+    FoxgloveServer* instance = _s_instance.exchange(nullptr, std::memory_order_acq_rel);
+    if (instance) {
+        delete instance;
+    }
+}
+
 void core::FoxgloveServer::_init_params(const nlohmann::json &json_obj, const std::string &prefix) {
     for (auto &[key, value] : json_obj.items()) {
         std::string param_name = prefix.empty() ? to_lowercase(key) : prefix + "/" + to_lowercase(key);

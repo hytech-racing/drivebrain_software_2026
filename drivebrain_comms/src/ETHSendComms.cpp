@@ -16,6 +16,7 @@ namespace comms {
 
     ETHSendComms::~ETHSendComms() {
         _running = false;
+        _send_msg_queue.cv.notify_all();
         _socket.close();
         if(_output_thread.joinable()) {
             _output_thread.join();

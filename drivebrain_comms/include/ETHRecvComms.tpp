@@ -13,6 +13,7 @@ namespace comms {
     
       _socket.bind(udp::endpoint(udp::v4(), port));
       _received_msg = std::make_shared<MsgType>();
+      _running = true;
       _start_receive();
       spdlog::info("Ethernet receive-only mode, port {}", port);
   }

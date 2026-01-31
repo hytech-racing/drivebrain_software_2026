@@ -99,6 +99,13 @@ core::MCAPLogger& core::MCAPLogger::instance() {
     return *instance;
 }
 
+void core::MCAPLogger::destroy() {
+    MCAPLogger* instance = _s_instance.exchange(nullptr, std::memory_order_acq_rel);
+    if (instance) {
+        delete instance;
+    }
+}
+
 int core::MCAPLogger::open_new_mcap(const std::string &name) {
     std::cout << "Attempting to open new MCAP file" << std::endl;
 
@@ -201,7 +208,7 @@ void core::MCAPLogger::_handle_log_to_file() {
     
             msg_to_log.channelId = _name_to_id_map[msg.message_name];
             auto write_res = _writer.write(msg_to_log);
-            spdlog::info("Wrote message {} to mcap, status: {}", msg.message_name, write_res.message);
+            spdlog::info("wrote message {} to mcap, status: {}", msg.message_name, write_res.message);
         }
         write_buffer.clear();
     }
