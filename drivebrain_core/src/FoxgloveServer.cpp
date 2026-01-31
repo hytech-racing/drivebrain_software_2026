@@ -23,7 +23,7 @@ static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(
         const google::protobuf::FileDescriptor *file_descriptor = google::protobuf::DescriptorPool::generated_pool()->FindFileByName(name);
 
         if (!file_descriptor) {
-            std::cout << "File descriptor not found" << std::endl;
+            spdlog::warn("File descriptor not found");
         }
         else {
             descriptors.push_back(file_descriptor);
@@ -99,7 +99,7 @@ void core::FoxgloveServer::_init_params(const nlohmann::json &json_obj, const st
                 spdlog::warn("Duplicate parameter detected: {}", param_name);
             } else {
                 _foxglove_params_map[param_name] = param_value;
-                std::cout << "Added parameter: " << param_name << std::endl;
+                spdlog::info("Added parameter: {}", param_name);
             }
         }
     }
@@ -115,7 +115,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     // Instantiate handlers and create foxglove server 
     const auto logHandler = [](foxglove::WebSocketLogLevel, char const *msg) {
-        std::cout << msg << std::endl;
+        spdlog::info("{}", msg);
     };
 
     _server_options.capabilities.push_back("parameters");
@@ -125,12 +125,12 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     hdlrs.subscribeHandler = [&](foxglove::ChannelId chanId, foxglove::ConnHandle clientHandle) {
         const auto clientStr = _server->remoteEndpointString(clientHandle);
-        std::cout << "Client " << clientStr << " subscribed to " << chanId << std::endl;
+        spdlog::info("Client {} subscribed to {}", clientStr, chanId);
     };
 
     hdlrs.unsubscribeHandler = [&](foxglove::ChannelId chanId, foxglove::ConnHandle clientHandle) {
         const auto clientStr = _server->remoteEndpointString(clientHandle);
-        std::cout << "Client " << clientStr << " unsubscribed from " << chanId << std::endl;
+        spdlog::info("Client {} unsubscribed from {}", clientStr, chanId);
     };
 
     hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
