@@ -1,7 +1,6 @@
 #define MCAP_IMPLEMENTATION
 #include <atomic>
 #include <mutex>
-#include <stdexcept>
 #include <fstream>
 
 #include <MCAPLogger.hpp>
@@ -163,7 +162,7 @@ int core::MCAPLogger::log_msg(core::MsgType message) {
         std::unique_lock lock(_input_buffer_mutex);
         _input_buffer.push_back(new_message); 
         _input_buffer_cv.notify_one(); 
-    }
+   }
 
     return 0;
 }
@@ -185,7 +184,7 @@ void core::MCAPLogger::_handle_log_to_file() {
         {
             std::unique_lock lock(_input_buffer_mutex);
             _input_buffer_cv.wait(lock, [this](){ return !_input_buffer.empty() || !_running;});
-            if (_running && _input_buffer.empty()) {
+            if (!_running && _input_buffer.empty()) {
                 break;
             }
 
@@ -202,8 +201,9 @@ void core::MCAPLogger::_handle_log_to_file() {
     
             msg_to_log.channelId = _name_to_id_map[msg.message_name];
             auto write_res = _writer.write(msg_to_log);
-
+            spdlog::info("Wrote message {} to mcap, status: {}", msg.message_name, write_res.message);
         }
+        write_buffer.clear();
     }
 }   
 

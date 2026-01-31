@@ -1,9 +1,10 @@
+#include "ETHSendComms.hpp"
+#include "ETHRecvComms.hpp"
 #include "EthernetComms.hpp"
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/executor_work_guard.hpp>
 #include <chrono>
 #include <csignal>
-#include <cstdint>
 #include <google/protobuf/message.h>
 #include <iostream>
 #include <atomic> 
@@ -17,8 +18,8 @@
 
 std::atomic<bool> running = true;
 boost::asio::io_context io_context;
-comms::ETHDriver<> eth_sender{io_context, 2222, "127.0.0.1"};
-comms::ETHDriver<hytech_msgs::ACUAllData> eth_recver{io_context, 2222};
+comms::ETHSendComms eth_sender{io_context, 2222, "127.0.0.1"};
+comms::ETHRecvComms<hytech_msgs::ACUAllData> eth_recver{io_context, 2222};
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
@@ -30,7 +31,7 @@ void sig_handler(int signal) {
 void eth_send_msg() {
     while(running) {
         auto msg = std::make_shared<hytech_msgs::ACUAllData>();
-        msg->set_soc(67.0);
+        msg->set_max_cell_temp_id(6767);
         std::this_thread::sleep_for((std::chrono::seconds(1)));
         eth_sender.enqueue_msg_send(msg);
     }
