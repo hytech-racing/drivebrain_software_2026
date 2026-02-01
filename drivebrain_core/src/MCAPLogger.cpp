@@ -16,7 +16,7 @@ static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(
         const google::protobuf::FileDescriptor *file_descriptor = google::protobuf::DescriptorPool::generated_pool()->FindFileByName(name);
 
         if (!file_descriptor) {
-            std::cout << "File descriptor not found" << std::endl;
+            spdlog::warn("File descriptor not found");
         }
         else {
             descriptors.push_back(file_descriptor);
@@ -101,11 +101,11 @@ core::MCAPLogger& core::MCAPLogger::instance() {
 }
 
 int core::MCAPLogger::open_new_mcap(const std::string &name) {
-    std::cout << "Attempting to open new MCAP file" << std::endl;
+    spdlog::info("Attempting to open new MCAP file");
 
     const auto res = _writer.open(name, _options);
     if (!res.ok()) {
-        std::cout << "Failed to open MCAP :(" << std::endl;
+        spdlog::warn("Failed to open MCAP :(");
         return -1;
     }
 
@@ -124,7 +124,7 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
         }
     }
 
-    std::cout << "Successfully added message descriptions to mcap" << std::endl;
+    spdlog::info("Successfully added message descriptions to mcap");
 
     mcap::Schema config_schema("drivebrain_configuration", "jsonschema", _params_schema_json.dump());
     _writer.addSchema(config_schema);
@@ -134,13 +134,13 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
 
     log_params(_initial_params);
 
-    std::cout << "Successfully added params schema" << std::endl;
+    spdlog::info("Successfully added params schema");
     
     return 0;
 }
 
 int core::MCAPLogger::close_active_mcap() {
-    std::cout << "Closing mcap" << std::endl;
+    spdlog::info("Closing mcap");
     _writer.close(); 
 
     return 0;
@@ -153,7 +153,7 @@ void core::MCAPLogger::init_logging() {
 }
 
 int core::MCAPLogger::log_msg(core::MsgType message) {
-    std::cout << "Attempting to log message" << std::endl;
+    spdlog::info("Attempting to log message");
     mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     RawMessage_s new_message; 
     new_message.log_time = log_time;

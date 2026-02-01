@@ -11,12 +11,13 @@
 #include <mcap/writer.hpp>
 #include <memory>
 #include <thread>
+#include <spdlog/spdlog.h>
 
 std::atomic<bool> running = true;
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
-        std::cout << "halting\n";
+        spdlog::info("halting");
         running = false;
     }
 }
@@ -26,7 +27,7 @@ void get_param_task(int wait_time, core::MsgType msg) {
         std::optional<int64_t> param_value1 = core::FoxgloveServer::instance().get_param<int64_t>("rpm_limit");
         std::optional<double> param_value = core::FoxgloveServer::instance().get_param<int>("level_1/kI");
         if (param_value) {
-            std::cout << param_value.value() << std::endl;
+            spdlog::info("{}", param_value.value());
         } 
         // core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
         std::this_thread::sleep_for((std::chrono::milliseconds(wait_time)));
