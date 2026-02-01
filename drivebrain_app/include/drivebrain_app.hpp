@@ -31,6 +31,8 @@ private:
   void _loop();
   
 private:  
+  boost::asio::io_context _io_context;
+
   /* Threads */
   std::thread _loop_thread;
   std::thread _io_context_thread;
@@ -40,10 +42,9 @@ private:
   const std::string _dbc_path;
 
   /* Ethernet drivers */
-  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUAllData>> _acu_eth_driver;
-  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUCoreData>> _acu_core_eth_driver;
-  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCRData_s>> _vcr_eth_driver;
-  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver;
+  comms::ETHRecvComms<hytech_msgs::ACUAllData> _acu_eth_driver;
+  comms::ETHRecvComms<hytech_msgs::ACUCoreData> _acu_core_eth_driver;
+  comms::ETHRecvComms<hytech_msgs::VCRData_s> _vcr_eth_driver;
+  comms::ETHRecvComms<hytech_msgs::VCFData_s> _vcf_eth_driver;
 
-  boost::asio::io_context _io_context;
 };

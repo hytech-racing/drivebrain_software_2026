@@ -23,12 +23,11 @@ void sig_handler(int signal) {
 DrivebrainApp::DrivebrainApp(const std::string& json_param_path, const std::string& dbc_path)
   : _json_params_path(json_param_path)
   , _dbc_path(dbc_path)
+  , _acu_eth_driver(_io_context, 7766)
+  , _acu_core_eth_driver(_io_context, 7777)
+  , _vcr_eth_driver(_io_context, 9999)
+  , _vcf_eth_driver(_io_context, 4444)
 {
-  _acu_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUAllData>>(_io_context, 7766); 
-  _acu_core_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUCoreData>>(_io_context, 7777);
-  _vcr_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCRData_s>>(_io_context, 9999);
-  _vcf_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCFData_s>>(_io_context, 4444);
-
   spdlog::info("Initialized ethernet drivers");
 
   // TODO init CAN drivers
