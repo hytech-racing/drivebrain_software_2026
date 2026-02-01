@@ -38,6 +38,11 @@ namespace core {
              * @retun FoxgloveServer instance
              */
             static FoxgloveServer& instance();
+
+            /**
+             * Destroys the Foxglove server singleton instance, stopping the server and freeing resources
+             */
+            static void destroy();
             
             /**
              * Destructs the foxglove server instance by stopping the server. 
