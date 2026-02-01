@@ -16,7 +16,7 @@ static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(
         const google::protobuf::FileDescriptor *file_descriptor = google::protobuf::DescriptorPool::generated_pool()->FindFileByName(name);
 
         if (!file_descriptor) {
-            spdlog::warn("File descriptor not found");
+            spdlog::error("File descriptor not found");
         }
         else {
             descriptors.push_back(file_descriptor);
@@ -105,7 +105,7 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
 
     const auto res = _writer.open(name, _options);
     if (!res.ok()) {
-        spdlog::warn("Failed to open MCAP :(");
+        spdlog::error("Failed to open MCAP :(");
         return -1;
     }
 
