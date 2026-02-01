@@ -1,8 +1,11 @@
 /**
- * Script for testing MCAP logging functionality.
- * Spawns two mock threads sending protobuf messages at different rates and logs to MCAP.
+ * Script for testing ethernet driver functionality.
+ * Spawns a mock thread sending protobuf messages over "ethernet" using the ETHSend class.
 */
 
+#include "ETHSendComms.hpp"
+#include "ETHRecvComms.hpp"
+#include <boost/asio/io_context.hpp>
 #include <chrono>
 #include <csignal>
 #include <google/protobuf/message.h>
@@ -17,7 +20,6 @@
 #include <thread>
 
 std::atomic<bool> running = true;
-
 void sig_handler(int signal) {
     if(signal == SIGINT) {
         std::cout << "halting\n";
@@ -25,15 +27,8 @@ void sig_handler(int signal) {
     }
 }
 
-void get_param_task(int wait_time, core::MsgType msg) {
-    while(running) {
-        core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
-        std::this_thread::sleep_for((std::chrono::milliseconds(wait_time)));
-    }
-}
-
 int main(int argc, char* argv[]) {
-
+    // Singleton Creation
     core::FoxgloveServer::create(argv[1]);
     core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), argv[1]);
     core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
@@ -41,21 +36,28 @@ int main(int argc, char* argv[]) {
 
     std::signal(SIGINT, sig_handler);
     
-    auto vel_msg = std::make_shared<hytech::velocities>();
-    vel_msg->set_velocity_x(1000);
-    vel_msg->set_velocity_y(10000);
+    boost::asio::io_context io_context;
+    comms::ETHSendComms eth_sender{io_context, 2222, "127.0.0.1"};
+    comms::ETHRecvComms<hytech_msgs::ACUAllData> eth_recver{io_context, 2222};
 
-    auto acu_data = std::make_shared<hytech_msgs::ACUAllData>();
-    acu_data->set_max_cell_temp_id(676767);
+    std::thread io_thread([&]() {
+        io_context.run();
+    });
 
-    std::thread t1(get_param_task, 20, vel_msg);
-    std::thread t2(get_param_task, 40, acu_data);
+    std::thread t1([&]() {
+        while(running) {
+            auto msg = std::make_shared<hytech_msgs::ACUAllData>();
+            msg->set_max_cell_temp_id(6767);
+            std::this_thread::sleep_for((std::chrono::seconds(1)));
+            eth_sender.enqueue_msg_send(msg);
+        }
+    });
 
     if(t1.joinable()) t1.join();
-    if(t2.joinable()) t2.join();
+    io_context.stop();
+    if(io_thread.joinable()) io_thread.join();
+    
     core::MCAPLogger::instance().close_active_mcap();
-
     core::MCAPLogger::destroy();
     core::FoxgloveServer::destroy();
-
 }

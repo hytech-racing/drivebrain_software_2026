@@ -50,6 +50,7 @@ FetchContent_MakeAvailable(HT_CAN)
 #################################
 add_executable(drivebrain
     drivebrain_app/src/main.cpp
+    drivebrain_app/src/drivebrain_app.cpp
 )
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)

@@ -12,10 +12,7 @@
 #include <google/protobuf/util/time_util.h>
 #include <boost/signals2.hpp>
 #include <MCAPLogger.hpp>
-#include <vector> 
 #include <string> 
-#include <fstream> 
-#include <thread>
 #include <atomic>
 #include <cassert>
 #include <optional>

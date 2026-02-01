@@ -1,0 +1,49 @@
+#include "ETHRecvComms.hpp"
+#include <MCAPLogger.hpp>
+#include <boost/asio.hpp>
+#include <memory>
+
+#include "hytech_msgs.pb.h"
+
+class DrivebrainApp {
+public:
+  /**
+   * Creates a new instance of Drivebrain
+   *
+   * @param json_params_path The path to the JSON parameters file
+   * @param dbc_path The path to the DBC file
+  */
+  DrivebrainApp(const std::string& json_params_path, const std::string& dbc_path);
+  ~DrivebrainApp();
+
+  DrivebrainApp& operator=(DrivebrainApp&&) = delete;
+  DrivebrainApp(DrivebrainApp&&) = delete;
+
+  /**
+   * Starts running the Drivebrain main loop
+  */
+  void run();
+
+private:
+  /**
+   * Processes one loop iteration of Drivebrain
+  */
+  void _loop();
+  
+private:  
+  /* Threads */
+  std::thread _loop_thread;
+  std::thread _io_context_thread;
+
+  /* Config paths */
+  const std::string _json_params_path;
+  const std::string _dbc_path;
+
+  /* Ethernet drivers */
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUAllData>> _acu_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUCoreData>> _acu_core_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCRData_s>> _vcr_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver;
+
+  boost::asio::io_context _io_context;
+};
