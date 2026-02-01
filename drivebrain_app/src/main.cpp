@@ -1,8 +1,6 @@
 #include "ETHSendComms.hpp"
 #include "ETHRecvComms.hpp"
-#include "EthernetComms.hpp"
 #include <boost/asio/io_context.hpp>
-#include <boost/asio/executor_work_guard.hpp>
 #include <chrono>
 #include <csignal>
 #include <google/protobuf/message.h>
@@ -37,7 +35,6 @@ int main(int argc, char* argv[]) {
     comms::ETHSendComms eth_sender{io_context, 2222, "127.0.0.1"};
     comms::ETHRecvComms<hytech_msgs::ACUAllData> eth_recver{io_context, 2222};
 
-    auto work_guard = boost::asio::make_work_guard(io_context);
     std::thread io_thread([&]() {
         io_context.run();
     });
@@ -52,7 +49,6 @@ int main(int argc, char* argv[]) {
     });
 
     if(t1.joinable()) t1.join();
-    work_guard.reset();
     io_context.stop();
     if(io_thread.joinable()) io_thread.join();
     

@@ -158,7 +158,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
             }
             param_copy = _foxglove_params_map;
         }
-        MCAPLogger::instance().log_params(get_all_params());
+        MCAPLogger::instance().log_params(get_all_params()); /* Needed for showing param updates in the outputted MCAP file */
         _param_update_signal(param_copy);
     };
 
