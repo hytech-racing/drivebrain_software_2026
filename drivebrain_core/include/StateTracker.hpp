@@ -14,11 +14,15 @@
 #include "hytech_msgs.pb.h"
 #include "hytech.pb.h"
 
-/**
- * Tolerance for crossing finish line.
- * Equal to ~3 meters of tolerance in latitude and longitude.
- */
+// Tolerance for crossing finish line. Equal to ~3 meters of tolerance in latitude and longitude.
 #define FINISH_LINE_POSITION_TOLERANCE 0.000027
+// Error for wheels to be considered stationary
+#define STATIONARY_WHEEL_ERROR 0.001
+// Minimum rpm for car to be considered "racing"
+#define MINIMUM_WHEEL_ROTATION 10
+// Minimum velocity m/s for car to be considered "racing"
+#define MINIMUM_CAR_VELOCITY 0.2
+
 
 /**
  * The state tracker acts 

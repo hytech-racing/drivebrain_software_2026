@@ -11,27 +11,28 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
 
     if (_lapcount == 0
         && latest_state.is_ready_to_drive
-        && std::abs(latest_state.current_rpms.FL) < _error
-        && std::abs(latest_state.current_rpms.FR) < _error
-        && std::abs(latest_state.current_rpms.RL) < _error
-        && std::abs(latest_state.current_rpms.RR) < _error
-        && std::abs(latest_state.current_body_vel_ms.x) < _error
-        && std::abs(latest_state.current_body_vel_ms.y) < _error)
+        && std::abs(latest_state.current_rpms.FL) < STATIONARY_WHEEL_ERROR
+        && std::abs(latest_state.current_rpms.FR) < STATIONARY_WHEEL_ERROR
+        && std::abs(latest_state.current_rpms.RL) < STATIONARY_WHEEL_ERROR
+        && std::abs(latest_state.current_rpms.RR) < STATIONARY_WHEEL_ERROR
+        && std::abs(latest_state.current_body_vel_ms.x) < STATIONARY_WHEEL_ERROR
+        && std::abs(latest_state.current_body_vel_ms.y) < STATIONARY_WHEEL_ERROR)
     {
-        // Assume car is in start box
+        // Assume car is in start box and stationary
         _start_lat = latest_state.vehicle_position.lat;
         _start_lon = latest_state.vehicle_position.lon;
     }
     else if (!_started
-        && std::abs(latest_state.current_rpms.FL) > 10
-        && std::abs(latest_state.current_rpms.FR) > 10
-        && std::abs(latest_state.current_rpms.RL) > 10
-        && std::abs(latest_state.current_rpms.RR) > 10
-        && (std::abs(latest_state.current_body_vel_ms.x) > 0.2
-        || std::abs(latest_state.current_body_vel_ms.y) > 0.2))
+        && std::abs(latest_state.current_rpms.FL) > MINIMUM_WHEEL_ROTATION
+        && std::abs(latest_state.current_rpms.FR) > MINIMUM_WHEEL_ROTATION
+        && std::abs(latest_state.current_rpms.RL) > MINIMUM_WHEEL_ROTATION
+        && std::abs(latest_state.current_rpms.RR) > MINIMUM_WHEEL_ROTATION
+        && (std::abs(latest_state.current_body_vel_ms.x) > MINIMUM_CAR_VELOCITY
+        || std::abs(latest_state.current_body_vel_ms.y) > MINIMUM_CAR_VELOCITY))
     {
         // Assume car has started
         _started = true;
+        _last_timestamp = std::chrono::steady_clock::now();
     }
     else if (_started && std::abs(latest_state.vehicle_position.lat - _start_lat) < FINISH_LINE_POSITION_TOLERANCE
             && std::abs(latest_state.vehicle_position.lon - _start_lon) < FINISH_LINE_POSITION_TOLERANCE
