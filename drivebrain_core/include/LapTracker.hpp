@@ -2,8 +2,6 @@
 #include <hytech_msgs.pb.h> 
 #include <memory>
 
-// TODO Add any imports you might think are neccesary here
-
 namespace core {
 
     class LapTracker {
@@ -40,7 +38,12 @@ namespace core {
             /** Internal State */
             inline static std::atomic<LapTracker*> _s_instance;
             
-            // TODO put variables here to keep track of the lap tracker's internal state
+            int _lapcount = 0;
+            float _laptime = 0.0f;
+            double _start_lat;
+            double _start_lon;
+            bool _started = false;
+            std::chrono::steady_clock::time_point _last_timestamp;
             
     };
 
