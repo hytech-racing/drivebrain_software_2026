@@ -69,6 +69,13 @@ core::FoxgloveServer& core::FoxgloveServer::instance() {
     return *instance;
 }
 
+void core::FoxgloveServer::destroy() {
+    FoxgloveServer* instance = _s_instance.exchange(nullptr, std::memory_order_acq_rel);
+    if (instance) {
+        delete instance;
+    }
+}
+
 void core::FoxgloveServer::_init_params(const nlohmann::json &json_obj, const std::string &prefix) {
     for (auto &[key, value] : json_obj.items()) {
         std::string param_name = prefix.empty() ? to_lowercase(key) : prefix + "/" + to_lowercase(key);
@@ -150,7 +157,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
             }
             param_copy = _foxglove_params_map;
         }
-        MCAPLogger::instance().log_params(get_all_params());
+        MCAPLogger::instance().log_params(get_all_params()); /* Needed for showing param updates in the outputted MCAP file */
         _param_update_signal(param_copy);
     };
 

@@ -8,6 +8,7 @@ find_package(Protobuf REQUIRED CONFIG)
 
 add_library(drivebrain_comms
     src/CANComms.cpp
+    src/ETHSendComms.cpp
     # src/DBServiceImpl.cpp
     # src/foxglove_server.cpp
     # src/VNComms.cpp
