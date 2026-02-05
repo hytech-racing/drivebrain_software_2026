@@ -3,6 +3,7 @@
 #include <boost/asio/io_context.hpp>
 #include <chrono>
 #include <csignal>
+#include <exception>
 #include <google/protobuf/message.h>
 #include <iostream>
 #include <atomic> 
@@ -11,6 +12,7 @@
 #include <FoxgloveServer.hpp>
 #include <MCAPLogger.hpp>
 #include <mcap/writer.hpp>
+#include <CANComms.hpp> 
 #include <memory>
 #include <thread>
 #include <optional>
@@ -78,6 +80,8 @@ int main(int argc, char* argv[]) {
         return return_code;
     }
 
+    comms::CANComms primary_can("can0", dbc_file.value());
+
     // Singleton Creation
     core::FoxgloveServer::create(json_file.value());
     core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), json_file.value());
@@ -85,27 +89,16 @@ int main(int argc, char* argv[]) {
     core::MCAPLogger::instance().init_logging();
 
     std::signal(SIGINT, sig_handler);
+    while(running) {
+        std::shared_ptr<hytech::drivebrain_speed_set_input> speed_msg = std::make_shared<hytech::drivebrain_speed_set_input>(); 
+        speed_msg->set_drivebrain_set_rpm_fl(1.0);
+        speed_msg->set_drivebrain_set_rpm_fr(2.0);
+        speed_msg->set_drivebrain_set_rpm_rl(4.0);
+        speed_msg->set_drivebrain_set_rpm_rr(8.0);
+        primary_can.send_message(speed_msg);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
     
-    boost::asio::io_context io_context;
-    comms::ETHSendComms eth_sender{io_context, 2222, "127.0.0.1"};
-    comms::ETHRecvComms<hytech_msgs::ACUAllData> eth_recver{io_context, 2222};
-
-    std::thread io_thread([&]() {
-        io_context.run();
-    });
-
-    std::thread t1([&]() {
-        while(running) {
-            auto msg = std::make_shared<hytech_msgs::ACUAllData>();
-            msg->set_max_cell_temp_id(6767);
-            std::this_thread::sleep_for((std::chrono::seconds(1)));
-            eth_sender.enqueue_msg_send(msg);
-        }
-    });
-
-    if(t1.joinable()) t1.join();
-    io_context.stop();
-    if(io_thread.joinable()) io_thread.join();
     
     core::MCAPLogger::instance().close_active_mcap();
     core::MCAPLogger::destroy();
