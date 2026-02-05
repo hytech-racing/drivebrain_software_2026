@@ -1,4 +1,5 @@
 #include "ETHRecvComms.hpp"
+#include "CANComms.hpp"
 #include <MCAPLogger.hpp>
 #include <boost/asio.hpp>
 #include <memory>
@@ -41,10 +42,14 @@ private:
   const std::string _json_params_path;
   const std::string _dbc_path;
 
+  /* CAN drivers */
+  std::unique_ptr<comms::CANComms> _telem_can;
+  std::unique_ptr<comms::CANComms> _aux_can;
+
   /* Ethernet drivers */
-  comms::ETHRecvComms<hytech_msgs::ACUAllData> _acu_eth_driver;
-  comms::ETHRecvComms<hytech_msgs::ACUCoreData> _acu_core_eth_driver;
-  comms::ETHRecvComms<hytech_msgs::VCRData_s> _vcr_eth_driver;
-  comms::ETHRecvComms<hytech_msgs::VCFData_s> _vcf_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUAllData>> _acu_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUCoreData>> _acu_core_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCRData_s>> _vcr_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver;
 
 };
