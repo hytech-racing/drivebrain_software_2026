@@ -10,7 +10,7 @@
 #include <memory>
 #include <google/protobuf/message.h>
 
-#include "MCAPLogger.hpp"
+#include "Telemetry.hpp"
 
 namespace comms {
 
@@ -32,7 +32,7 @@ namespace comms {
      * @param handler The handler function to be called on the received message. By default the message is logged to an MCAP.
     */
     ETHRecvComms(boost::asio::io_context& io_context, uint16_t port,
-              std::function<void(std::shared_ptr<MsgType>)> handler = [](std::shared_ptr<MsgType> msg){ core::MCAPLogger::instance().log_msg(msg); });
+              std::function<void(std::shared_ptr<MsgType>)> handler = [](std::shared_ptr<MsgType> msg){ core::log(msg); });
     
     private:
       /* Deserializes the received ethernet message and logs to the MessagerLogger and state estimator */

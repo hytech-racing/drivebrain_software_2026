@@ -1,3 +1,4 @@
+#include "Telemetry.hpp"
 #include <CANComms.hpp>
 #include <stdexcept>
 #include <iostream>
@@ -122,6 +123,7 @@ void comms::CANComms::_receive_handler() {
         }
 
         std::shared_ptr<google::protobuf::Message> dmsg = _decode_can_frame(_frame);
+        core::log(dmsg);
 
         // TODO log to state tracker or whatever here
     }

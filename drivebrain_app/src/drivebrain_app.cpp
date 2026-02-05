@@ -37,8 +37,8 @@ void DrivebrainApp::run() {
   std::signal(SIGINT, sig_handler);
 
   // TODO: remove hardcoded paths
-  core::FoxgloveServer::create(_json_params_path);
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
+  core::FoxgloveServer::create(_json_params_path);
   core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
   core::MCAPLogger::instance().init_logging();
 
