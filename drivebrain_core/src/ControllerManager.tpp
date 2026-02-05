@@ -8,7 +8,7 @@ bool control::ControllerManager<ControllerType, NumControllers>::init()
 {
 
     if(_max_accel_switch_req > 1.0f){
-        std::cout << "ERROR: max accel switch float > 1.0" << std::endl;
+        spdlog::error("max accel switch float > 1.0");
         return false;
     }
     // Initialize state

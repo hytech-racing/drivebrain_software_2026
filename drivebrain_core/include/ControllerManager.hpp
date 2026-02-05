@@ -65,7 +65,7 @@ public:
         :_controllers(std::move(controllers)) //std move for fast memory transfer
     {
         auto& foxglove = core::FoxgloveServer::instance();
-        auto max_speed = f oxglove.get_param<double>("controllermanager/max_controller_switch_speed_ms");
+        auto max_speed = foxglove.get_param<double>("controllermanager/max_controller_switch_speed_ms");
         auto max_torque = foxglove.get_param<double>("controllermanager/max_torque_switch_nm");
         auto max_accel = foxglove.get_param<double>("controllermanager/max_accel_switch_float");
         auto max_rpm = foxglove.get_param<double>("controllermanager/max_requested_rpm");
