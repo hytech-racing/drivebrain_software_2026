@@ -164,8 +164,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
     };
 
     hdlrs.parameterRequestHandler = [this](const std::vector<std::string> &param_names, const std::optional<std::string> &request_id,
-                                           foxglove::ConnHandle clientHandle)
-    {
+                                           foxglove::ConnHandle clientHandle) {
         std::vector<foxglove::Parameter> foxglove_params; 
         for (auto &[key, value] : _foxglove_params_map) {
             foxglove::Parameter param(key, value);

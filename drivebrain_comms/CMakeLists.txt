@@ -5,13 +5,11 @@ find_package(Boost REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(foxglove-websocket REQUIRED)
 find_package(Protobuf REQUIRED CONFIG)
+find_package(dbcppp REQUIRED)
 
 add_library(drivebrain_comms
     src/CANComms.cpp
     src/ETHSendComms.cpp
-    # src/DBServiceImpl.cpp
-    # src/foxglove_server.cpp
-    # src/VNComms.cpp
 )
 
 target_include_directories(drivebrain_comms PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -25,4 +23,5 @@ target_link_libraries(drivebrain_comms PUBLIC
     protobuf::libprotobuf
     hytech_msgs_cpp_lib
     libvncxx
+    dbcppp::dbcppp
 )

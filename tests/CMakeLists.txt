@@ -2,6 +2,8 @@
 # Unit Testing
 #################################
 
+find_package(GTest REQUIRED)
+
 add_executable(drivebrain_test
     main.cpp
     MCAPLoggerTest.cpp

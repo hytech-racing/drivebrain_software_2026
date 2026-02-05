@@ -1,4 +1,4 @@
-# cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(drivebrain_software_2026)
@@ -20,7 +20,7 @@ find_package(Protobuf REQUIRED CONFIG)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
-find_package(GTest REQUIRED)
+find_package(dbcppp REQUIRED)
 
 #################################
 # Upstreams (non-conan)
