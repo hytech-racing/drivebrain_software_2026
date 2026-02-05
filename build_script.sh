@@ -10,7 +10,7 @@ if [ "$1" = "--test" ]; then
 fi
 
 rm -rf .venv
-rm -rf "$build_folder"
+# rm -rf "$build_folder"
 rm -rf cmake
 
 python3 -m venv .venv
@@ -39,7 +39,7 @@ cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_EXE_LINKER_FLAGS="-static" \
+  # -DCMAKE_EXE_LINKER_FLAGS="-static" \
 
 make -j
 
@@ -47,3 +47,6 @@ make -j
 if [ "$1" = "--test" ]; then
   ctest --rerun-failed --output-on-failure
 fi
+
+cd ..
+ln -sf "$build_folder"/compile_commands.json compile_commands.json

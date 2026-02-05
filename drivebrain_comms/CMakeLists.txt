@@ -9,6 +9,7 @@ find_package(dbcppp REQUIRED)
 
 add_library(drivebrain_comms
     src/CANComms.cpp
+    src/ETHSendComms.cpp
 )
 
 target_include_directories(drivebrain_comms PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

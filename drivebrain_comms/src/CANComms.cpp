@@ -1,4 +1,6 @@
 #include <CANComms.hpp>
+#include <stdexcept>
+#include <iostream>
 
 /****************************************************************
  * HELPER METHODS
@@ -28,7 +30,9 @@ static std::shared_ptr<google::protobuf::Message> get_proto_message_from_name(co
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
 comms::CANComms::CANComms(const std::string &device_name, const std::string &dbc_file_path) {
-    _init(device_name, dbc_file_path); 
+    if (_init(device_name, dbc_file_path) < 0) {
+        throw std::runtime_error("Failed to initialize CAN communications");
+    }
 }
 
 void comms::CANComms::send_message(std::shared_ptr<google::protobuf::Message> message) {
@@ -51,20 +55,43 @@ int comms::CANComms::_init(const std::string &device_name, const std::string &db
     struct sockaddr_can addr;
     struct ifreq ifr;
 
-    _socket = socket(PF_CAN, SOCK_RAW, CAN_RAW); // TODO Make sure this works
+    _socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (_socket < 0) {
+        std::cerr << "Failed to create CAN socket: " << strerror(errno) << std::endl;
+        return -1;
+    }
 
     strcpy(ifr.ifr_name, device_name.c_str());
-    ioctl(_socket, SIOCGIFINDEX, &ifr);
+    if (ioctl(_socket, SIOCGIFINDEX, &ifr) < 0) {
+        std::cerr << "Failed to get interface index for " << device_name << ": " << strerror(errno) << std::endl;
+        close(_socket);
+        return -1;
+    }
 
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
 
-    bind(_socket, (struct sockaddr *)&addr, sizeof(addr));
+    if (bind(_socket, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        std::cerr << "Failed to bind CAN socket: " << strerror(errno) << std::endl;
+        close(_socket);
+        return -1;
+    }
 
     // Set up DBC parsing
     {
         std::ifstream idbc(dbc_file_path.c_str());
+        if (!idbc.is_open()) {
+            std::cerr << "Failed to open DBC file: " << dbc_file_path << std::endl;
+            close(_socket);
+            return -1;
+        }
         _net = dbcppp::INetwork::LoadDBCFromIs(idbc);
+    }
+
+    if (!_net) {
+        std::cerr << "Failed to parse DBC file: " << dbc_file_path << std::endl;
+        close(_socket);
+        return -1;
     }
 
     for (const dbcppp::IMessage& msg : _net->Messages()) {

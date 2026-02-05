@@ -10,7 +10,6 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Custom libs
 #################################
 add_subdirectory(drivebrain_core)
-
 add_subdirectory(drivebrain_comms)
 
 #################################
@@ -50,8 +49,7 @@ FetchContent_MakeAvailable(HT_CAN)
 # Linking to main app
 #################################
 add_executable(drivebrain
-    # drivebrain_app/src/main.cpp
-    drivebrain_simple_hil_test/src/test_can_comms.cpp
+    drivebrain_app/src/main.cpp
 )
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
@@ -66,3 +64,12 @@ target_link_libraries(drivebrain PUBLIC
     drivebrain_core
     drivebrain_comms
 )
+
+#################################
+# Unit Testing
+#################################
+
+if(NOT CMAKE_CROSSCOMPILING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

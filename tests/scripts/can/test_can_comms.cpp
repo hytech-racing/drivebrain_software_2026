@@ -32,20 +32,20 @@ void thread2_send() {
 
 int main(int argc, char* argv[]) {
 
-    // Initialize can driver (second command line argument is the dbc file path)
-    primary_can = new comms::CANComms("can_primary", argv[1]);
+    // // Initialize can driver (second command line argument is the dbc file path)
+    // primary_can = new comms::CANComms("can_primary", argv[1]);
 
-    std::thread thread1(thread1_send);
-    std::thread thread2(thread2_send);
+    // std::thread thread1(thread1_send);
+    // std::thread thread2(thread2_send);
 
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
+    // while (true) {
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    // }
 
-    thread1.join(); 
-    thread2.join(); 
+    // thread1.join(); 
+    // thread2.join(); 
 
-    delete primary_can;
+    // delete primary_can;
 
     return 0; 
 }

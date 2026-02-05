@@ -2,6 +2,8 @@
 # Unit Testing
 #################################
 
+find_package(GTest REQUIRED)
+
 add_executable(drivebrain_test
     main.cpp
     MCAPLoggerTest.cpp
@@ -11,6 +13,7 @@ target_link_libraries(drivebrain_test PUBLIC
     foxglove-websocket::foxglove-websocket 
     mcap::mcap
     drivebrain_core
+    drivebrain_comms
     GTest::gtest
 )
 
