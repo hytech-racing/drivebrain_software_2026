@@ -22,8 +22,7 @@ void sig_handler(int signal) {
 
 DrivebrainApp::DrivebrainApp(const std::string& json_param_path, const std::string& dbc_path)
   : _json_params_path(json_param_path)
-  , _dbc_path(dbc_path)
-{}
+  , _dbc_path(dbc_path) {}
 
 DrivebrainApp::~DrivebrainApp() {
   running = false;

@@ -28,3 +28,21 @@ target_compile_definitions(drivebrain_test PRIVATE
 include(GoogleTest)
 gtest_discover_tests(drivebrain_test)
 
+#################################
+# Scripts
+#################################
+file(GLOB SCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.cpp")
+
+foreach(SCRIPT_PATH ${SCRIPT_SOURCES})
+    get_filename_component(SCRIPT_NAME ${SCRIPT_PATH} NAME_WE)
+    
+    add_executable(${SCRIPT_NAME} ${SCRIPT_PATH})
+    
+    target_link_libraries(${SCRIPT_NAME}
+        PRIVATE
+        foxglove-websocket::foxglove-websocket
+        mcap::mcap
+        drivebrain_core
+        drivebrain_comms
+    )
+endforeach()

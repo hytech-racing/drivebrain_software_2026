@@ -15,7 +15,7 @@ static std::string string_to_lowercase(std::string input_string) {
 
 static std::shared_ptr<google::protobuf::Message> get_proto_message_from_name(const std::string &name) {
     std::shared_ptr<google::protobuf::Message> proto_message; 
-    const google::protobuf::Descriptor *desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName("hytech." + name);
+    const google::protobuf::Descriptor *desc = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName("hytech." + string_to_lowercase(name));
     if (!desc) {
         return nullptr;
     }
@@ -30,8 +30,8 @@ static std::shared_ptr<google::protobuf::Message> get_proto_message_from_name(co
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-comms::CANComms::CANComms(const std::string &device_name, const std::string &dbc_file_path) {
-    if (_init(device_name, dbc_file_path) < 0) {
+comms::CANComms::CANComms(const std::string &device_name, const std::string &dbc_file_path) : _device_name(device_name) {
+    if (_init( dbc_file_path) < 0) {
         throw std::runtime_error("Failed to initialize CAN communications");
     }
 }
@@ -50,9 +50,9 @@ void comms::CANComms::send_message(std::shared_ptr<google::protobuf::Message> me
 /****************************************************************
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-int comms::CANComms::_init(const std::string &device_name, const std::string &dbc_file_path) {
+int comms::CANComms::_init( const std::string &dbc_file_path) {
     // Initialize the CAN socket
-    std::cout << "Beginning CAN initialization" << std::endl; 
+    spdlog::info("Beginning CAN initialization for device {}", _device_name);
     struct sockaddr_can addr;
     struct ifreq ifr;
 
@@ -62,9 +62,9 @@ int comms::CANComms::_init(const std::string &device_name, const std::string &db
         return -1;
     }
 
-    strcpy(ifr.ifr_name, device_name.c_str());
+    strcpy(ifr.ifr_name, _device_name.c_str());
     if (ioctl(_socket, SIOCGIFINDEX, &ifr) < 0) {
-        std::cerr << "Failed to get interface index for " << device_name << ": " << strerror(errno) << std::endl;
+        std::cerr << "Failed to get interface index for " << _device_name << ": " << strerror(errno) << std::endl;
         close(_socket);
         return -1;
     }
@@ -103,8 +103,7 @@ int comms::CANComms::_init(const std::string &device_name, const std::string &db
     // Spawn reader thread
     _reader_thread = std::thread(&comms::CANComms::_receive_handler, this);
 
-    std::cout << "Successfully initialized CAN driver" << std::endl;
-
+    spdlog::info("Successfully initialized CAN driver {}", _device_name);
     return 0;
 }
 
@@ -122,23 +121,28 @@ void comms::CANComms::_receive_handler() {
                 std::cout << "Error reading from can socket. Incomplete CAN frame." << std::endl;
         }
 
-        std::shared_ptr<google::protobuf::Message> dmsg = _decode_can_frame(_frame);
-        core::log(dmsg);
+        auto dmsg = _decode_can_frame(_frame);
+        if(dmsg.has_value()) core::log(dmsg.value());
+        else spdlog::error("Did not receive valid protobuf message. Skipping...");
 
         // TODO log to state tracker or whatever here
     }
 }
 
-std::shared_ptr<google::protobuf::Message> comms::CANComms::_decode_can_frame(struct can_frame &frame) {
+std::optional<std::shared_ptr<google::protobuf::Message>> comms::CANComms::_decode_can_frame(struct can_frame &frame) {
     const dbcppp::IMessage* dbc_msg = _messages[frame.can_id];
+    spdlog::info("Received can frame id {}", frame.can_id);
     
     if (dbc_msg == nullptr) {
-        return nullptr; 
+        spdlog::error("DBC message does not exist");
+        return std::nullopt; 
     }
 
-    std::shared_ptr<google::protobuf::Message> proto_message = get_proto_message_from_name(string_to_lowercase(dbc_msg->Name()));
+    std::shared_ptr<google::protobuf::Message> proto_message = get_proto_message_from_name(dbc_msg->Name());
+    spdlog::info("{}", dbc_msg->Name());
     if (proto_message == nullptr) {
-        return nullptr;
+        spdlog::error("Protobuf message not found");
+        return std::nullopt;
     }
 
     const google::protobuf::Descriptor *descriptor = proto_message->GetDescriptor();
@@ -178,7 +182,7 @@ std::shared_ptr<google::protobuf::Message> comms::CANComms::_decode_can_frame(st
 int comms::CANComms::_encode_can_frame(std::shared_ptr<google::protobuf::Message> proto_message, can_frame* frame) {
 
     std::string type_url = proto_message->GetTypeName();
-    std::string messageTypeName = type_url.substr(type_url.find_last_of('.') + 1); // TODO validate this is not scuffed
+    std::string messageTypeName = string_to_lowercase(type_url.substr(type_url.find_last_of('.') + 1));
 
     const google::protobuf::Descriptor *descriptor = proto_message->GetDescriptor();
     const google::protobuf::Reflection *reflection = proto_message->GetReflection(); 

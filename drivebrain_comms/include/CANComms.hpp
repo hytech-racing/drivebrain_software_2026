@@ -44,7 +44,7 @@ class CANComms {
         /**
          * Receives and unpacks a can frame. 
          */
-        std::shared_ptr<google::protobuf::Message> _decode_can_frame(struct can_frame& frame);
+        std::optional<std::shared_ptr<google::protobuf::Message>> _decode_can_frame(struct can_frame& frame);
 
         /**
          * Encodes a protobuf message to a CAN message
@@ -62,7 +62,7 @@ class CANComms {
          * 
          * @return 0 if successful, negative error code on failure
          */
-        int _init(const std::string &device_name, const std::string &dbc_file_path); 
+        int _init(const std::string &dbc_file_path); 
 
         /**
          * Casts a can_frame struct to a protobuf message if it exists in the descriptor pool
@@ -82,7 +82,7 @@ class CANComms {
         std::unordered_map<uint64_t, const dbcppp::IMessage*> _messages;
         std::unordered_map<std::string, uint64_t> _names_to_can_id;
         std::unique_ptr<dbcppp::INetwork> _net;
-
+        std::string _device_name;
 };
 
 }
