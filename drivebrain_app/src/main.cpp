@@ -15,6 +15,7 @@
 #include <CANComms.hpp> 
 #include <memory>
 #include <thread>
+#include <spdlog/spdlog.h>
 #include <optional>
 #include <filesystem>
 
@@ -67,7 +68,7 @@ int parse_arguments(int &argc, char* argv[]) {
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
-        std::cout << "halting\n";
+        spdlog::info("halting");
         running = false;
     }
 }
