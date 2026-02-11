@@ -15,7 +15,7 @@ static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(
         const google::protobuf::FileDescriptor *file_descriptor = google::protobuf::DescriptorPool::generated_pool()->FindFileByName(name);
 
         if (!file_descriptor) {
-            spdlog::error("File descriptor not found");
+            spdlog::error("File descriptor not found: {}", name);
         }
         else {
             descriptors.push_back(file_descriptor);
@@ -159,7 +159,6 @@ void core::MCAPLogger::init_logging() {
 }
 
 int core::MCAPLogger::log_msg(core::MsgType message) {
-    spdlog::info("Attempting to log message");
     mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     RawMessage_s new_message; 
     new_message.log_time = log_time;
@@ -208,7 +207,6 @@ void core::MCAPLogger::_handle_log_to_file() {
     
             msg_to_log.channelId = _name_to_id_map[msg.message_name];
             auto write_res = _writer.write(msg_to_log);
-            spdlog::info("wrote message {} to mcap, status: {}", msg.message_name, write_res.message);
         }
         write_buffer.clear();
     }

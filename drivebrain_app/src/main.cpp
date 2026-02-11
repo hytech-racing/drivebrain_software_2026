@@ -81,13 +81,15 @@ int main(int argc, char* argv[]) {
         return return_code;
     }
 
-    comms::CANComms primary_can("can0", dbc_file.value());
+    comms::CANComms primary_can("can_secondary", dbc_file.value());
 
     // Singleton Creation
     core::FoxgloveServer::create(json_file.value());
     core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), json_file.value());
     core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
     core::MCAPLogger::instance().init_logging();
+
+    std::shared_ptr<hytech_msgs::ACUAllData> all_data_msg = std::make_shared<hytech_msgs::ACUAllData>();
 
     std::signal(SIGINT, sig_handler);
     while(running) {

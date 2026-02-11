@@ -22,7 +22,7 @@ static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(
         const google::protobuf::FileDescriptor *file_descriptor = google::protobuf::DescriptorPool::generated_pool()->FindFileByName(name);
 
         if (!file_descriptor) {
-            spdlog::warn("File descriptor not found");
+            spdlog::error("File descriptor not found {}", name);
         }
         else {
             descriptors.push_back(file_descriptor);
@@ -171,21 +171,22 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
         _server->publishParameterValues(clientHandle, foxglove_params, request_id);
     };
 
-    auto descriptors = get_pb_descriptors({"hytech_msgs.proto"});
+    auto descriptors = get_pb_descriptors({"hytech.proto"});
     std::vector<foxglove::ChannelWithoutId> channels;
 
-
+    int running_index = 1;
     for (const auto &file_descriptor : descriptors) {
 
-        for (int i = 1; i <= file_descriptor->message_type_count(); ++i) {
+        for (int i = 0; i < file_descriptor->message_type_count(); ++i) {
             const google::protobuf::Descriptor *message_descriptor = file_descriptor->message_type(i);
             foxglove::ChannelWithoutId server_channel;
             server_channel.topic = message_descriptor->name();
             server_channel.encoding = "protobuf";
             server_channel.schemaName = message_descriptor->full_name();
             server_channel.schema = foxglove::base64Encode(SerializeFdSet(message_descriptor));
-            _name_to_id_map[server_channel.topic] = i;
+            _name_to_id_map[server_channel.topic] = running_index;
             channels.push_back(server_channel);
+            running_index++;
         }
     }
 
