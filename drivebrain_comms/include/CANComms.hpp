@@ -16,6 +16,8 @@
 #include "hytech_msgs.pb.h"
 
 #include <dbcppp/Network.h>
+#include <FoxgloveServer.hpp>
+#include <MCAPLogger.hpp>
 
 
 namespace comms {
