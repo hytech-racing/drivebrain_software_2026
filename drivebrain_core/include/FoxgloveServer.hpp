@@ -16,6 +16,7 @@
 #include <atomic>
 #include <cassert>
 #include <optional>
+#include <spdlog/spdlog.h>
 
 #include "hytech_msgs.pb.h"
 
@@ -46,7 +47,7 @@ namespace core {
              */
             ~FoxgloveServer() {
                 _server->stop(); 
-                std::cout << "Destructed and stopped foxglove websocket server" << std::endl; 
+                spdlog::info("Destructed and stopped foxglove websocket server"); 
             }
             
             /**

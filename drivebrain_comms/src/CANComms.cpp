@@ -124,12 +124,11 @@ void comms::CANComms::_receive_handler() {
         auto dmsg = _decode_can_frame(_frame);
         if(dmsg.has_value()) core::log(dmsg.value());
         else spdlog::error("Did not receive valid protobuf message. Skipping...");
-
-        // TODO log to state tracker or whatever here
     }
 }
 
 std::optional<std::shared_ptr<google::protobuf::Message>> comms::CANComms::_decode_can_frame(struct can_frame &frame) {
+
     const dbcppp::IMessage* dbc_msg = _messages[frame.can_id];
     spdlog::info("Received can frame id {}", frame.can_id);
     
@@ -196,8 +195,6 @@ int comms::CANComms::_encode_can_frame(std::shared_ptr<google::protobuf::Message
     auto dbc_message = _messages[id]->Clone();   
     frame->can_id = id;
     frame->len = dbc_message->MessageSize();
-
-    std::cout << "ID: " << id << std::endl;
 
     for (const auto &sig : dbc_message->Signals()) {
         const google::protobuf::FieldDescriptor *field = descriptor->FindFieldByName(sig.Name());

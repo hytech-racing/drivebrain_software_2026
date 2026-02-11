@@ -20,7 +20,7 @@ std::atomic<bool> running = true;
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
-        std::cout << "halting\n";
+        spdlog::info("halting");
         running = false;
     }
 }
