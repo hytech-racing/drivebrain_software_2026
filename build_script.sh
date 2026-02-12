@@ -9,11 +9,11 @@ if [ "$1" = "--test" ]; then
   build_folder="build-native"
 fi
 
-#rm -rf .venv
+rm -rf .venv
 # rm -rf "$build_folder"
 rm -rf cmake
 
-# python3 -m venv .venv
+python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 
