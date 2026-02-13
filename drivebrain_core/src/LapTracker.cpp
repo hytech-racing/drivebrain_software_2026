@@ -79,7 +79,7 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
 
 float core::LapTracker::distance_formula(core::Position& start, core::Position& curr) {
     if (!start.valid || !curr.valid) {
-        return;
+        return 0;
     }
 
     float R = 6371000.0;
