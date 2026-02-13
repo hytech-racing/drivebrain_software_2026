@@ -29,7 +29,7 @@ namespace core {
              * @param start start position
              * @param curr current position
              */
-            void distance_formula(core::Position& start, core::Position& curr);
+            float distance_formula(core::Position& start, core::Position& curr);
 
             /**
              * Creates a new instance of the lap tracker
@@ -58,8 +58,8 @@ namespace core {
             std::chrono::steady_clock::time_point start_time;
             float start_yaw;
 
-            core::Position start_Position;
-            core::Position current_Position;
+            core::Position start_position;
+            core::Position current_position;
             float current_yaw;
 
     };

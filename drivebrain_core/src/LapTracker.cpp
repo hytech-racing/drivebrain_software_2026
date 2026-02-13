@@ -15,12 +15,12 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
      auto& currPos = latest_state.vehicle_position;
 
      // error checking
-     if (!currPos.state_is_valid) {
+     if (!latest_state.state_is_valid) {
         return;
      }
 
      auto clock = std::chrono::steady_clock::now();
-     float current_yaw = latest_state.ypr_rad.yaw;
+     float current_yaw = latest_state.current_ypr_rad.yaw;
 
      // start reading and mark start and exit method
      if (!start_set) {
@@ -28,12 +28,12 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
         current_position = currPos;
         start_set = true;
         start_time = clock;
-        start_yaw = latest_state.ypr_rad.yaw;
+        start_yaw = latest_state.current_ypr_rad.yaw;
         return;
      }
 
      // distance calculation
-     double distance = distanceFormula(start_position, currPos);
+     double distance = distance_formula(start_position, currPos);
 
      // set valid lap, consider orientation using yaw
      if (distance == 0 && current_yaw == start_yaw) {
@@ -54,7 +54,7 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
         core::StateTracker::instance().handle_receive_protobuf_message(laptime_information); // What "records" the information
 
         //reset info
-        start_time = now;
+        start_time = clock;
         valid_lap = false;
      }
 
@@ -77,18 +77,23 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
 
 }
 
-void core::LapTracker::distanceFormula(core::Position& start, core::Position& curr) {
+float core::LapTracker::distance_formula(core::Position& start, core::Position& curr) {
     if (!start.valid || !curr.valid) {
         return;
     }
 
-    //Haversine formula or distance formula
-    double lat = (curr.lat - start.lat) * (Math.PI/180);
-    double lon = (curr.lon - start.lon) * (Math.PI/180);
+    float R = 6371000.0;
 
-    double a = Math.sin(lat/2) * Math.sin(lat/2) + Math.cos(deg2rad(start.lat)) * Math.cos(deg2rad(curr.lat)) *  Math.sin(lon/2) * Math.sin(lon/2);
-    double b = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return 6371000.0 * b; //distance in m after multiplying by radius of earth in m
+    //Haversine formula or distance formula
+    double lat = (curr.lat - start.lat) * (M_PI/180);
+    double lon = (curr.lon - start.lon) * (M_PI/180);
+    double latSRad = start.lat * (M_PI/180);
+    double latCRad = curr.lat * (M_PI/180);
+
+
+    double a = sin(lat/2) * sin(lat/2) + cos(latSRad) * cos(latCRad) *  sin(lon/2) * sin(lon/2);
+    double b = 2 * atan2(sqrt(a), sqrt(1-a));
+    return R * b; //distance in m after multiplying by radius of earth in m
 }
 
 void core::LapTracker::create() {
