@@ -28,7 +28,8 @@ find_package(GTest REQUIRED)
 FetchContent_Declare(
     HT_Proto 
     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG f7967e90831271f9704a406a8f777d43c03d0d0b
+    GIT_TAG 7cdd552750e4c34d28512fbd291367a29be722d7
+    # GIT_TAG f7967e90831271f9704a406a8f777d43c03d0d0b
 )
 FetchContent_MakeAvailable(HT_Proto)
 

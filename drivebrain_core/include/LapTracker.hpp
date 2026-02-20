@@ -38,13 +38,24 @@ namespace core {
             /** Internal State */
             inline static std::atomic<LapTracker*> _s_instance;
             
-            int _lapcount = 0;
-            float _laptime = 0.0f;
+            // Race start configs
+            bool _started = false;
             double _start_lat;
             double _start_lon;
-            bool _started = false;
-            std::chrono::steady_clock::time_point _last_timestamp;
             
+            // Mid-Lap tracking variables
+            float _laptime = 0.0f;
+            float _max_lap_speed = 0.0f;
+            float _min_lap_speed = 0.0f;
+            
+            // Total Lap Metrics
+            int _lapcount = 0;
+            float _best_laptime = 0.0f;
+            float _last_laptime = 0.0f;
+            float _delta = 0.0f;
+            
+            core::VehicleState _previous_state;
+            std::chrono::steady_clock::time_point _last_timestamp;
     };
 
 }

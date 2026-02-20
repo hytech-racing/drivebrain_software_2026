@@ -20,8 +20,8 @@
 #define STATIONARY_WHEEL_ERROR 0.001
 // Minimum rpm for car to be considered "racing"
 #define MINIMUM_WHEEL_ROTATION 10
-// Minimum velocity m/s for car to be considered "racing"
-#define MINIMUM_CAR_VELOCITY 0.2
+// Minimum speed m/s for car to be considered "racing"
+#define MINIMUM_CAR_SPEED 0.2
 
 
 /**
