@@ -2,10 +2,11 @@
 # Unit Testing
 #################################
 
+find_package(GTest REQUIRED)
+
 add_executable(drivebrain_test
     main.cpp
     MCAPLoggerTest.cpp
-    EthernetCommsTest.cpp
 )
 
 target_link_libraries(drivebrain_test PUBLIC

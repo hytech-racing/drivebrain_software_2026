@@ -9,7 +9,7 @@ class MCAPLoggerTest : public testing::Test {
 protected:
 
   MCAPLoggerTest() {
-    core::FoxgloveServer::create(TEST_CONFIG_DIR + std::string("/fake_foxglove_params.json"));
+    core::FoxgloveServer::create(TEST_CONFIG_DIR + std::string("/fake_foxglove_params.json")); 
    };
 };
 

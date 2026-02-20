@@ -1,5 +1,9 @@
+#include "ETHSendComms.hpp"
+#include "ETHRecvComms.hpp"
+#include <boost/asio/io_context.hpp>
 #include <chrono>
 #include <csignal>
+#include <exception>
 #include <google/protobuf/message.h>
 #include <iostream>
 #include <atomic> 
@@ -8,10 +12,58 @@
 #include <FoxgloveServer.hpp>
 #include <MCAPLogger.hpp>
 #include <mcap/writer.hpp>
+#include <CANComms.hpp> 
 #include <memory>
 #include <thread>
+#include <optional>
+#include <filesystem>
 
 std::atomic<bool> running = true;
+std::optional<std::string> json_file; 
+std::optional<std::string> dbc_file;
+
+int parse_arguments(int &argc, char* argv[]) {
+    int opt;
+
+    while ((opt = getopt(argc, argv, "c:d:")) != -1) {
+        switch (opt) {
+            case 'c': 
+                if (optarg != nullptr && strlen(optarg) > 0 && std::filesystem::exists(optarg)) {
+                    json_file = optarg;
+                } else {
+                    spdlog::error("Invalid json file provided: {}", optarg);
+                    return 1;
+                }
+                break;
+            case 'd': 
+                if (optarg != nullptr && strlen(optarg) > 0 && std::filesystem::exists(optarg)) {
+                    dbc_file = optarg;
+                } else {
+                    spdlog::error("Invalid dbc file provided: {}", optarg);
+                    return 1;
+                }
+                break;
+            case '?':
+                spdlog::error("Unknown command line option: -{}", static_cast<char>(optopt));
+                return 1;
+            default: 
+                spdlog::error("Could not parse command line arguments.");
+                return 1;
+        }
+    }
+
+    if (!json_file) {
+        spdlog::error("Did not receive the required json file argument.");
+        return 1;
+    }
+
+    if (!dbc_file) {
+        spdlog::error("Did not receive the required dbc file argument.");
+        return 1;
+    }
+
+    return 0;
+}
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
@@ -20,35 +72,35 @@ void sig_handler(int signal) {
     }
 }
 
-void get_param_task(int wait_time, core::MsgType msg) {
-    while(running) {
-        core::MCAPLogger::instance().log_msg(static_cast<core::MsgType>(msg));
-        std::this_thread::sleep_for((std::chrono::milliseconds(wait_time)));
-    }
-}
-
 int main(int argc, char* argv[]) {
-    
+    // Argument Handling
+    int return_code = parse_arguments(argc, argv);
+    if (return_code != 0) {
+        spdlog::error("Expected Usage: ./drivebrain -c path/to/config.json -d path/to/hytech.dbc");
+        return return_code;
+    }
 
-    core::FoxgloveServer::create(argv[1]);
-    core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""));
+    comms::CANComms primary_can("can0", dbc_file.value());
+
+    // Singleton Creation
+    core::FoxgloveServer::create(json_file.value());
+    core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), json_file.value());
     core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
     core::MCAPLogger::instance().init_logging();
 
     std::signal(SIGINT, sig_handler);
+    while(running) {
+        std::shared_ptr<hytech::drivebrain_speed_set_input> speed_msg = std::make_shared<hytech::drivebrain_speed_set_input>(); 
+        speed_msg->set_drivebrain_set_rpm_fl(1.0);
+        speed_msg->set_drivebrain_set_rpm_fr(2.0);
+        speed_msg->set_drivebrain_set_rpm_rl(4.0);
+        speed_msg->set_drivebrain_set_rpm_rr(8.0);
+        primary_can.send_message(speed_msg);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
     
-    auto vel_msg = std::make_shared<hytech::velocities>();
-    vel_msg->set_velocity_x(1000);
-    vel_msg->set_velocity_y(10000);
-
-    auto acu_data = std::make_shared<hytech_msgs::ACUAllData>();
-    acu_data->set_max_cell_temp_id(676767);
-
-    std::thread t1(get_param_task, 20, vel_msg);
-    std::thread t2(get_param_task, 40, acu_data);
-
-    if(t1.joinable()) t1.join();
-    if(t2.joinable()) t2.join();
+    
     core::MCAPLogger::instance().close_active_mcap();
-
+    core::MCAPLogger::destroy();
+    core::FoxgloveServer::destroy();
 }

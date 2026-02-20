@@ -20,7 +20,7 @@ find_package(Protobuf REQUIRED CONFIG)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
-find_package(GTest REQUIRED)
+find_package(dbcppp REQUIRED)
 
 #################################
 # Upstreams (non-conan)
