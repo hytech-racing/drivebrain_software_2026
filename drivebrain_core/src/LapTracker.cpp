@@ -3,6 +3,7 @@
 void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
     std::shared_ptr<hytech_msgs::LapTime> laptime_information = std::make_shared<hytech_msgs::LapTime>();
 
+    // Create time differential
     auto now = std::chrono::steady_clock::now();
     float time_differential = std::chrono::duration<float>(now - _last_timestamp).count();
     _last_timestamp = now;
@@ -39,7 +40,7 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
         float current_speed = std::sqrt(std::pow(latest_state.current_body_vel_ms.x, 2) + std::pow(latest_state.current_body_vel_ms.y, 2));
 
         bool crossed_start_lattitude = (_previous_state.vehicle_position.lat <= _start_lat && latest_state.vehicle_position.lat >= _start_lat) 
-                                   || (latest_state.vehicle_position.lat <= _start_lat && _previous_state.vehicle_position.lat >= _start_lat);
+                                    || (latest_state.vehicle_position.lat <= _start_lat && _previous_state.vehicle_position.lat >= _start_lat);
         bool crossed_start_longitude = (_previous_state.vehicle_position.lon <= _start_lon && latest_state.vehicle_position.lon >= _start_lon)
                                     || (latest_state.vehicle_position.lon <= _start_lon && _previous_state.vehicle_position.lon >= _start_lon);
         bool within_start_lattitude_tolerance = std::abs(latest_state.vehicle_position.lat - _start_lat) <= FINISH_LINE_POSITION_TOLERANCE;
@@ -69,6 +70,7 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
 
     _previous_state = latest_state;
 
+    // Create a lap time information protobuf and send it to the state tracker
     laptime_information->set_laptime_seconds(_laptime);
     laptime_information->set_live_delta(_delta); // TODO: Make this live delta instead of just delta against best lap
     laptime_information->set_best_laptime_seconds(_best_laptime);
