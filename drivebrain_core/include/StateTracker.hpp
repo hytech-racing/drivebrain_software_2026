@@ -22,6 +22,8 @@
 #define MINIMUM_WHEEL_ROTATION 10
 // Minimum speed m/s for car to be considered "racing"
 #define MINIMUM_CAR_SPEED 0.2
+// Minimum laptime to be considered valid to prevent false positive of lap completion
+#define MINIMUM_LAPTIME 10.0f
 
 
 /**
