@@ -123,13 +123,15 @@ void comms::CANComms::_receive_handler() {
 
         std::shared_ptr<google::protobuf::Message> dmsg = _decode_can_frame(_frame);
 
-        // TODO log to state tracker or whatever here
+        core::FoxgloveServer::instance().send_live_telem_msg(dmsg);
+        core::MCAPLogger::instance().log_msg(dmsg);
     }
 }
 
 std::shared_ptr<google::protobuf::Message> comms::CANComms::_decode_can_frame(struct can_frame &frame) {
+
     const dbcppp::IMessage* dbc_msg = _messages[frame.can_id];
-    
+
     if (dbc_msg == nullptr) {
         return nullptr; 
     }
@@ -190,8 +192,6 @@ int comms::CANComms::_encode_can_frame(std::shared_ptr<google::protobuf::Message
     auto dbc_message = _messages[id]->Clone();   
     frame->can_id = id;
     frame->len = dbc_message->MessageSize();
-
-    std::cout << "ID: " << id << std::endl;
 
     for (const auto &sig : dbc_message->Signals()) {
         const google::protobuf::FieldDescriptor *field = descriptor->FindFieldByName(sig.Name());
