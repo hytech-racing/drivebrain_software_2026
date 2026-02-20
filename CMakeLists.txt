@@ -10,7 +10,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Custom libs
 #################################
 add_subdirectory(drivebrain_core)
-# add_subdirectory(drivebrain_comms)
+add_subdirectory(drivebrain_comms)
 
 #################################
 # Find packages
@@ -20,7 +20,7 @@ find_package(Protobuf REQUIRED CONFIG)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
-find_package(GTest REQUIRED)
+find_package(dbcppp REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -28,7 +28,7 @@ find_package(GTest REQUIRED)
 FetchContent_Declare(
     HT_Proto 
     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG f7967e90831271f9704a406a8f777d43c03d0d0b
+    GIT_TAG 7cdd552750e4c34d28512fbd291367a29be722d7
 )
 FetchContent_MakeAvailable(HT_Proto)
 
@@ -62,6 +62,7 @@ target_link_libraries(drivebrain PUBLIC
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
+    drivebrain_comms
 )
 
 #################################

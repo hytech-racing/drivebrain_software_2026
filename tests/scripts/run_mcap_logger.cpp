@@ -15,7 +15,7 @@ std::atomic<bool> running = true;
 
 void sig_handler(int signal) {
     if(signal == SIGINT) {
-        std::cout << "halting\n";
+        spdlog::info("halting");
         running = false;
     }
 }
@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     
 
     core::FoxgloveServer::create(argv[1]);
-    core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""));
+    core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), argv[1]);
     core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
     core::MCAPLogger::instance().init_logging();
 

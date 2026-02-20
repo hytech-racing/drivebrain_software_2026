@@ -1,16 +1,82 @@
 #include <LapTracker.hpp> 
 
 void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
-    std::shared_ptr<hytech_msgs::LapTime> laptime_information = std::make_shared<hytech_msgs::LapTime>(); // TODO you need to fill in the fields of this protobuf message
-    /**
-     * TODO it is your responsibility to fill in this method. Look at the VehicleState 
-     * struct to see all the things it gives you (you should see vn position from there). Using this
-     * and the private variables you added in the header, complete this method. It should use all of the information
-     * in the latest state to update it's local variables, create a LapTime protobuf, and invoke handle_receive_protobuf_message
-     * on the state tracker. Some of this is completed for you. Good luck!
-     */
-    core::StateTracker::instance().handle_receive_protobuf_message(laptime_information); // What "records" the information
+    std::shared_ptr<hytech_msgs::LapTime> laptime_information = std::make_shared<hytech_msgs::LapTime>();
 
+    // Create time differential
+    auto now = std::chrono::steady_clock::now();
+    float time_differential = std::chrono::duration<float>(now - _last_timestamp).count();
+    _last_timestamp = now;
+
+    // Logic if car has NOT started racing yet
+    if (!_started) {
+        if (latest_state.is_ready_to_drive) {
+
+            bool car_stationary = std::abs(latest_state.current_rpms.FL) < STATIONARY_WHEEL_ERROR
+                               && std::abs(latest_state.current_rpms.FR) < STATIONARY_WHEEL_ERROR
+                               && std::abs(latest_state.current_rpms.RL) < STATIONARY_WHEEL_ERROR
+                               && std::abs(latest_state.current_rpms.RR) < STATIONARY_WHEEL_ERROR
+                               && (std::sqrt(std::pow(latest_state.current_body_vel_ms.x, 2) + std::pow(latest_state.current_body_vel_ms.y, 2)) < MINIMUM_CAR_SPEED);
+            bool car_racing = std::abs(latest_state.current_rpms.FL) > MINIMUM_WHEEL_ROTATION
+                           && std::abs(latest_state.current_rpms.FR) > MINIMUM_WHEEL_ROTATION
+                           && std::abs(latest_state.current_rpms.RL) > MINIMUM_WHEEL_ROTATION
+                           && std::abs(latest_state.current_rpms.RR) > MINIMUM_WHEEL_ROTATION
+                           && (std::sqrt(std::pow(latest_state.current_body_vel_ms.x, 2) + std::pow(latest_state.current_body_vel_ms.y, 2)) > MINIMUM_CAR_SPEED);
+            
+            // If the car is stationary, assume it is in the start box and set the start line latitutde and longitude position
+            //      Elif the car is moving, assume it has started racing
+            if (car_stationary) {
+                _start_lat = latest_state.vehicle_position.lat;
+                _start_lon = latest_state.vehicle_position.lon;
+            } else if (car_racing) {
+                _started = true;
+            }
+        }
+
+    // Logic if the car has already started racing
+    } else {
+        
+        _laptime += time_differential;
+        float current_speed = std::sqrt(std::pow(latest_state.current_body_vel_ms.x, 2) + std::pow(latest_state.current_body_vel_ms.y, 2));
+        
+        bool crossed_start_lattitude = (_previous_state.vehicle_position.lat <= _start_lat && latest_state.vehicle_position.lat >= _start_lat) 
+                                    || (latest_state.vehicle_position.lat <= _start_lat && _previous_state.vehicle_position.lat >= _start_lat);
+        bool crossed_start_longitude = (_previous_state.vehicle_position.lon <= _start_lon && latest_state.vehicle_position.lon >= _start_lon)
+                                    || (latest_state.vehicle_position.lon <= _start_lon && _previous_state.vehicle_position.lon >= _start_lon);
+        bool within_start_lattitude_tolerance = std::abs(latest_state.vehicle_position.lat - _start_lat) <= FINISH_LINE_POSITION_TOLERANCE;
+        bool within_start_longitude_tolerance = std::abs(latest_state.vehicle_position.lon - _start_lon) <= FINISH_LINE_POSITION_TOLERANCE;
+        
+        // If the car has started has passed the start box, assume the car has completed a lap and update/reset lap metrics accordingly
+        //      Else the car has started but is not at the start line, so update mid-lap metrics normally
+        if ((_laptime > MINIMUM_LAPTIME) && ((crossed_start_lattitude && crossed_start_longitude) || (crossed_start_lattitude && within_start_longitude_tolerance) || (crossed_start_longitude && within_start_lattitude_tolerance))) {
+
+            _delta = _best_laptime > 0.0f ? _laptime - _best_laptime : 0.0f;
+            if (_best_laptime == 0.0f || _laptime < _best_laptime) {
+                _best_laptime = _laptime;
+            }
+            _last_laptime = _laptime;
+
+            _max_lap_speed = _min_lap_speed = current_speed;
+            _lapcount++;
+            _laptime = 0.0f;
+
+        } else {
+            _max_lap_speed = std::max(current_speed, _max_lap_speed);
+            _min_lap_speed = std::min(current_speed, _min_lap_speed);
+        }
+    }
+
+    _previous_state = latest_state;
+
+    // Create a lap time information protobuf and send it to the state tracker
+    laptime_information->set_laptime_seconds(_laptime);
+    laptime_information->set_live_delta(_delta); // TODO: Make this live delta instead of just delta against best lap
+    laptime_information->set_best_laptime_seconds(_best_laptime);
+    laptime_information->set_last_laptime_seconds(_last_laptime);
+    laptime_information->set_lapcount(_lapcount);
+    laptime_information->set_max_lap_speed_ms(_max_lap_speed);
+    laptime_information->set_min_lap_speed_ms(_min_lap_speed);
+    core::StateTracker::instance().handle_receive_protobuf_message(laptime_information);
 }
 
 void core::LapTracker::create() {
@@ -27,4 +93,10 @@ core::LapTracker& core::LapTracker::instance() {
     assert(instance != nullptr && "LapTracker has not been initialized");
     return *instance;
 }
+
+
+
+
+
+
 

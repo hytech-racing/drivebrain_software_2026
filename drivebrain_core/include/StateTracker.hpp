@@ -14,6 +14,18 @@
 #include "hytech_msgs.pb.h"
 #include "hytech.pb.h"
 
+// Tolerance for crossing finish line. Equal to ~3 meters of tolerance in latitude and longitude.
+#define FINISH_LINE_POSITION_TOLERANCE 0.000027
+// Error for wheels to be considered stationary
+#define STATIONARY_WHEEL_ERROR 0.001
+// Minimum rpm for car to be considered "racing"
+#define MINIMUM_WHEEL_ROTATION 10
+// Minimum speed m/s for car to be considered "racing"
+#define MINIMUM_CAR_SPEED 0.2
+// Minimum laptime to be considered valid to prevent false positive of lap completion
+#define MINIMUM_LAPTIME 10.0f
+
+
 /**
  * The state tracker acts 
  * as a thread-safe translation unit
@@ -225,21 +237,21 @@ namespace core {
     struct VehicleState {
         bool is_ready_to_drive; 
         DriverInput input;
-        xyz_vec<float> current_body_vel_ms;
-        xyz_vec<float> current_body_accel_mss;
-        xyz_vec<float> current_angular_rate_rads;
-        ypr_vec<float> current_ypr_rad;
-        veh_vec<float> current_rpms;
+        xyz_vec<float> current_body_vel_ms; // velocity
+        xyz_vec<float> current_body_accel_mss; // accel
+        xyz_vec<float> current_angular_rate_rads; // spin speed
+        ypr_vec<float> current_ypr_rad; // orientation
+        veh_vec<float> current_rpms; // wheel rotation speed
         veh_vec<float> motor_overload_percentages;
         bool state_is_valid;
-        int prev_MCU_recv_millis;
+        int prev_MCU_recv_millis; // watchdog timer
         float steering_angle_deg;
         ControllerOutput prev_controller_output;
         TireDynamics tire_dynamics;
         veh_vec<float> driver_torque;
         ControllerTorqueOut matlab_math_temp_out;
         veh_vec<float> suspension_potentiometers_mm;
-        Position vehicle_position;
+        Position vehicle_position; // coords relative to start?
         veh_vec<float> loadcells;
         veh_vec<float> current_torques_nm;
         INSStatus ins_status;

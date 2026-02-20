@@ -1,7 +1,7 @@
+#define MCAP_IMPLEMENTATION
 #include <atomic>
 #include <mutex>
-#include <stdexcept>
-#define MCAP_IMPLEMENTATION
+#include <fstream>
 
 #include <MCAPLogger.hpp>
 
@@ -15,7 +15,7 @@ static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(
         const google::protobuf::FileDescriptor *file_descriptor = google::protobuf::DescriptorPool::generated_pool()->FindFileByName(name);
 
         if (!file_descriptor) {
-            std::cout << "File descriptor not found" << std::endl;
+            spdlog::error("File descriptor not found: {}", name);
         }
         else {
             descriptors.push_back(file_descriptor);
@@ -50,14 +50,43 @@ static std::string serialize_fd_set(const google::protobuf::Descriptor *toplevel
 static std::string create_log_name() {
     
 }
+
+static nlohmann::json generate_json_schema(const nlohmann::json& obj) {
+    nlohmann::json schema;
+    
+    if (obj.is_object()) {
+        schema["type"] = "object";
+        schema["properties"] = nlohmann::json::object();
+        for (auto& [key, value] : obj.items()) {
+            schema["properties"][key] = generate_json_schema(value);
+        }
+    } else if (obj.is_array()) {
+        schema["type"] = "array";
+        if (!obj.empty()) {
+            schema["items"] = generate_json_schema(obj[0]);
+        }
+    } else if (obj.is_boolean()) {
+        schema["type"] = "boolean";
+    } else if (obj.is_number_integer()) {
+        schema["type"] = "integer";
+    } else if (obj.is_number_float()) {
+        schema["type"] = "number";
+    } else if (obj.is_string()) {
+        schema["type"] = "string";
+    } else if (obj.is_null()) {
+        schema["type"] = "null";
+    }
+    
+    return schema;
+}
  
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
 
-void core::MCAPLogger::create(const std::string &base_dir, const mcap::McapWriterOptions &options) {
+void core::MCAPLogger::create(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) {
     MCAPLogger* expected = nullptr;
-    MCAPLogger* local = new MCAPLogger(base_dir, options);
+    MCAPLogger* local = new MCAPLogger(base_dir, options, params_file);
     if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
         // Already initialized, delete local instance
         delete local;
@@ -70,12 +99,19 @@ core::MCAPLogger& core::MCAPLogger::instance() {
     return *instance;
 }
 
+void core::MCAPLogger::destroy() {
+    MCAPLogger* instance = _s_instance.exchange(nullptr, std::memory_order_acq_rel);
+    if (instance) {
+        delete instance;
+    }
+}
+
 int core::MCAPLogger::open_new_mcap(const std::string &name) {
-    std::cout << "Attempting to open new MCAP file" << std::endl;
+    spdlog::info("Attempting to open new MCAP file");
 
     const auto res = _writer.open(name, _options);
     if (!res.ok()) {
-        std::cout << "Failed to open MCAP :(" << std::endl;
+        spdlog::error("Failed to open MCAP :(");
         return -1;
     }
 
@@ -83,7 +119,7 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
     auto descriptors = get_pb_descriptors(proto_names);
 
     for (const auto &file_descriptor : descriptors) {
-        for (int i = 1; i <= file_descriptor->message_type_count(); i++) {
+        for (int i = 0; i < file_descriptor->message_type_count(); i++) {
             const google::protobuf::Descriptor *message_descriptor = file_descriptor->message_type(i);
             mcap::Schema schema(message_descriptor->full_name(), "protobuf", serialize_fd_set(message_descriptor));
             _writer.addSchema(schema);
@@ -94,12 +130,23 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
         }
     }
 
-    std::cout << "Successfully opened and added message descriptions to mcap" << std::endl;
+    spdlog::info("Successfully added message descriptions to mcap");
+
+    mcap::Schema config_schema("drivebrain_configuration", "jsonschema", _params_schema_json.dump());
+    _writer.addSchema(config_schema);
+    mcap::Channel config_channel("drivebrain_configuration", "json", config_schema.id);
+    _writer.addChannel(config_channel);
+    _name_to_id_map["drivebrain_configuration"] = config_channel.id;
+
+    log_params(_initial_params);
+
+    spdlog::info("Successfully added params schema");
+    
     return 0;
 }
 
 int core::MCAPLogger::close_active_mcap() {
-    std::cout << "Closing mcap" << std::endl;
+    spdlog::info("Closing mcap");
     _writer.close(); 
 
     return 0;
@@ -108,9 +155,6 @@ int core::MCAPLogger::close_active_mcap() {
 void core::MCAPLogger::init_logging() {
     _msg_log_thread = std::thread([this]() { _handle_log_to_file(); });
     spdlog::info("Msg log thread spawned");
-    _param_log_thread = std::thread([this]() { _handle_param_log(); });
-    spdlog::info("Param log thread spawned");
-
     _logging = true;
 }
 
@@ -124,7 +168,7 @@ int core::MCAPLogger::log_msg(core::MsgType message) {
         std::unique_lock lock(_input_buffer_mutex);
         _input_buffer.push_back(new_message); 
         _input_buffer_cv.notify_one(); 
-    }
+   }
 
     return 0;
 }
@@ -132,8 +176,11 @@ int core::MCAPLogger::log_msg(core::MsgType message) {
 /****************************************************************
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options) : _options(options) {
-    // TODO: spawn logging thread
+core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) : _options(options) {
+    std::fstream raw_param_file(params_file);
+    nlohmann::json params_config = nlohmann::json::parse(raw_param_file);
+    _initial_params = params_config; // Used in open_new_mcap to log initial params
+    _params_schema_json = generate_json_schema(params_config);
 }
 
 void core::MCAPLogger::_handle_log_to_file() {
@@ -143,7 +190,7 @@ void core::MCAPLogger::_handle_log_to_file() {
         {
             std::unique_lock lock(_input_buffer_mutex);
             _input_buffer_cv.wait(lock, [this](){ return !_input_buffer.empty() || !_running;});
-            if (_running && _input_buffer.empty()) {
+            if (!_running && _input_buffer.empty()) {
                 break;
             }
 
@@ -160,20 +207,24 @@ void core::MCAPLogger::_handle_log_to_file() {
     
             msg_to_log.channelId = _name_to_id_map[msg.message_name];
             auto write_res = _writer.write(msg_to_log);
-
         }
+        write_buffer.clear();
     }
 }   
 
-void core::MCAPLogger::_handle_param_log() {
-    std::chrono::seconds param_log_time(1);    
-    while(true) {
-        std::unique_lock lk(_param_mutex);
-        if(_param_cv.wait_for(lk, param_log_time, [this] { return !_logging; }) || !_running) {
-            spdlog::info("Logging stopped/logger is no longer running. Exiting...");
-            return;
-        }
+int core::MCAPLogger::log_params(nlohmann::json params) {
+    mcap::Timestamp log_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
+    RawMessage_s msg;
+    msg.log_time = log_time;
+    msg.serialized_data = params.dump();
+    msg.message_name = "drivebrain_configuration";
+    {
+        std::unique_lock lock(_input_buffer_mutex);
+        _input_buffer.push_back(std::move(msg));
+        _input_buffer_cv.notify_one();
     }
+
+    return 0;
 }
 

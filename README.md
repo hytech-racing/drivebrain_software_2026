@@ -1,4 +1,17 @@
-# DriveBrain Software 2026
+# DriveBrain Software
+
+This repo contains the main executable that runs on the Drivebrain embedded computer on HyTech Racing's cars. This code is deployed as a systemd service onto the car within HyTech's Raspberry Pi [NixOS description](https://github.com/hytech-racing/hytech_nixos/releases). This service handles, among other things:
+
+* high-performance control algorithm execution from both hand written c++ and MATLAB Simulink generated code c++
+* car state estimation via both hand written c++ and MATLAB Simulink generated code c++
+* Vectornav INS communication via Vectornav's driver
+* live telemetry and data recording of all on-car inter-board communications (CAN and Ethernet mostly)
+* car-level parameter servicing of all previously listed components via the integrated Foxglove websocket server
+
+This is an active rewrite of an older iteration of Drivebrain, which you can find [here.](https://github.com/hytech-racing/drivebrain_software)
+
+
+# Development
 
 This guide explains how to build the DriveBrain Software 2026 using the provided Docker cross-compilation environment.
 
