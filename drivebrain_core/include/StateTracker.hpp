@@ -241,6 +241,29 @@ namespace core {
         AccumulatorData acc_data;
     };
 
+    namespace control
+    {
+        enum class ControllerManagerStatus
+        {
+            NO_ERROR = 0,
+            ERROR_CONTROLLER_INDEX_OUT_OF_RANGE = 1,
+            ERROR_SPEED_TOO_HIGH = 2,
+            ERROR_TORQUE_TOO_HIGH = 3,
+            ERROR_DRIVER_ON_PEDAL = 4,
+            ERROR_CONTROLLER_NO_TORQUE_OR_SPEED_OUTPUT = 5,
+            ERROR_OUTPUT_EXCEEDS_PHYS_LIMITS = 6,
+            ERROR_REQUESTING_SAME_CTR_TYPE = 7,
+            NUM_CONTROLLER_MANAGER_STATUSES = 8,
+            ERROR_NULLPTR_CONTROLLER = 9
+        };
+
+        struct ControllerManagerState
+        {
+            ControllerManagerStatus current_status;
+            ControllerOutput current_controller_output;
+        };
+    }
+
     /**
      * Allows different communications interfaces
      * to update the internal state of drivebrain in a thread-safe manner
