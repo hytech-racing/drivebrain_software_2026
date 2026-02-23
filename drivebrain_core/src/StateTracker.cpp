@@ -29,9 +29,15 @@ void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::proto
 
         auto ins_mode_int = in_msg->status().ins_mode_int();
         auto vel_u = in_msg->status().ins_vel_u();
+        core::Position pos = {
+            static_cast<double>(in_msg->vn_gps().lat()),
+            static_cast<double>(in_msg->vn_gps().lon()),
+            true
+        };
 
         {
             std::unique_lock lk(_state_mutex);
+            _vehicle_state.vehicle_position = pos;
             _vehicle_state.current_body_vel_ms = body_vel_ms;
             _vehicle_state.current_body_accel_mss = body_accel_mss;
             _vehicle_state.current_angular_rate_rads = angular_rate_rads;
@@ -55,9 +61,10 @@ void StateTracker::handle_receive_protobuf_message(std::shared_ptr<google::proto
     } else if (msg->GetDescriptor() == hytech_msgs::LapTime::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech_msgs::LapTime>(msg);
         {
-            std::unique_lock lk(_state_mutex); 
+            std::unique_lock lk(_state_mutex);
             _vehicle_state.laptime_info.laptime_seconds = in_msg->laptime_seconds();
-            _vehicle_state.laptime_info.lapcount = in_msg->lapcount(); 
+            _vehicle_state.laptime_info.lapcount = static_cast<int>(in_msg->lapcount());
+            _vehicle_state.laptime_info.max_lap_speed_mps = in_msg->max_lap_speed_ms();
         }
     } else {
         _receive_low_level_state(msg);
