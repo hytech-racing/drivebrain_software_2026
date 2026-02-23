@@ -215,6 +215,7 @@ namespace core {
     struct LaptimeInfo {
         float laptime_seconds;
         int lapcount;
+        float max_lap_speed_mps;
     };
 
     /**

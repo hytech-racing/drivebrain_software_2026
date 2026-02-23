@@ -10,7 +10,6 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Custom libs
 #################################
 add_subdirectory(drivebrain_core)
-# add_subdirectory(drivebrain_comms)
 
 #################################
 # Find packages
@@ -28,7 +27,7 @@ find_package(GTest REQUIRED)
 FetchContent_Declare(
     HT_Proto 
     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG f7967e90831271f9704a406a8f777d43c03d0d0b
+    GIT_TAG 7cdd552
 )
 FetchContent_MakeAvailable(HT_Proto)
 
@@ -44,6 +43,8 @@ FetchContent_Declare(
     URL "https://github.com/hytech-racing/HT_CAN/releases/download/231/drivebrain_can_lib.tar.gz"
 )
 FetchContent_MakeAvailable(HT_CAN)
+
+add_subdirectory(drivebrain_comms)
 
 #################################
 # Linking to main app
