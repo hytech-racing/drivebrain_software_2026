@@ -1,7 +1,8 @@
 #include <FoxgloveServer.hpp>
 #include <foxglove/websocket/parameter.hpp>
 #include <nlohmann/detail/value_t.hpp>
-
+#include <fstream>
+#include <spdlog/spdlog.h>
 
 static std::string to_lowercase(std::string s) {
    std::transform(s.begin(), s.end(), s.begin(),

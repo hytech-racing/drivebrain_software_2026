@@ -1,3 +1,8 @@
+/**
+ * Script for testing MCAP logging functionality.
+ * Spawns two mock threads sending protobuf messages at different rates and logs to MCAP.
+*/
+
 #include <chrono>
 #include <csignal>
 #include <google/protobuf/message.h>
@@ -28,7 +33,6 @@ void get_param_task(int wait_time, core::MsgType msg) {
 }
 
 int main(int argc, char* argv[]) {
-    
 
     core::FoxgloveServer::create(argv[1]);
     core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), argv[1]);
@@ -50,5 +54,8 @@ int main(int argc, char* argv[]) {
     if(t1.joinable()) t1.join();
     if(t2.joinable()) t2.join();
     core::MCAPLogger::instance().close_active_mcap();
+
+    core::MCAPLogger::destroy();
+    core::FoxgloveServer::destroy();
 
 }
