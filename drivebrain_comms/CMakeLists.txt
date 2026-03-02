@@ -9,6 +9,7 @@ find_package(dbcppp REQUIRED)
 
 add_library(drivebrain_comms
     src/CANComms.cpp
+    src/VNComms.cpp
     src/ETHSendComms.cpp
 )
 
