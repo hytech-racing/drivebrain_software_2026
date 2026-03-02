@@ -1,5 +1,157 @@
 {
-    "test_one": true, 
-    "test_two": 23094829034.0,
-    "test_three": 123
+    "telem_can_device": "can_primary",
+    "aux_can_device": "can_secondary",
+    "SimpleSpeedController": {
+        "max_torque": 21.0,
+        "max_regen_torque": 10.0,
+        "rear_torque_scale": 1.0,
+        "regen_torque_scale": 0.6,
+        "positive_speed_set" : 45,
+        "max_power_kw": 63.0,
+        "dt_rate_hz": 1000
+    },
+    "test_mode0_MatlabModel": {
+        "max_torq": 21.0,
+        "use_regen": true
+    },
+    "test_pid_tv_MatlabModel": {
+        "p": 1.0,
+        "i": 0.0,
+        "d": 0.0,
+        "use_fake_vx": false,
+        "fake_vx": 0.0,
+        "use_fake_wz": false,
+        "fake_wz": 0.0,
+        "motor_rpmlimit": 2000,
+        "steer_sensor_offset": 33.0
+    },
+    "LoadCellVectoringTorqueController": {
+        "max_torque": 21.0,
+        "max_regen_torque": 10.0,
+        "rear_torque_scale": 1.0,
+        "regen_torque_scale": 0.6,
+        "positive_speed_set" : 45,
+        "max_power_kw": 63.0,
+        "dt_rate_hz": 1000,
+        "apply_vectoring_in_regen": true
+    },
+    "VNDriver": {
+        "device_name": "/dev/ttyUSB1",
+        "baud_rate": 921600, 
+        "port": 1,
+        "freq_divisor": 1
+    },
+    "ControllerManager": {
+        "max_controller_switch_speed_ms": 5.0, 
+        "max_requested_rpm": 20000.0,
+        "max_torque_switch_nm": 10.0,
+        "max_accel_switch_float": 0.1
+    },
+    "StateEstimator": {
+        "fl_sus_pot_min": 1.0,
+        "fl_sus_pot_min_mm": 0.0,
+        "fl_sus_pot_max": 2000.0,
+        "fl_sus_pot_max_mm": 1.0,
+        "fr_sus_pot_min": 1.0,
+        "fr_sus_pot_min_mm": 0.0,
+        "fr_sus_pot_max": 2000.0,
+        "fr_sus_pot_max_mm": 1.0,
+        "rl_sus_pot_min": 1.0,
+        "rl_sus_pot_min_mm": 0.0,
+        "rl_sus_pot_max": 2000.0,
+        "rl_sus_pot_max_mm": 1.0,
+        "rr_sus_pot_min": 1.0,
+        "rr_sus_pot_min_mm": 0.0,
+        "rr_sus_pot_max": 2000.0,
+        "rr_sus_pot_max_mm": 1.0,
+        "fl_load_cell_offset": 0.0,
+        "fl_load_cell_scale": 1.0,
+        "fr_load_cell_offset": 0.0,
+        "fr_load_cell_scale": 1.0,
+        "rl_load_cell_offset": 0.0,
+        "rl_load_cell_scale": 1.0,
+        "rr_load_cell_offset": 0.0,
+        "rr_load_cell_scale": 1.0
+    },
+    "SurreyAeroComms": {
+        "port_name": "/dev/ttyACM0"
+    },
+    "ScaleComms": {
+        "baud_rate": 115200,
+        "port_name": "/dev/ttyUSB0"
+    },
+    "SpeedTechComms" :{
+        "baud_rate": 9600,
+        "port_name": "/dev/ttyUSB0"
+    },
+    "gain_MatlabEstimModel": {
+        "in":2.0
+    },
+    "estimator_MatlabEstimModel": {
+        "steer_sensor_offset": 20.0,
+        "static_fz_N_fl": 420.0,
+        "static_fz_N_fr": 383.6,
+        "static_fz_N_rl": 281.0,
+        "static_fz_N_rr": 400.7,
+        "cgz_m": 0.27,
+        "fz_Q": 120.0,
+        "fz_R": 70.0,
+        "amk_eff_modifier": 0.92,
+        "vy_Q11": 10.0,
+        "wz_Q22": 1.0,
+        "vy_R11": 0.1,
+        "wz_R22": 0.01,
+        "process_noise_vx": 0.2,
+        "process_noise_yaw_rate": 0.2,
+        "process_noise_ax": 0.2,
+        "percent_wheel_diff_noise_gain": 1.0,
+        "accel_noise_coef": 0.1,
+        "yaw_rate_noise_coef": 0.07,
+        "ay_cap_m_s2": 23.0,
+        "des_Mz_gain": 1.0,
+        "drive_motor_torq_lim": 21.0,
+        "regen_motor_torq_lim": -15.0,
+        "elec_p_lim_kW": 80.0,
+        "motor_rpm_lim": 20000.0,
+        "brake_deadzone": 0.02,
+        "accel_deadzone": 0.02,
+        "vel_saturation": 35.0,
+        "per_motor_elec_p_lim_kW": 32.0,
+	    "use_steer_deadzone": true,
+	    "use_intent_w_derate": true,
+        "amk_eff_modifier_rr": 1.0,
+        "amk_eff_modifier_fl": 1.0,
+        "amk_eff_modifier_fr": 1.0,
+        "amk_eff_modifier_rl": 1.0,
+        "global_eff_modifier": 1.0
+        
+    },
+    "qp_torq_allocator_MatlabModel": {
+        "mux": 2.0,
+        "high_axle_alpha": 0.00125,
+        "high_axle_beta": 150000.0,
+        "high_axle_lambda": 2.0,
+        "low_axle_alpha": 0.00085,
+        "low_axle_beta": 1000000.0,
+        "low_axle_lambda": 7.0,
+        "k_opt": 0.1,
+        "torq_side_delta": 10.0,
+        "torq_long_delta": 15.0,
+        "w": 1.0,
+        "coast_brake_torq": -5.0,
+        "w_starting": 1.0,
+        "w_ending": 0.01,
+        "estimator_intent_motor_rpm_lim": 20000.0,
+        "w_derate_starting_kW_delta": 10.0,
+        "w_derate_ending_kW_delta": 5.0,
+        "use_qp_internal_torq_feedback": false,
+        "use_min_cell_derate": false
+    },
+    "use_vectornav": false,
+    "use_fake_vn": false,
+    "use_surrey_aero": false,
+    "use_scale_comms": false,
+    "use_laptimer": false
+
 }
+

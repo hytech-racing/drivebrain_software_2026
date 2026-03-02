@@ -20,7 +20,7 @@ find_package(Protobuf REQUIRED CONFIG)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
-find_package(GTest REQUIRED)
+find_package(dbcppp REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -50,6 +50,7 @@ FetchContent_MakeAvailable(HT_CAN)
 #################################
 add_executable(drivebrain
     drivebrain_app/src/main.cpp
+    drivebrain_app/src/drivebrain_app.cpp
 )
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
@@ -62,6 +63,7 @@ target_link_libraries(drivebrain PUBLIC
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
+    drivebrain_comms
 )
 
 #################################
