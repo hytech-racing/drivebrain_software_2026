@@ -70,7 +70,15 @@ target_link_libraries(drivebrain PUBLIC
 # Unit Testing
 #################################
 
+
 if(NOT CMAKE_CROSSCOMPILING)
     enable_testing()
     add_subdirectory(tests)
+    find_package(gz-transport13 QUIET)
+        find_package(gz-msgs10 QUIET)
+        if(gz-transport13_FOUND)
+            add_subdirectory(sil_bridge)
+        else()
+            message(WARNING "gz-transport not found, SIL bridge not built")
+        endif()
 endif()
