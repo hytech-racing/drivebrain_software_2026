@@ -47,7 +47,32 @@ namespace comms
         // Configures the binary outputs for the device
         spdlog::info("Configuring binary outputs.");
         _configure_binary_outputs();
+        
+        // TODO: Separate function for this?? Consider if VN-300 is ARHS-enabled by default??
+        // Creating buffer for writing to INS Basic Configuration (Register 67)
+        auto num_of_bytes = Packet::genWriteInsBasicConfiguration(
+            ErrorDetectionMode::ERRORDETECTIONMODE_NONE,
+            (char *)_output_buff.data(),
+            _output_buff.size(),
+            0, // Scenario: AHRS (Attitude Only - no GNSS/INS)
+            1, // Set AhrsAiding: provides the ability to switch to using the magnetometer to stabilize heading during times when GNSS-based heading is unavailable.
+            0  // Estimate Baseline: if enabled, the sensor will auto-populate the GNSS Compass Estimated Baseline register (Register 97) with the INS-estimated baseline
+        );
 
+        // Write the buffer to the VN-300
+        boost::asio::async_write(_serial,
+            boost::asio::buffer(_output_buff.data(), num_of_bytes),
+            [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
+            if (!ec) {
+                spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
+            } else {
+                spdlog::error("Error sending data: {}", ec.message());
+            }
+        });
+
+
+        // TODO: SET WNN HERE
+        
         return true;
     }
 
@@ -68,8 +93,56 @@ namespace comms
         _state_tracker->handle_receive_protobuf_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
     }
 
-    void VNDriver::_configure_binary_outputs() {
 
+    // TODO: FINISH IMPLEMENTATION
+    // Sets the heading estimate to the angle provided by the user, immediately initializing the INS filter and expediting the startup process
+    //      Must be before INS mode 3
+    //      Have to feed initial heading within 5 degrees of True North
+    //      Calculate declination (w/Reg21 & 83) and offset Magnetic North to get True North
+    //      Write result to Reg 161 while VN-300 in Mode 0 to set initial heading and expediate startup to Mode 3
+    // New method to try and get initial heading from the VN-300
+    void VNDriver::_try_initialize_heading(float mag_heading, uint8_t ins_mode) {
+    if (_initial_heading_set) return; 
+    
+    if (ins_mode == 0) {
+        float true_heading = mag_heading + _local_declination;
+
+        _set_initial_heading(true_heading);
+
+        _initial_heading_set = true;
+        spdlog::info("Applied declination of {} deg for True Heading of {}", _local_declination, true_heading);
+    }
+
+    return;
+}
+
+    // Sets the heading estimate to the angle provided by the user, immediately initializing the INS filter and expediting the startup process
+    void VNDriver::_set_initial_heading(float initial_heading) {
+        // Packet namespace does not have set intial heading command. Generate the $VNSIH command.
+        // The manual shows the format: $VNSIH,heading
+        #if VN_HAVE_SECURE_CRT
+        size_t length = sprintf_s((char*)_output_buff.data(), _output_buff.size(), "$VNSIH,%.3f", initial_heading);
+        #else
+        size_t length = sprintf((char*)_output_buff.data(), "$VNSIH,%.3f", initial_heading);
+        #endif
+
+        // Create packet Checksum
+        auto num_of_bytes = Packet::finalizeCommand(ErrorDetectionMode::ERRORDETECTIONMODE_NONE, (char*)_output_buff.data(), length);
+
+        // Send command to VN-300
+        boost::asio::async_write(_serial,
+            boost::asio::buffer(_output_buff.data(), num_of_bytes),
+            [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
+            if (!ec) {
+                spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
+            } else {
+                spdlog::error("Error sending data: {}", ec.message());
+            }
+        });
+    }
+
+    void VNDriver::_configure_binary_outputs() {
+        
         auto num_of_bytes = Packet::genWriteBinaryOutput1(
             ErrorDetectionMode::ERRORDETECTIONMODE_NONE,
             (char *)_output_buff.data(),
@@ -83,16 +156,16 @@ namespace comms
             AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY,
             (InsGroup::INSGROUP_INSSTATUS | InsGroup::INSGROUP_POSLLA | InsGroup::INSGROUP_VELBODY | InsGroup::INSGROUP_VELU),
             GpsGroup::GPSGROUP_NONE);
-
-        boost::asio::async_write(_serial,
-                                 boost::asio::buffer(_output_buff.data(), num_of_bytes),
-                                 [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
-                                     if (!ec) {
-                                         spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
-                                     } else {
-                                         spdlog::error("Error sending data: {}", ec.message());
-                                     }
-                                 });
+            
+            boost::asio::async_write(_serial,
+                boost::asio::buffer(_output_buff.data(), num_of_bytes),
+                [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
+                if (!ec) {
+                    spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
+                } else {
+                    spdlog::error("Error sending data: {}", ec.message());
+                }
+            });
     }
 
     void VNDriver::_handle_recieve(void *userData, vn::protocol::uart::Packet &packet, size_t runningIndexOfPacketStart, TimeStamp ts) {
@@ -101,16 +174,16 @@ namespace comms
             vn::math::vec3f vel;
             // See if this is a binary packet type we are expecting.
             if (!packet.isCompatible((CommonGroup::COMMONGROUP_YAWPITCHROLL | CommonGroup::COMMONGROUP_ANGULARRATE), // Note use of binary OR to configure flags.
-                                     TimeGroup::TIMEGROUP_NONE,
-                                     ImuGroup::IMUGROUP_UNCOMPACCEL,
-                                     GpsGroup::GPSGROUP_NONE,
-                                     AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY,
-                                     (InsGroup::INSGROUP_INSSTATUS | InsGroup::INSGROUP_POSLLA | InsGroup::INSGROUP_VELBODY | InsGroup::INSGROUP_VELU),
-                                     GpsGroup::GPSGROUP_NONE)) {
+            TimeGroup::TIMEGROUP_NONE,
+            ImuGroup::IMUGROUP_UNCOMPACCEL,
+            GpsGroup::GPSGROUP_NONE,
+            AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY,
+            (InsGroup::INSGROUP_INSSTATUS | InsGroup::INSGROUP_POSLLA | InsGroup::INSGROUP_VELBODY | InsGroup::INSGROUP_VELU),
+            GpsGroup::GPSGROUP_NONE)) {
                 spdlog::warn("ERROR: packet is not what we want");
                 return;
             }
-
+            
             // Extract data in correct order
             auto ypr_data = packet.extractVec3f();
             auto angular_rate_data = packet.extractVec3f();
@@ -120,15 +193,20 @@ namespace comms
             auto pos_lla = packet.extractVec3d();
             auto vel_body = packet.extractVec3f();
             auto vel_uncertainty = packet.extractFloat();
+            
+            auto ins_mode = static_cast<hytech_msgs::INSMode>(ins_status & 0b11); // Extract INS mode from status
+
+            // TODO: Attempt to set initial heading
+            // _try_initialize_heading(ypr_data.x, ins_mode);
 
             // Create the protobuf message to send
             std::shared_ptr<hytech_msgs::VNData> msg_out = std::make_shared<hytech_msgs::VNData>();
-
+            
             hytech_msgs::xyz_vector *linear_vel_msg = msg_out->mutable_vn_vel_m_s();
             linear_vel_msg->set_x(vel_body.x);
             linear_vel_msg->set_y(vel_body.y);
             linear_vel_msg->set_z(vel_body.z);
-
+            
             hytech_msgs::xyz_vector *linear_accel_msg = msg_out->mutable_vn_linear_accel_m_ss();
             linear_accel_msg->set_x(linear_accel_body.x);
             linear_accel_msg->set_y(linear_accel_body.y);
@@ -154,7 +232,7 @@ namespace comms
             vn_gps_msg->set_lon(pos_lla.y);
 
             hytech_msgs::vn_status *vn_ins_msg = msg_out->mutable_status();
-            vn_ins_msg->set_ins_mode(static_cast<hytech_msgs::INSMode>(ins_status & 0b11)); 
+            vn_ins_msg->set_ins_mode(ins_mode); 
             vn_ins_msg->set_gnss_fix((ins_status >> 2) & 0b1); 
             vn_ins_msg->set_error_imu((ins_status >> 4) & 1);
             vn_ins_msg->set_error_mag_pres((ins_status >> 5) & 0b1);
@@ -187,4 +265,5 @@ namespace comms
                 _start_recieve();
             });
     }
+
 }

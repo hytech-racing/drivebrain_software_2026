@@ -57,6 +57,8 @@ namespace comms {
             boost::array<std::uint8_t, 512> _input_buff;
             SerialPort _serial;
             config _config;
+            bool _initial_heading_set = false;
+            float _local_declination;
 
         public: 
             // Public methods
@@ -67,6 +69,7 @@ namespace comms {
             static void _handle_recieve(void *userData, vn::protocol::uart::Packet &packet, size_t runningIndexOfPacketStart, TimeStamp ts);
             void _configure_binary_outputs();
             void _start_recieve();
-            void _set_initial_heading();
+            void _set_initial_heading(float initial_heading);
+            void _try_initialize_heading(float mag_heading, uint8_t ins_mode);
     };
 }
