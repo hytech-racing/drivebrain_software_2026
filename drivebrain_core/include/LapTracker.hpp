@@ -37,12 +37,13 @@ namespace core {
              */
             static void create(); 
 
-            float magnitude(xyz_vec<float>& v);
-            std::pair<float, float> offsetFinder(xyz_vec<float>& v);
+            float magnitude(xyz_vec<float> v);
+            std::pair<float, float> offsetFinder(xyz_vec<float> v);
             int orientation(Point p, Point q, Point r);
             bool onSegment(Point p, Point q, Point r);
             bool doIntersect(Point p1, Point q1, Point p2, Point q2);
-
+            float meter_to_degree_latitude(float m);
+            float meter_to_degree_longitude(float m);
             /**
              * Returns the lap tracker instance
              */
@@ -63,6 +64,10 @@ namespace core {
             VehicleState prev_state;
             LineSegment start_line;
             bool has_crossed_start_line;
+            bool has_prev_state;
+            float best_lap_time;
+            float max_lap_speed;
+            
     };
     
 

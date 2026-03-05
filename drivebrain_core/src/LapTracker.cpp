@@ -1,8 +1,10 @@
 #include <LapTracker.hpp> 
+#include <limits>
 #include <cmath>
 #include <cassert>
 #include <chrono>
-core::LapTracker::LapTracker() : has_start_line(false), lap_counter(0), has_crossed_start_line(false) {
+core::LapTracker::LapTracker() : has_start_line(false), lap_counter(0), has_crossed_start_line(false), has_prev_state(false), best_lap_time(std::numeric_limits<float>::max()),max_lap_speed(0.0f){
+    prev_state = {};
     curr_lap_start_time = std::chrono::steady_clock::now();
 }
 
@@ -19,6 +21,14 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
 
     //Defining starting line
     //HARDCODED TRACK WIDTH VALUE (assuming car starts from middle of track)
+    if(!has_prev_state && latest_state.state_is_valid) {
+        prev_state = latest_state;
+        has_prev_state=true;
+        return;
+    }
+    else if (!has_prev_state) {
+        return;
+    }
     float track_width = 10.0;
     if (!has_start_line && latest_state.state_is_valid) {
         Position p0 = latest_state.vehicle_position;
@@ -27,8 +37,8 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
             std::pair<float, float> offset=offsetFinder(vel);
             std::pair<float, float> newOffset = {offset.first * track_width/2,offset.second*track_width/2};
             
-            Position startOne = {p0.lat - newOffset.second, p0.lon - newOffset.first, true};
-            Position startTwo = {p0.lat + newOffset.second, p0.lon + newOffset.first, true};
+            Position startOne = {p0.lat - meter_to_degree_latitude(newOffset.second), p0.lon - meter_to_degree_longitude(newOffset.first), true};
+            Position startTwo = {p0.lat + meter_to_degree_latitude(newOffset.second), p0.lon + meter_to_degree_longitude(newOffset.first), true};
             setStartLine(startOne, startTwo);
             has_start_line = true;
         }
@@ -53,24 +63,46 @@ void core::LapTracker::step_tracker(core::VehicleState& latest_state) {
         if (lap_counter>0) {
             auto elapsed = std::chrono::duration<float>(now - curr_lap_start_time);
             float laptime_seconds = elapsed.count();
+            if (laptime_seconds < best_lap_time) {
+                best_lap_time = laptime_seconds;
+            }
+            laptime_information->set_best_lap_time(best_lap_time);
+            laptime_information->set_delta_to_best(laptime_seconds - best_lap_time);
             laptime_information->set_laptime_seconds(laptime_seconds);
         }
         lap_counter++;
         
         curr_lap_start_time=std::chrono::steady_clock::now();
-
+        
 
         has_crossed_start_line=true;
-        laptime_information->set_lapcount(lap_counter);
+        
+
 
     }
     else if (!crossed) {
         has_crossed_start_line=false;
     }
     
+    //max runtime velo
+    xyz_vec<float> curr_vel = latest_state.current_body_vel_ms;
+    float curr_speed = magnitude(curr_vel);
+    if (curr_speed > max_lap_speed) {
+        max_lap_speed = curr_speed;
+    }
+    laptime_information->set_max_lap_speed(max_lap_speed);
+    laptime_information->set_lapcount(lap_counter);
+   
 
 
-    //populate protobuf message for laptime_information
+
+    
+    
+    
+    
+    if(best_lap_time < std::numeric_limits<float>::max()) {
+        laptime_information->set_best_lap_time(best_lap_time);
+    }
 
     prev_state=latest_state;
     core::StateTracker::instance().handle_receive_protobuf_message(laptime_information); // What "records" the information
@@ -113,13 +145,33 @@ bool core::LapTracker::doIntersect(Point p1, Point q1, Point p2, Point q2) {
     return false;
 }
 
-float core::LapTracker::magnitude(core::xyz_vec<float>& v) {
+float core::LapTracker::magnitude(core::xyz_vec<float> v) {
     return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
+//using reference latitude:  42.0676000000°N, -84.2424000000°E (michigan racetrack)
+float core::LapTracker::meter_to_degree_latitude(float m) {
+    constexpr float DEG_TO_RAD = static_cast<float>(M_PI)/180.0f;
+    constexpr float phi = 42.06760000000f * DEG_TO_RAD;
+
+    const float metersPerDegLat = 111132.92f - 559.82f * std::cos(2.0f * phi) + 1.175f * std::cos(4.0f * phi) - 0.0023f * std::cos(6.0f * phi);
+    return m/metersPerDegLat;
+}
+
+float core::LapTracker::meter_to_degree_longitude(float m) {
+constexpr float DEG_TO_RAD = static_cast<float>(M_PI) / 180.0f;
+    constexpr float phi = 42.0676000000f * DEG_TO_RAD;
+
+    const float metersPerDegLon =
+        111412.84f * std::cos(phi)
+        -    93.5f  * std::cos(3.0f * phi)
+        +     0.118f * std::cos(5.0f * phi);
+
+    return m / metersPerDegLon;
+}
 
 
-std::pair<float, float> core::LapTracker::offsetFinder(core::xyz_vec<float>& v) {
+std::pair<float, float> core::LapTracker::offsetFinder(core::xyz_vec<float> v) {
     float mag = magnitude(v);
     return {(-v.y/mag),(v.x/mag)};
 }
