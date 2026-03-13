@@ -21,6 +21,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
+find_package(GTSAM REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -28,7 +29,7 @@ find_package(dbcppp REQUIRED)
 FetchContent_Declare(
     HT_Proto 
     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG 5f61368
+    GIT_TAG Feature/breanna
 )
 FetchContent_MakeAvailable(HT_Proto)
 
@@ -60,25 +61,26 @@ target_link_libraries(drivebrain PUBLIC
     mcap::mcap
     protobuf::libprotobuf 
     boost::boost
+    gtsam
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
     drivebrain_comms
+
 )
 
 #################################
 # Unit Testing
 #################################
 
-
 if(NOT CMAKE_CROSSCOMPILING)
     enable_testing()
     add_subdirectory(tests)
-    find_package(gz-transport13 QUIET)
-        find_package(gz-msgs10 QUIET)
-        if(gz-transport13_FOUND)
-            add_subdirectory(sil_bridge)
-        else()
-            message(WARNING "gz-transport not found, SIL bridge not built")
-        endif()
+    # find_package(gz-transport13 QUIET)
+    #     find_package(gz-msgs10 QUIET)
+    #     if(gz-transport13_FOUND)
+    #         add_subdirectory(sil_bridge)
+    #     else()
+    #         message(WARNING "gz-transport not found, SIL bridge not built")
+    #     endif()
 endif()

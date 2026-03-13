@@ -34,7 +34,7 @@ It may take a few minutes.
 Run the following command to start and enter the Docker container with the necessary volumes mounted:
 
 ```bash
-docker compose run dev
+docker compose run dev bash
 ```
 
 Alternatively, if you want to enter a modified container for whatever reason, you can run:

@@ -3,7 +3,6 @@
 #include "FoxgloveServer.hpp"
 #include "MCAPLogger.hpp"
 #include "hytech_msgs.pb.h"
-
 #include <atomic>
 #include <chrono>
 #include <mcap/writer.hpp>
@@ -86,10 +85,18 @@ void DrivebrainApp::_loop() {
   while(running) {
     next_tick += loop_time_ms;
 
-    // TODO: update vehicle state
-    // TODO: send control requests
-    spdlog::debug("yo mama");
+    /* Poll sensors (done separately in thread) */
+    
+    /* Run estimators (localizers) */
+    // i.e. factorgraph.addKey(i, (sensor landmark))
+    
+    /* Update local vehicle state */
+    // factorgraph.optimize() -> fetch latest state and populate vehicle state struct
+    
+    /* Compute control request */
+    // 
 
+    spdlog::debug("yo mama");
 
     auto now = std::chrono::steady_clock::now();
     if(now > next_tick) {
