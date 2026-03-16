@@ -103,9 +103,7 @@ void DrivebrainApp::_loop() {
     weigh_data->set_weight_rf(67.0);
     weigh_data->set_weight_lr(67.0);
     weigh_data->set_weight_rr(67.0);
-    std::cout << "scale data" << std::endl;
     core::log(weigh_data);
-
 
     auto now = std::chrono::steady_clock::now();
     if(now > next_tick) {
