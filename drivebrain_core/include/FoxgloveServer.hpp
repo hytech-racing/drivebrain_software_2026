@@ -12,13 +12,11 @@
 #include <google/protobuf/util/time_util.h>
 #include <boost/signals2.hpp>
 #include <MCAPLogger.hpp>
-#include <vector> 
 #include <string> 
-#include <fstream> 
-#include <thread>
 #include <atomic>
 #include <cassert>
 #include <optional>
+#include <spdlog/spdlog.h>
 
 #include "hytech_msgs.pb.h"
 
@@ -38,13 +36,18 @@ namespace core {
              * @retun FoxgloveServer instance
              */
             static FoxgloveServer& instance();
+
+            /**
+             * Destroys the Foxglove server singleton instance, stopping the server and freeing resources
+             */
+            static void destroy();
             
             /**
              * Destructs the foxglove server instance by stopping the server. 
              */
             ~FoxgloveServer() {
                 _server->stop(); 
-                std::cout << "Destructed and stopped foxglove websocket server" << std::endl; 
+                spdlog::info("Destructed and stopped foxglove websocket server"); 
             }
             
             /**

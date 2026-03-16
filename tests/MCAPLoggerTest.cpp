@@ -13,6 +13,7 @@
 //    };
 // };
 
+
 // TEST_F(MCAPLoggerTest, ParamFetch) {
 //   ASSERT_EQ(core::FoxgloveServer::instance().get_param<int64_t>("rpm_limit"), 10000);
 //   ASSERT_EQ(core::FoxgloveServer::instance().get_param<bool>("enable_logging"), true);

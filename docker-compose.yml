@@ -7,7 +7,7 @@ services:
     working_dir: /app
     tty: true
     stdin_open: true
-    command: ["/bin/bash"]
+    command: sleep infinity
     restart: "no"
 
 volumes:
