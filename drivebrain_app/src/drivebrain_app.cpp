@@ -3,6 +3,7 @@
 #include "FoxgloveServer.hpp"
 #include "MCAPLogger.hpp"
 #include "hytech_msgs.pb.h"
+#include "Telemetry.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -89,6 +90,21 @@ void DrivebrainApp::_loop() {
     // TODO: update vehicle state
     // TODO: send control requests
     spdlog::debug("yo mama");
+
+    std::shared_ptr<hytech::drivebrain_speed_set_input> speed_msg = std::make_shared<hytech::drivebrain_speed_set_input>(); 
+    speed_msg->set_drivebrain_set_rpm_fl(1.0);
+    speed_msg->set_drivebrain_set_rpm_fr(2.0);
+    speed_msg->set_drivebrain_set_rpm_rl(4.0);
+    speed_msg->set_drivebrain_set_rpm_rr(8.0);
+    _telem_can->send_message(speed_msg);
+
+    std::shared_ptr<hytech_msgs::WeighScaleData> weigh_data = std::make_shared<hytech_msgs::WeighScaleData>();
+    weigh_data->set_weight_lf(67.0);
+    weigh_data->set_weight_rf(67.0);
+    weigh_data->set_weight_lr(67.0);
+    weigh_data->set_weight_rr(67.0);
+    std::cout << "scale data" << std::endl;
+    core::log(weigh_data);
 
 
     auto now = std::chrono::steady_clock::now();

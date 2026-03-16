@@ -126,7 +126,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
     };
 
     _server_options.capabilities.push_back("parameters");
-    _server = foxglove::ServerFactory::createServer<websocketpp::connection_hdl>("Zephyr_Bridge", logHandler, _server_options);
+    _server = foxglove::ServerFactory::createServer<websocketpp::connection_hdl>("HTX_Foxglove", logHandler, _server_options);
 
     foxglove::ServerHandlers<foxglove::ConnHandle> hdlrs;
 
@@ -172,7 +172,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
         _server->publishParameterValues(clientHandle, foxglove_params, request_id);
     };
 
-    auto descriptors = get_pb_descriptors({"hytech.proto"});
+    auto descriptors = get_pb_descriptors({"hytech.proto", "hytech_msgs.proto"});
     std::vector<foxglove::ChannelWithoutId> channels;
 
     int running_index = 1;
