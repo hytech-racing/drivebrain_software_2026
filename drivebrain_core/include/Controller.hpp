@@ -1,5 +1,4 @@
 #pragma once
-//copied over from old drivebrain core
 
 namespace control
 {

@@ -4,7 +4,7 @@
 #include <iostream>
 
 template <typename ControllerType, size_t NumControllers>
-bool control::ControllerManager<ControllerType, NumControllers>::init()
+bool core::ControllerManager<ControllerType, NumControllers>::init()
 {
 
     if(_max_accel_switch_req > 1.0f){
@@ -12,7 +12,7 @@ bool control::ControllerManager<ControllerType, NumControllers>::init()
         return false;
     }
     // Initialize state
-    _current_ctr_manager_state = {
+    _current_ctr_manager_state = control::ControllerManagerState{
         .current_status = core::control::ControllerManagerStatus::NO_ERROR,
         .current_controller_output = std::monostate{}
     };
@@ -23,7 +23,7 @@ bool control::ControllerManager<ControllerType, NumControllers>::init()
 
 
 template<typename ControllerType, size_t NumControllers>
-core::control::ControllerManagerStatus control::ControllerManager<ControllerType, NumControllers>::_can_switch_controller(const core::VehicleState &current_state,
+core::control::ControllerManagerStatus core::ControllerManager<ControllerType, NumControllers>::_can_switch_controller(const core::VehicleState &current_state,
                                                                                                                        const core::ControllerOutput &previous_output,
                                                                                                                        const core::ControllerOutput &next_controller_output)
 {
@@ -116,7 +116,7 @@ core::control::ControllerManagerStatus control::ControllerManager<ControllerType
 
 
 template <typename ControllerType, size_t NumControllers>
-bool control::ControllerManager<ControllerType, NumControllers>::swap_active_controller(size_t new_controller_index, const core::VehicleState& input)
+bool core::ControllerManager<ControllerType, NumControllers>::swap_active_controller(size_t new_controller_index, const core::VehicleState& input)
 {
     using status_type = core::control::ControllerManagerStatus;
     static const size_t num_controllers = _controllers.size();

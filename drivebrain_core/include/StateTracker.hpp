@@ -262,6 +262,7 @@ namespace core {
             ControllerManagerStatus current_status;
             ControllerOutput current_controller_output;
         };
+
     }
 
     /**
