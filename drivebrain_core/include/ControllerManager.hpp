@@ -55,6 +55,9 @@
 
 //getting rid of old macros block in order to remove configurable dependency. 
 //now based off foxglove params
+
+namespace core {
+    
 template <typename ControllerType, size_t NumControllers>
 class ControllerManager
 {
@@ -138,3 +141,4 @@ private:
 };
 
 #include "ControllerManager.tpp"
+}
