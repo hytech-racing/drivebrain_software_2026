@@ -21,6 +21,14 @@ void sig_handler(int signal) {
     }
 }
 
+std::string get_logfile_name() {
+  std::time_t now = std::time(nullptr);
+  std::tm tm_struct = *std::localtime(&now);
+  std::ostringstream oss;
+  oss << std::put_time(&tm_struct, "%Y-%m-%d_%H-%M-%S");
+  return "dblog_" + oss.str() + ".mcap";
+}
+
 DrivebrainApp::DrivebrainApp(const std::string& json_param_path, const std::string& dbc_path)
   : _json_params_path(json_param_path)
   , _dbc_path(dbc_path) {}
@@ -39,7 +47,9 @@ void DrivebrainApp::run() {
   // TODO: remove hardcoded paths
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
-  core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
+
+  std::string logfile_name = get_logfile_name();
+  core::MCAPLogger::instance().open_new_mcap(logfile_name);
   core::MCAPLogger::instance().init_logging();
 
   spdlog::info("Constructed logging singletons");
