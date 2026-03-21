@@ -48,7 +48,7 @@ void DrivebrainApp::run() {
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
 
-  std::string logfile_name = get_logfile_name();
+  std::string logfile_name = "/opt/drivebrain/recordings/" + get_logfile_name();
   core::MCAPLogger::instance().open_new_mcap(logfile_name);
   core::MCAPLogger::instance().init_logging();
 
