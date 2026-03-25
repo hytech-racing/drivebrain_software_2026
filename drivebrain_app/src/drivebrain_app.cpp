@@ -11,6 +11,9 @@
 #include <memory>
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 std::atomic<bool> running{true};
 
@@ -22,11 +25,30 @@ void sig_handler(int signal) {
 }
 
 std::string get_logfile_name() {
-  std::time_t now = std::time(nullptr);
-  std::tm tm_struct = *std::localtime(&now);
-  std::ostringstream oss;
-  oss << std::put_time(&tm_struct, "%Y-%m-%d_%H-%M-%S");
-  return "dblog_" + oss.str() + ".mcap";
+  std::string dir_path = "/home/nixos/recordings";
+  int max_file_number = 0;
+  std::string largest_file_name; 
+
+  try {
+    for (const auto& entry : fs::directory_iterator(dir_path)) {
+      if (entry.is_regular_file()) {
+        std::string filename = entry.path().filename().string();
+        try {
+          int current_number = std::stoi(filename);
+          if (current_number > max_file_number) {
+              max_file_number = current_number;
+          }
+        } catch (const std::invalid_argument& e) {
+          spdlog::error("Skipping non-numeric file: {}", filename);
+        } 
+      }
+    }
+  }  catch (const fs::filesystem_error& e) {
+    spdlog::error("Filesystem error");
+    return "sdfsdf";
+  } 
+
+  return std::to_string(max_file_number + 1) + ".mcap";
 }
 
 DrivebrainApp::DrivebrainApp(const std::string& json_param_path, const std::string& dbc_path)
@@ -48,8 +70,9 @@ void DrivebrainApp::run() {
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
 
-  std::string logfile_name = "/opt/drivebrain/recordings/" + get_logfile_name();
-  core::MCAPLogger::instance().open_new_mcap(logfile_name);
+  _logfile = "/home/nixos/recordings/" + get_logfile_name();
+  // std::string logfile_name = get_logfile_name();
+  core::MCAPLogger::instance().open_new_mcap(_logfile);
   core::MCAPLogger::instance().init_logging();
 
   spdlog::info("Constructed logging singletons");
@@ -97,10 +120,6 @@ void DrivebrainApp::_loop() {
   while(running) {
     next_tick += loop_time_ms;
 
-    // TODO: update vehicle state
-    // TODO: send control requests
-    spdlog::debug("yo mama");
-
     std::shared_ptr<hytech::drivebrain_speed_set_input> speed_msg = std::make_shared<hytech::drivebrain_speed_set_input>(); 
     speed_msg->set_drivebrain_set_rpm_fl(1.0);
     speed_msg->set_drivebrain_set_rpm_fr(2.0);
@@ -108,12 +127,9 @@ void DrivebrainApp::_loop() {
     speed_msg->set_drivebrain_set_rpm_rr(8.0);
     _telem_can->send_message(speed_msg);
 
-    std::shared_ptr<hytech_msgs::WeighScaleData> weigh_data = std::make_shared<hytech_msgs::WeighScaleData>();
-    weigh_data->set_weight_lf(67.0);
-    weigh_data->set_weight_rf(67.0);
-    weigh_data->set_weight_lr(67.0);
-    weigh_data->set_weight_rr(67.0);
-    core::log(weigh_data);
+    std::shared_ptr<hytech_msgs::McapInfo> mcap_info = std::make_shared<hytech_msgs::McapInfo>();
+    mcap_info->set_current_mcap(_logfile);
+    core::log(mcap_info);
 
     auto now = std::chrono::steady_clock::now();
     if(now > next_tick) {

@@ -111,7 +111,7 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
 
     const auto res = _writer.open(name, _options);
     if (!res.ok()) {
-        spdlog::error("Failed to open MCAP :(");
+        spdlog::error("Failed to open {} for writing: {}", name, res.message);
         return -1;
     }
 
@@ -124,10 +124,8 @@ int core::MCAPLogger::open_new_mcap(const std::string &name) {
             mcap::Schema schema(message_descriptor->full_name(), "protobuf", serialize_fd_set(message_descriptor));
             _writer.addSchema(schema);
             mcap::Channel channel(message_descriptor->name(), "protobuf", schema.id);
-            std::cout << message_descriptor->name() << std::endl;
             _writer.addChannel(channel);
             _name_to_id_map[message_descriptor->name()] = channel.id;
-
         }
     }
 

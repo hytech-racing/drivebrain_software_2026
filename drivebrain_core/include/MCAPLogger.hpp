@@ -51,7 +51,7 @@ namespace core {
              * Destructs MCAPLogger instance, frees singleton instance and joins all running log threads
              */
             ~MCAPLogger() {
-              spdlog::info("Destructing message logger");
+              spdlog::info("Destructing mcap logger");
               _logging = false;
               _running = false;
 
