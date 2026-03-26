@@ -51,7 +51,7 @@ static std::string create_log_name() {
     
 }
 
-std::tuple<std::string, bool> status() {
+std::tuple<std::string, bool> core::MCAPLogger::status() {
     return std::make_tuple(_log_name, _logging);
 }
 
