@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 /**
 The purpose of this file is to create an interface that can be used 
 to switch between different kinds of mode 4 controllers, start logging to mcaps, 
