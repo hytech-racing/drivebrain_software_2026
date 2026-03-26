@@ -6,6 +6,7 @@ namespace control
     class Controller {
     public:
         Controller() = default;
+
         /// @brief get the desired time delta / discrete time step length in seconds of the controller
         /// @return time delta in seconds
         virtual float get_dt_sec() = 0;

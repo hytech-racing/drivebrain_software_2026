@@ -51,6 +51,10 @@ static std::string create_log_name() {
     
 }
 
+std::tuple<std::string, bool> status() {
+    return std::make_tuple(_log_name, _logging);
+}
+
 static nlohmann::json generate_json_schema(const nlohmann::json& obj) {
     nlohmann::json schema;
     
