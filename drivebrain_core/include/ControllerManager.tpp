@@ -3,6 +3,38 @@
 #include <spdlog/spdlog.h>
 #include <iostream>
 
+
+/****************************************************************
+ * SINGLETON METHODS
+ ****************************************************************/
+template<typename ControllerType, size_t NumControllers> 
+void core::ControllerManager<ControllerType, NumControllers>::create(std::array<std::shared_ptr<ControllerType>, NumControllers> controllers) {
+    ControllerManager* expected = nullptr;
+    ControllerManager* local = new ControllerManager(controllers);
+    if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+        // Already initialized, delete local instance
+        delete local;
+    }
+}
+
+template<typename ControllerType, size_t NumControllers> 
+core::ControllerManager<ControllerType, NumControllers>& core::ControllerManager<ControllerType, NumControllers>::instance() {
+    ControllerManager* instance = _s_instance.load(std::memory_order_acquire);
+    assert(instance != nullptr && "ControllerManager has not been initialized");
+    return *instance;
+}
+
+template<typename ControllerType, size_t NumControllers> 
+void core::ControllerManager<ControllerType, NumControllers>::destroy() {
+    ControllerManager* instance = _s_instance.exchange(nullptr, std::memory_order_acq_rel);
+    if (instance) {
+        delete instance;
+    }
+}
+
+/****************************************************************
+ * PUBLIC CLASS METHOD IMPLEMENTATIONS
+ ****************************************************************/
 template <typename ControllerType, size_t NumControllers>
 bool core::ControllerManager<ControllerType, NumControllers>::init()
 {
@@ -20,7 +52,6 @@ bool core::ControllerManager<ControllerType, NumControllers>::init()
     return true;
 
 }
-
 
 template<typename ControllerType, size_t NumControllers>
 core::control::ControllerManagerStatus core::ControllerManager<ControllerType, NumControllers>::_can_switch_controller(const core::VehicleState &current_state,
@@ -68,7 +99,7 @@ core::control::ControllerManagerStatus core::ControllerManager<ControllerType, N
         if (const core::SpeedControlOut *pval = std::get_if<core::SpeedControlOut>(&controller_output.out)) {
             if (check_veh_vec(pval->desired_rpms, _max_rpm_req_switch, true)) {
                 return status_type::ERROR_OUTPUT_EXCEEDS_PHYS_LIMITS;
-            } else if (check_veh_vec(pval->torque_lim_nm, _max_torque_switch, false)) {
+            } else if (check_veh_vec(pval->torque_lim_nm, _max_torque_req_switch, false)) {
                 return status_type::ERROR_TORQUE_TOO_HIGH;
             } else {
                 return status_type::NO_ERROR;

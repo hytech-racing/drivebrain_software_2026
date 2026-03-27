@@ -22,22 +22,32 @@ class ControllerManager {
 public:
 
     /**
-     * @brief Constructs instance of the controller manager
-     * @param controllers list of controllers that the manager will mux between and manage
+     * @brief Constructs a new singleton instance of the controller manager
+     * @param controllers the controllers to construct the controller manager with 
      */
-    ControllerManager(std::array<std::shared_ptr<ControllerType>, NumControllers> controllers) :_controllers(std::move(controllers)) {
-        auto& foxglove = core::FoxgloveServer::instance();
-        auto max_speed = foxglove.get_param<double>("controllermanager/max_controller_switch_speed_ms");
-        auto max_torque = foxglove.get_param<double>("controllermanager/max_torque_switch_nm");
-        auto max_accel = foxglove.get_param<double>("controllermanager/max_accel_switch_float");
-        auto max_rpm = foxglove.get_param<double>("controllermanager/max_requested_rpm");
-        _max_switch_rpm = max_speed.value_or(5.0f) * constants::METERS_PER_SECOND_TO_RPM;
-        _max_torque_switch = max_torque.value_or(10.0f);
-        _max_accel_switch_req = max_accel.value_or(0.5f);
-        _max_requested_rpm = max_rpm.value_or(20000.0);  
-    }
+    static void create(std::array<std::shared_ptr<ControllerType>, NumControllers> controllers);
 
-    ~ControllerManager() = default;
+    /**
+     * @brief Fetches a controller manager instance
+     * 
+     * @return the instance of the controler manager
+     */
+    static ControllerManager<ControllerType, NumControllers>& instance();
+
+    /**
+     * Destroys the instance of the controller manager
+     */
+    static void destroy();
+
+
+    /**
+     * @brief Custom destructor for safely releasing the controler manager
+     */
+    ~ControllerManager() {
+        spdlog::info("Destructing controller manager");
+        _s_instance.store(nullptr, std::memory_order_release);
+        spdlog::info("Controller manager singleton instance released");
+    }
 
     /**
      * Initializes the controller manager as long as 
@@ -101,7 +111,30 @@ public:
     }
 
 private:
+    
 
+    /**
+     * @brief Private constructor to construct an instance of the controller manager
+     * @param controllers list of controllers that the manager will mux between and manage
+     */
+    ControllerManager(std::array<std::shared_ptr<ControllerType>, NumControllers> controllers) : _controllers(std::move(controllers)) {
+        auto& foxglove = core::FoxgloveServer::instance();
+        auto max_speed = foxglove.get_param<double>("controllermanager/max_controller_switch_speed_ms");
+        auto max_torque = foxglove.get_param<double>("controllermanager/max_torque_switch_nm");
+        auto max_accel = foxglove.get_param<double>("controllermanager/max_accel_switch_float");
+        auto max_rpm = foxglove.get_param<double>("controllermanager/max_requested_rpm");
+        _max_switch_rpm = max_speed.value_or(5.0f) * constants::METERS_PER_SECOND_TO_RPM;
+        _max_torque_req_switch = max_torque.value_or(10.0f);
+        _max_accel_req_switch = max_accel.value_or(0.5f);
+        _max_rpm_req_switch = max_rpm.value_or(20000.0);  
+    }
+
+    ControllerManager(const ControllerManager&) = delete;
+    ControllerManager& operator=(const ControllerManager&) = delete;
+
+    /**
+     * @brief Helper method to decide if we can switch the controller based on current and next state and next controller output
+     */
     core::control::ControllerManagerStatus _can_switch_controller(const core::VehicleState &current_state, const core::ControllerOutput &previous_output, const core::ControllerOutput &next_controller_output);
 
     size_t _current_controller_index = 0;
@@ -112,6 +145,10 @@ private:
     float _max_torque_req_switch; /* the maximum torque at which you allow switching */
     float _max_accel_req_switch; /* the maximum accel request at which you allow switching */
     float _max_rpm_req_switch; /* the maximum rpm request at which you allow switching */
+
+    /* Controller manager instance */
+    inline static std::atomic<ControllerManager*> _s_instance;
+
 };
 
 #include "ControllerManager.tpp"

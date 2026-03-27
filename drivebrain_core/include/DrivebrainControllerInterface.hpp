@@ -2,6 +2,7 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
+#include <FoxgloveServer.hpp>
 
 /**
 The purpose of this file is to create an interface that can be used 
@@ -10,6 +11,7 @@ stop logging to mcaps, and more. Last year this was done via GRPC but this year 
 just doing everything in foxglove
 */
 
+namespace core {
 class DrivebrainControllerInterface {
 
     public: 
@@ -40,10 +42,13 @@ class DrivebrainControllerInterface {
 
     private: 
 
-        DrivebrainControllerInterface(const DrivebtrainControllerInterface&) = delete;
-        DrivebrainControllerInterface& operator=(const DrivebrainController&) = delete;
+        DrivebrainControllerInterface();
+
+        DrivebrainControllerInterface(const DrivebrainControllerInterface&) = delete;
+        DrivebrainControllerInterface& operator=(const DrivebrainControllerInterface&) = delete;
         
         inline static std::atomic<DrivebrainControllerInterface*> _s_instance;
         std::string _response; 
 
+};
 }

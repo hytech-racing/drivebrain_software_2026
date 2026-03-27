@@ -12,7 +12,7 @@ void core::DrivebrainControllerInterface::create() {
 
 core::DrivebrainControllerInterface& core::DrivebrainControllerInterface::instance() {
     DrivebrainControllerInterface* instance = _s_instance.load(std::memory_order_acquire);
-    assert(instance != nullptr && "Drivebtrain Controller Interface has not been initialized");
+    assert(instance != nullptr && "Drivebrain Controller Interface has not been initialized");
     return *instance;
 }
 
@@ -23,12 +23,12 @@ void core::DrivebrainControllerInterface::destroy() {
     }
 }
 
-core::DrivebtrainControllerInterface::DrivebrainControllerInterface(
+core::DrivebrainControllerInterface::DrivebrainControllerInterface() {
     _response = "NONE";
-)
+}
 
 /* Private Methods */
-void core::DrivebtrainControllerInterface::_handle_parameter_updates(const std::unordered_map<std::string, foxglove::ParameterValue> &new_params) {
+void core::DrivebrainControllerInterface::_handle_parameter_updates(const std::unordered_map<std::string, foxglove::ParameterValue> &new_params) {
     
     if (new_params.find("should_log") != new_params.end()) {
         bool should_log = new_params.at("should_log").getValue<bool>();
@@ -48,7 +48,7 @@ void core::DrivebtrainControllerInterface::_handle_parameter_updates(const std::
 
 void core::DrivebrainControllerInterface::_request_start_logging() {
     std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
-    bool is_logging = std::get<0>(mcap_status);
+    bool is_logging = std::get<1>(mcap_status);
     if (!is_logging) {
         // Start logging
     }

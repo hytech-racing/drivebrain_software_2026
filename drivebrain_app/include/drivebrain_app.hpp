@@ -3,6 +3,7 @@
 #include <MCAPLogger.hpp>
 #include <boost/asio.hpp>
 #include <memory>
+#include <foxglove/websocket/base64.hpp>
 
 #include "hytech_msgs.pb.h"
 
@@ -50,7 +51,7 @@ private:
   std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUAllData>> _acu_eth_driver;
   std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUCoreData>> _acu_core_eth_driver;
   std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCRData_s>> _vcr_eth_driver;
-  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver;  
 
   std::string _logfile;
 

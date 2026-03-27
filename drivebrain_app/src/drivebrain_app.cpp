@@ -4,6 +4,8 @@
 #include "MCAPLogger.hpp"
 #include "hytech_msgs.pb.h"
 #include "Telemetry.hpp"
+#include "ControllerManager.hpp"
+#include "DrivebrainControllerInterface.hpp"
 
 #include <atomic>
 #include <chrono>
