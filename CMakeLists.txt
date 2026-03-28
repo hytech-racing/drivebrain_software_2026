@@ -52,11 +52,11 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(simulink_automation_msgs_cpp)
 
-FetchContent_Declare(
-    drivebrain_simulink_models
-    URL "https://github.com/hytech-racing/drivebrain_simulink_models/releases/download/rel38/codegen_outputs.tar.gz"
-)
-FetchContent_MakeAvailable(drivebrain_simulink_models)
+# FetchContent_Declare(
+#     drivebrain_simulink_models
+#     URL "https://github.com/hytech-racing/drivebrain_simulink_models/releases/download/rel38/codegen_outputs.tar.gz"
+# )
+# FetchContent_MakeAvailable(drivebrain_simulink_models)
 
 #add_subdirectory(drivebrain_controller)
 
@@ -79,7 +79,7 @@ target_link_libraries(drivebrain PUBLIC
     hytech_can_msgs_cpp_lib
     drivebrain_core
     drivebrain_comms
-    matlab_model
+    # matlab_model
 )
 
 #################################

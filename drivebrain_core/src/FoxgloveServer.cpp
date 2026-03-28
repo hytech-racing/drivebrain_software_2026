@@ -84,19 +84,15 @@ void core::FoxgloveServer::_init_params(const nlohmann::json &json_obj, const st
         if (value.type() == nlohmann::detail::value_t::object) {
             _init_params(value, param_name);
         } else {
-            foxglove::ParameterValue param_value;
+            core::DBParam param_value;
             if (value.type() == nlohmann::detail::value_t::boolean) {
-                bool raw_value = value.get<bool>();
-                param_value = foxglove::ParameterValue(raw_value);
+                param_value = value.get<bool>();
             } else if (value.type() == nlohmann::detail::value_t::number_float) {
-                float raw_value = value.get<float>();
-                param_value = foxglove::ParameterValue(raw_value);
+                param_value = value.get<float>();
             } else if (value.type() == nlohmann::detail::value_t::number_integer || value.type() == nlohmann::detail::value_t::number_unsigned) {
-                int64_t raw_value = value.get<int64_t>();
-                param_value = foxglove::ParameterValue(raw_value);
+                param_value = value.get<int>();
             } else if (value.type() == nlohmann::detail::value_t::string) {
-                std::string raw_value = value.get<std::string>();
-                param_value = foxglove::ParameterValue(raw_value);
+                param_value = value.get<std::string>();
             } else {
                 spdlog::error("Invalid parameter config type: {} for key: {}", value.type_name(), param_name);
                 continue;
@@ -142,7 +138,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
 
     hdlrs.parameterChangeHandler = [&](const std::vector<foxglove::Parameter> &params, const std::optional<std::string> &request_id, foxglove::ConnHandle clientHandle) 
     {
-        std::unordered_map<std::string, foxglove::ParameterValue> param_copy;
+        std::unordered_map<std::string, DBParam> param_copy;
         {
             std::unique_lock lock(_parameter_mutex);
             for (const auto &incoming_param : params) {
@@ -150,10 +146,11 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
                     spdlog::warn("Couldn't find updated param in params map. Please get good.");
                     continue;
                 }
-                foxglove::Parameter current_param = foxglove::Parameter(incoming_param.getName(), _foxglove_params_map[incoming_param.getName()]);
+                core::DBParam current_param = _foxglove_params_map[incoming_param.getName()];
                 std::optional<foxglove::Parameter> converted_param = _convert_foxglove_parameter(current_param, incoming_param);
                 if (converted_param) {
-                    _foxglove_params_map[incoming_param.getName()] = converted_param.value().getValue();
+                    auto value = _get_db_param(converted_param.value());
+                    _foxglove_params_map[incoming_param.getName()] = value;
                 }
             }
             param_copy = _foxglove_params_map;
@@ -166,8 +163,8 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
                                            foxglove::ConnHandle clientHandle) {
         std::vector<foxglove::Parameter> foxglove_params; 
         for (auto &[key, value] : _foxglove_params_map) {
-            foxglove::Parameter param(key, value);
-            foxglove_params.push_back(param);
+            auto param = _get_foxglove_parameter(key, value);
+            foxglove_params.push_back(param.value());
         }
         _server->publishParameterValues(clientHandle, foxglove_params, request_id);
     };
@@ -199,7 +196,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
     params_file.close(); 
 }
 
-boost::signals2::connection core::FoxgloveServer::register_param_callback(std::function<void (const std::unordered_map<std::string, foxglove::ParameterValue> &)> callback) {
+boost::signals2::connection core::FoxgloveServer::register_param_callback(std::function<void (const std::unordered_map<std::string, core::DBParam> &)> callback) {
     return _param_update_signal.connect(callback);
 }
 
@@ -209,35 +206,70 @@ nlohmann::json core::FoxgloveServer::get_all_params() {
     params_json["type"] = "object";
     
     for (const auto& [name, param_value] : _foxglove_params_map) {
-        auto type = param_value.getType();
-
-        if (type == foxglove::ParameterType::PARAMETER_BOOL) {
-            params_json[name] = param_value.getValue<bool>();
+        if (std::holds_alternative<bool>(param_value)) {
+            params_json[name] = std::get<bool>(param_value);
         } 
-        else if (type == foxglove::ParameterType::PARAMETER_DOUBLE) {
-            params_json[name] = param_value.getValue<double>();
+        else if (std::holds_alternative<float>(param_value)) {
+            params_json[name] = std::get<float>(param_value);
         } 
-        else if (type == foxglove::ParameterType::PARAMETER_INTEGER) {
-            params_json[name] = param_value.getValue<int64_t>();
+        else if (std::holds_alternative<int>(param_value)) {
+            params_json[name] = std::get<int>(param_value);
         } 
-        else if (type == foxglove::ParameterType::PARAMETER_STRING) {
-            params_json[name] = param_value.getValue<std::string>();
+        else if (std::holds_alternative<std::string>(param_value)) {
+            params_json[name] = std::get<std::string>(param_value);
         }
     }
 
     return params_json;
 } 
 
-std::optional<foxglove::Parameter> core::FoxgloveServer::_convert_foxglove_parameter(foxglove::Parameter current_param, foxglove::Parameter incoming_param) {
-    if (current_param.getType() == incoming_param.getType()) {
+std::optional<foxglove::Parameter> core::FoxgloveServer::_convert_foxglove_parameter(core::DBParam current_param, foxglove::Parameter incoming_param) {
+    auto converted_current_param = _get_foxglove_parameter(incoming_param.getName(), current_param); 
+    if (!converted_current_param) {
+        spdlog::warn("Failed to converter db param --> foxglove param while invokking _convert_foxglove_parameter");
+        return std::nullopt; 
+    }
+    if (converted_current_param.value().getType() == incoming_param.getType()) {
         return incoming_param; 
-    } else if (current_param.getType() == foxglove::ParameterType::PARAMETER_INTEGER && incoming_param.getType() == foxglove::ParameterType::PARAMETER_DOUBLE) {
-        return foxglove::Parameter(current_param.getName(), static_cast<int64_t>(incoming_param.getValue().getValue<double>()));
-    } else if (current_param.getType() == foxglove::ParameterType::PARAMETER_DOUBLE && incoming_param.getType() == foxglove::ParameterType::PARAMETER_INTEGER) {
-        return foxglove::Parameter(current_param.getName(), static_cast<double>(incoming_param.getValue().getValue<int64_t>()));
+    } else if (converted_current_param.value().getType() == foxglove::ParameterType::PARAMETER_INTEGER && incoming_param.getType() == foxglove::ParameterType::PARAMETER_DOUBLE) {
+        return foxglove::Parameter(converted_current_param.value().getName(), static_cast<int64_t>(incoming_param.getValue().getValue<double>()));
+    } else if (converted_current_param.value().getType() == foxglove::ParameterType::PARAMETER_DOUBLE && incoming_param.getType() == foxglove::ParameterType::PARAMETER_INTEGER) {
+        return foxglove::Parameter(converted_current_param.value().getName(), static_cast<double>(incoming_param.getValue().getValue<int64_t>()));
     } else {
         spdlog::warn("Invalid parameter type conversion!");
         return std::nullopt;
+    }
+}
+
+std::optional<foxglove::Parameter> core::FoxgloveServer::_get_foxglove_parameter(std::string set_name, core::DBParam db_param) {
+    if (std::holds_alternative<bool>(db_param)) {
+        return foxglove::Parameter(set_name, std::get<bool>(db_param));
+    } else if (std::holds_alternative<int>(db_param)) {
+        return foxglove::Parameter(set_name, std::get<int>(db_param));
+    } else if (std::holds_alternative<float>(db_param)) {
+        return foxglove::Parameter(set_name, ((double)std::get<float>(db_param)));
+    } else if (std::holds_alternative<double>(db_param)) {
+        return foxglove::Parameter(set_name, std::get<double>(db_param));
+    } else if (std::holds_alternative<std::string>(db_param)) {
+        return foxglove::Parameter(set_name, std::get<std::string>(db_param));
+    } else {
+        spdlog::warn("{} unknown param variant type", set_name);
+        return std::nullopt;
+    }
+}
+
+core::DBParam core::FoxgloveServer::_get_db_param(foxglove::Parameter param) {
+    if (param.getValue().getType() == foxglove::ParameterType::PARAMETER_BOOL) {
+        return param.getValue().getValue<bool>();
+    } else if (param.getValue().getType() == foxglove::ParameterType::PARAMETER_INTEGER) {
+        return ((int)param.getValue().getValue<int64_t>());
+    } else if (param.getValue().getType() == foxglove::ParameterType::PARAMETER_DOUBLE) {
+        return ((float)param.getValue().getValue<double>());
+    } else if (param.getValue().getType() == foxglove::ParameterType::PARAMETER_STRING) {
+        return param.getValue().getValue<std::string>();
+    } else {
+        spdlog::warn("unsupported param type");
+        return std::monostate();
     }
 }
 
@@ -247,5 +279,6 @@ void core::FoxgloveServer::send_live_telem_msg(std::shared_ptr<google::protobuf:
     const auto now = nanosecondsSinceEpoch();
     _server->broadcastMessage(msg_chan_id, now, reinterpret_cast<const uint8_t *>(serialized_msg.data()), serialized_msg.size());
 }
+
 
 

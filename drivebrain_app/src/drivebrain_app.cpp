@@ -72,8 +72,8 @@ void DrivebrainApp::run() {
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
 
-  _logfile = "/home/nixos/recordings/" + get_logfile_name();
-  // std::string logfile_name = get_logfile_name();
+  // _logfile = "/home/nixos/recordings/" + get_logfile_name();
+  _logfile = "test1.mcap";
   core::MCAPLogger::instance().open_new_mcap(_logfile);
   core::MCAPLogger::instance().init_logging();
 
@@ -87,8 +87,8 @@ void DrivebrainApp::run() {
   spdlog::info("Initialized ethernet drivers");
 
   // CAN device names are defined in the drivebrain JSON config
-  _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
-  _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
+  // _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
+  // _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
 
   spdlog::info("Initialized CAN drivers");
 
@@ -127,7 +127,7 @@ void DrivebrainApp::_loop() {
     speed_msg->set_drivebrain_set_rpm_fr(2.0);
     speed_msg->set_drivebrain_set_rpm_rl(4.0);
     speed_msg->set_drivebrain_set_rpm_rr(8.0);
-    _telem_can->send_message(speed_msg);
+    // _telem_can->send_message(speed_msg);
 
     std::shared_ptr<hytech_msgs::McapInfo> mcap_info = std::make_shared<hytech_msgs::McapInfo>();
     mcap_info->set_current_mcap(_logfile);
