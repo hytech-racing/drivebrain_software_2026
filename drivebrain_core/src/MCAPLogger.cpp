@@ -8,6 +8,33 @@
 /****************************************************************
  * HELPER METHODS
  ****************************************************************/
+static std::string get_logfile_name() {
+  std::string dir_path = "/home/nixos/recordings";
+  int max_file_number = 0;
+  std::string largest_file_name; 
+
+  try {
+    for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
+      if (entry.is_regular_file()) {
+        std::string filename = entry.path().filename().string();
+        try {
+          int current_number = std::stoi(filename);
+          if (current_number > max_file_number) {
+              max_file_number = current_number;
+          }
+        } catch (const std::invalid_argument& e) {
+          spdlog::error("Skipping non-numeric file: {}", filename);
+        } 
+      }
+    }
+  }  catch (const std::filesystem::filesystem_error& e) {
+    spdlog::error("Filesystem error");
+    return "sdfsdf";
+  } 
+
+  return std::to_string(max_file_number + 1) + ".mcap";
+}
+
 static std::vector<const google::protobuf::FileDescriptor *> get_pb_descriptors(const std::vector<std::string> &filenames) {
     std::vector<const google::protobuf::FileDescriptor *> descriptors;
 
@@ -110,12 +137,14 @@ void core::MCAPLogger::destroy() {
     }
 }
 
-int core::MCAPLogger::open_new_mcap(const std::string &name) {
-    spdlog::info("Attempting to open new MCAP file");
+int core::MCAPLogger::open_new_mcap() {
+    std::string mcap_name = get_logfile_name();
+    spdlog::info("Attempting to open new MCAP file: {}", mcap_name);
+    std::string mcap_path = "/home/nixos/recordings/" + get_logfile_name(); 
 
-    const auto res = _writer.open(name, _options);
+    const auto res = _writer.open(mcap_path, _options);
     if (!res.ok()) {
-        spdlog::error("Failed to open {} for writing: {}", name, res.message);
+        spdlog::error("Failed to open {} for writing: {}", mcap_path, res.message);
         return -1;
     }
 
@@ -159,6 +188,19 @@ void core::MCAPLogger::init_logging() {
     _msg_log_thread = std::thread([this]() { _handle_log_to_file(); });
     spdlog::info("Msg log thread spawned");
     _logging = true;
+}
+
+void core::MCAPLogger::stop_logging() {
+    {
+        std::unique_lock lock(_input_buffer_mutex);
+        _running = false;
+        _logging = false;
+    }
+
+    _input_buffer_cv.notify_one(); 
+    if (_msg_log_thread.joinable()) {
+        _msg_log_thread.join();
+    }
 }
 
 int core::MCAPLogger::log_msg(core::MsgType message) {

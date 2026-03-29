@@ -28,7 +28,7 @@ find_package(dbcppp REQUIRED)
 FetchContent_Declare(
     HT_Proto 
     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG b693052
+    GIT_TAG 26f8113
 )
 FetchContent_MakeAvailable(HT_Proto)
 

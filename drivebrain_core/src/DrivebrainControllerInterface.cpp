@@ -28,10 +28,10 @@ core::DrivebrainControllerInterface::DrivebrainControllerInterface() {
 }
 
 /* Private Methods */
-void core::DrivebrainControllerInterface::_handle_parameter_updates(const std::unordered_map<std::string, foxglove::ParameterValue> &new_params) {
+void core::DrivebrainControllerInterface::_handle_parameter_updates(const std::unordered_map<std::string, core::DBParam> &new_params) {
     
-    if (new_params.find("should_log") != new_params.end()) {
-        bool should_log = new_params.at("should_log").getValue<bool>();
+    if (auto pval = std::get_if<bool>(&new_params.at("should_log"))) {
+        bool should_log = *pval;
         if (should_log) {
             _request_start_logging();
         } else {
@@ -39,8 +39,8 @@ void core::DrivebrainControllerInterface::_handle_parameter_updates(const std::u
         }
     }
 
-    if (new_params.find("controller_index") != new_params.end()) {
-        int controller_index = new_params.at("controller_index").getValue<int>();
+    if (auto pval = std::get_if<bool>(&new_params.at("controller_index"))) {
+        int controller_index = *pval;
         _request_controller_change(controller_index);
     }
 
@@ -50,12 +50,18 @@ void core::DrivebrainControllerInterface::_request_start_logging() {
     std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
     bool is_logging = std::get<1>(mcap_status);
     if (!is_logging) {
-        // Start logging
+        core::MCAPLogger::instance().open_new_mcap(); 
+        core::MCAPLogger::instance().init_logging();
     }
 }
 
 void core::DrivebrainControllerInterface::_request_stop_logging() {
-    
+    std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
+    bool is_logging = std::get<1>(mcap_status);
+    if (is_logging) {
+        core::MCAPLogger::instance().stop_logging();
+        core::MCAPLogger::instance().close_active_mcap(); 
+    }
 }
 
 

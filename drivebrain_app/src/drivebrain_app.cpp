@@ -15,8 +15,6 @@
 #include <spdlog/spdlog.h>
 #include <filesystem>
 
-namespace fs = std::filesystem;
-
 std::atomic<bool> running{true};
 
 void sig_handler(int signal) {
@@ -24,33 +22,6 @@ void sig_handler(int signal) {
       spdlog::warn("Interrupted, stopping Drivebrain app");
       running = false;
     }
-}
-
-std::string get_logfile_name() {
-  std::string dir_path = "/home/nixos/recordings";
-  int max_file_number = 0;
-  std::string largest_file_name; 
-
-  try {
-    for (const auto& entry : fs::directory_iterator(dir_path)) {
-      if (entry.is_regular_file()) {
-        std::string filename = entry.path().filename().string();
-        try {
-          int current_number = std::stoi(filename);
-          if (current_number > max_file_number) {
-              max_file_number = current_number;
-          }
-        } catch (const std::invalid_argument& e) {
-          spdlog::error("Skipping non-numeric file: {}", filename);
-        } 
-      }
-    }
-  }  catch (const fs::filesystem_error& e) {
-    spdlog::error("Filesystem error");
-    return "sdfsdf";
-  } 
-
-  return std::to_string(max_file_number + 1) + ".mcap";
 }
 
 DrivebrainApp::DrivebrainApp(const std::string& json_param_path, const std::string& dbc_path)
@@ -72,9 +43,7 @@ void DrivebrainApp::run() {
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
 
-  // _logfile = "/home/nixos/recordings/" + get_logfile_name();
-  _logfile = "test1.mcap";
-  core::MCAPLogger::instance().open_new_mcap(_logfile);
+  core::MCAPLogger::instance().open_new_mcap();
   core::MCAPLogger::instance().init_logging();
 
   spdlog::info("Constructed logging singletons");
