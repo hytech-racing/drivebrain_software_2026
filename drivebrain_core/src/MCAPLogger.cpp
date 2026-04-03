@@ -140,11 +140,11 @@ void core::MCAPLogger::destroy() {
 int core::MCAPLogger::open_new_mcap() {
     std::string mcap_name = get_logfile_name();
     spdlog::info("Attempting to open new MCAP file: {}", mcap_name);
-    std::string mcap_path = "/home/nixos/recordings/" + get_logfile_name(); 
+    _log_name = "/home/nixos/recordings/" + get_logfile_name(); 
 
-    const auto res = _writer.open(mcap_path, _options);
+    const auto res = _writer.open(_log_name, _options);
     if (!res.ok()) {
-        spdlog::error("Failed to open {} for writing: {}", mcap_path, res.message);
+        spdlog::error("Failed to open {} for writing: {}", _log_name, res.message);
         return -1;
     }
 
@@ -180,6 +180,7 @@ int core::MCAPLogger::open_new_mcap() {
 int core::MCAPLogger::close_active_mcap() {
     spdlog::info("Closing mcap");
     _writer.close(); 
+    _log_name = "NONE";
 
     return 0;
 }

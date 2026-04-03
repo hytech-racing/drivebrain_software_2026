@@ -24,13 +24,13 @@ void core::DrivebrainControllerInterface::destroy() {
 }
 
 core::DrivebrainControllerInterface::DrivebrainControllerInterface() {
-    _response = "NONE";
+    core::FoxgloveServer::instance().register_param_callback(std::bind(&core::DrivebrainControllerInterface::_handle_parameter_updates, this, std::placeholders::_1));
 }
 
 /* Private Methods */
 void core::DrivebrainControllerInterface::_handle_parameter_updates(const std::unordered_map<std::string, core::DBParam> &new_params) {
     
-    if (auto pval = std::get_if<bool>(&new_params.at("should_log"))) {
+    if (auto pval = std::get_if<bool>(&new_params.at("drivebraincontrollerinterface/should_log"))) {
         bool should_log = *pval;
         if (should_log) {
             _request_start_logging();
@@ -39,7 +39,7 @@ void core::DrivebrainControllerInterface::_handle_parameter_updates(const std::u
         }
     }
 
-    if (auto pval = std::get_if<bool>(&new_params.at("controller_index"))) {
+    if (auto pval = std::get_if<int>(&new_params.at("drivebraincontrollerinterface/controller_index"))) {
         int controller_index = *pval;
         _request_controller_change(controller_index);
     }
@@ -64,6 +64,9 @@ void core::DrivebrainControllerInterface::_request_stop_logging() {
     }
 }
 
+void core::DrivebrainControllerInterface::_request_controller_change(int controller_index) {
+    spdlog::info("Controller change requested");
+}
 
 
 

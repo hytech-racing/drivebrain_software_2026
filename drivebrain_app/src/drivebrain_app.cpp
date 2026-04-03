@@ -48,6 +48,10 @@ void DrivebrainApp::run() {
 
   spdlog::info("Constructed logging singletons");
 
+  core::DrivebrainControllerInterface::create(); 
+
+  spdlog::info("Constructed drivebrain controller interface");
+
   _acu_core_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUCoreData>>(_io_context, 7777);
   _acu_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUAllData>>(_io_context, 7766);
   _vcr_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCRData_s>>(_io_context, 9999);
@@ -56,8 +60,8 @@ void DrivebrainApp::run() {
   spdlog::info("Initialized ethernet drivers");
 
   // CAN device names are defined in the drivebrain JSON config
-  // _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
-  // _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
+  _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
+  _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
 
   spdlog::info("Initialized CAN drivers");
 
@@ -96,10 +100,14 @@ void DrivebrainApp::_loop() {
     speed_msg->set_drivebrain_set_rpm_fr(2.0);
     speed_msg->set_drivebrain_set_rpm_rl(4.0);
     speed_msg->set_drivebrain_set_rpm_rr(8.0);
-    // _telem_can->send_message(speed_msg);
+    _telem_can->send_message(speed_msg);
+
+    std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
+    std::string logile_name = std::get<0>(mcap_status);
 
     std::shared_ptr<hytech_msgs::McapInfo> mcap_info = std::make_shared<hytech_msgs::McapInfo>();
-    mcap_info->set_current_mcap(_logfile);
+    mcap_info->set_current_mcap(logile_name);
+
     core::log(mcap_info);
 
     auto now = std::chrono::steady_clock::now();

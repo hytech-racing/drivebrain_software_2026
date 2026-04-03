@@ -36,7 +36,7 @@ class DrivebrainControllerInterface {
 
         void _request_current_logger_status();
 
-        void _request_controller_change(uint8_t controller_index);
+        void _request_controller_change(int controller_index);
 
     private: 
 
