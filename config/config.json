@@ -35,7 +35,7 @@
         "dt_rate_hz": 1000,
         "apply_vectoring_in_regen": true
     },
-    "VNDriver": {
+    "vn_driver": {
         "device_name": "/dev/ttyUSB1",
         "baud_rate": 921600, 
         "port": 1,
