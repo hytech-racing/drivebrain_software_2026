@@ -3,6 +3,7 @@
 #include <StateTracker.hpp>
 
 // protobuf
+#include "FoxgloveServer.hpp"
 #include <google/protobuf/any.pb.h>
 #include <google/protobuf/message.h>
 #include <google/protobuf/dynamic_message.h>
@@ -50,8 +51,6 @@ namespace comms {
 
         private: 
             std::shared_ptr<core::StateTracker> _state_tracker;
-
-
             vn::protocol::uart::PacketFinder _processor;
             boost::array<std::uint8_t, 512> _output_buff;
             boost::array<std::uint8_t, 512> _input_buff;
@@ -67,9 +66,11 @@ namespace comms {
         private:
             // Private methods
             static void _handle_recieve(void *userData, vn::protocol::uart::Packet &packet, size_t runningIndexOfPacketStart, TimeStamp ts);
+            void _configure_INS();
             void _configure_binary_outputs();
             void _start_recieve();
             void _set_initial_heading(float initial_heading);
             void _try_initialize_heading(float mag_heading, uint8_t ins_mode);
+
     };
 }

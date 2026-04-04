@@ -9,10 +9,14 @@
 #include "hytech_msgs.pb.h"
 #include "base_msgs.pb.h"
 
+#include "libvncxx/types.h"
 #include "libvncxx/vntime.h"
 #include "libvncxx/packetfinder.h"
 #include "libvncxx/packet.h"
 #include <spdlog/spdlog.h>
+
+#include "FoxgloveServer.hpp"
+#include "Telemetry.hpp"
 
 namespace comms
 {
@@ -20,16 +24,17 @@ namespace comms
     bool VNDriver::init() {
         // Try to establish a connection to the driver
         spdlog::info("Opening vn driver.");
-        // auto device_name = get_parameter_value<std::string>("device_name");
-        // _config.baud_rate = get_parameter_value<int>("baud_rate").value();
-        // _config.freq_divisor = get_parameter_value<int>("freq_divisor").value();
-        // auto port = get_parameter_value<int>("port");
+        auto& foxglove = core::FoxgloveServer::instance();
+
+        auto device_name = foxglove.get_param<std::string>("vn_driver/device_name").value_or("/dev/ttyUSB1");
+        _config.baud_rate = foxglove.get_param<int>("vn_driver/baud_rate").value_or(921600);
+        _config.freq_divisor = foxglove.get_param<int>("vn_driver/freq_divisor").value_or(1);
+        auto port = foxglove.get_param<int>("vn_driver/port").value_or(1);
 
         _processor.registerPossiblePacketFoundHandler(this, &VNDriver::_handle_recieve);
         
         boost::system::error_code ec;
-
-        // auto ec_ret = _serial.open(device_name.value(), ec);
+        auto ec_ret = _serial.open(device_name, ec);
 
         if (ec) {
             spdlog::warn("Error: {}", ec.message());
@@ -38,7 +43,7 @@ namespace comms
         }
 
         // Set the baud rate of the device along with other configs
-        // _serial.set_option(SerialPort::baud_rate(_config.baud_rate));
+        _serial.set_option(SerialPort::baud_rate(_config.baud_rate));
         _serial.set_option(SerialPort::character_size(8));
         _serial.set_option(SerialPort::parity(SerialPort::parity::none));
         _serial.set_option(SerialPort::stop_bits(SerialPort::stop_bits::one));
@@ -47,31 +52,10 @@ namespace comms
         // Configures the binary outputs for the device
         spdlog::info("Configuring binary outputs.");
         _configure_binary_outputs();
+
+        spdlog::info("INS config");
+        _configure_INS();
         
-        // TODO: Separate function for this?? Consider if VN-300 is ARHS-enabled by default??
-        // Creating buffer for writing to INS Basic Configuration (Register 67)
-        auto num_of_bytes = Packet::genWriteInsBasicConfiguration(
-            ErrorDetectionMode::ERRORDETECTIONMODE_NONE,
-            (char *)_output_buff.data(),
-            _output_buff.size(),
-            0, // Scenario: AHRS (Attitude Only - no GNSS/INS)
-            1, // Set AhrsAiding: provides the ability to switch to using the magnetometer to stabilize heading during times when GNSS-based heading is unavailable.
-            0  // Estimate Baseline: if enabled, the sensor will auto-populate the GNSS Compass Estimated Baseline register (Register 97) with the INS-estimated baseline
-        );
-
-        // Write the buffer to the VN-300
-        boost::asio::async_write(_serial,
-            boost::asio::buffer(_output_buff.data(), num_of_bytes),
-            [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
-            if (!ec) {
-                spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
-            } else {
-                spdlog::error("Error sending data: {}", ec.message());
-            }
-        });
-
-
-        // TODO: SET WNN HERE
         
         return true;
     }
@@ -91,6 +75,7 @@ namespace comms
 
     void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg) {
         _state_tracker->handle_receive_protobuf_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
+        core::log(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
     }
 
 
@@ -102,19 +87,18 @@ namespace comms
     //      Write result to Reg 161 while VN-300 in Mode 0 to set initial heading and expediate startup to Mode 3
     // New method to try and get initial heading from the VN-300
     void VNDriver::_try_initialize_heading(float mag_heading, uint8_t ins_mode) {
-    if (_initial_heading_set) return; 
+        if (_initial_heading_set) return; 
     
-    if (ins_mode == 0) {
-        float true_heading = mag_heading + _local_declination;
+        if (ins_mode == 0) {
+            float true_heading = mag_heading + _local_declination;
 
-        _set_initial_heading(true_heading);
+            _set_initial_heading(true_heading);
 
-        _initial_heading_set = true;
-        spdlog::info("Applied declination of {} deg for True Heading of {}", _local_declination, true_heading);
+            _initial_heading_set = true;
+            spdlog::info("Applied declination of {} deg for True Heading of {}", _local_declination, true_heading);
+        }
+        return;
     }
-
-    return;
-}
 
     // Sets the heading estimate to the angle provided by the user, immediately initializing the INS filter and expediting the startup process
     void VNDriver::_set_initial_heading(float initial_heading) {
@@ -139,6 +123,34 @@ namespace comms
                 spdlog::error("Error sending data: {}", ec.message());
             }
         });
+    }
+
+
+    void VNDriver::_configure_INS() {
+        
+        // TODO: Separate function for this?? Consider if VN-300 is ARHS-enabled by default??
+        // Creating buffer for writing to INS Basic Configuration (Register 67)
+        auto num_of_bytes = Packet::genWriteInsBasicConfiguration(
+            ErrorDetectionMode::ERRORDETECTIONMODE_NONE,
+            (char *)_output_buff.data(),
+            _output_buff.size(),
+            0, // Scenario: AHRS (Attitude Only - no GNSS/INS)
+            1, // Set AhrsAiding: provides the ability to switch to using the magnetometer to stabilize heading during times when GNSS-based heading is unavailable.
+            0  // Estimate Baseline: if enabled, the sensor will auto-populate the GNSS Compass Estimated Baseline register (Register 97) with the INS-estimated baseline
+        );
+
+        // Write the buffer to the VN-300
+        boost::asio::async_write(_serial,
+            boost::asio::buffer(_output_buff.data(), num_of_bytes),
+            [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
+            if (!ec) {
+                spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
+            } else {
+                spdlog::error("Error sending data: {}", ec.message());
+            }
+        });
+
+        // TODO: SET WNN HERE
     }
 
     void VNDriver::_configure_binary_outputs() {
