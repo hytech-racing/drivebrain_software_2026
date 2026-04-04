@@ -26,15 +26,23 @@ namespace comms
         spdlog::info("Opening vn driver.");
         auto& foxglove = core::FoxgloveServer::instance();
 
-        auto device_name = foxglove.get_param<std::string>("vn_driver/device_name").value_or("/dev/ttyUSB1");
-        _config.baud_rate = foxglove.get_param<int>("vn_driver/baud_rate").value_or(921600);
-        _config.freq_divisor = foxglove.get_param<int>("vn_driver/freq_divisor").value_or(1);
-        auto port = foxglove.get_param<int>("vn_driver/port").value_or(1);
+        auto device_name = foxglove.get_param<std::string>("vn_driver/device_name");
+        auto baud_rate = foxglove.get_param<int>("vn_driver/baud_rate");
+        auto freq_divisor = foxglove.get_param<int>("vn_driver/freq_divisor");
+        auto port = foxglove.get_param<int>("vn_driver/port");
+
+        if(!(device_name && baud_rate && freq_divisor && port)) {
+            spdlog::error("Couldn't load all params for VN Driver");
+            return false;
+        }
+
+        _config.baud_rate = baud_rate.value();
+        _config.freq_divisor = freq_divisor.value();
 
         _processor.registerPossiblePacketFoundHandler(this, &VNDriver::_handle_recieve);
         
         boost::system::error_code ec;
-        auto ec_ret = _serial.open(device_name, ec);
+        auto ec_ret = _serial.open(device_name.value(), ec);
 
         if (ec) {
             spdlog::warn("Error: {}", ec.message());
@@ -54,7 +62,8 @@ namespace comms
         _configure_binary_outputs();
 
         spdlog::info("INS config");
-        _configure_INS();
+        // TODO: uncomment
+        // _configure_INS();
         
         
         return true;
