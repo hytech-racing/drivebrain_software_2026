@@ -2,15 +2,19 @@
 
 #include <Controller.hpp>
 #include <StateTracker.hpp>
+#include <Literals.hpp>
+#include <FoxgloveServer.hpp>
 
 #include <hytech_msgs.pb.h>
 
 #include <utility>
 #include <mutex>
 
+using namespace core;
+
 namespace control
 {
-    class LoadCellVectoringTorqueController : public Controller<core::ControllerOutput, core::VehicleState>, public core::common::Configurable {
+    class LoadCellTorqueController : public Controller<core::ControllerOutput, core::VehicleState> {
     public:
         // rear_torque_scale:
         // 0 to 2 scale on forward torque to rear wheels. 0 = FWD, 1 = Balanced, 2 = RWD
@@ -30,19 +34,19 @@ namespace control
             bool apply_vectoring_in_regen;
         };
 
-        LoadCellVectoringTorqueController(core::JsonFileHandler &json_file_handler) : Configurable(json_file_handler, "LoadCellVectoringTorqueController") {}
+        LoadCellTorqueController() {}
 
         float get_dt_sec() override { 
             return (double) 1.0 / _config.dt_rate_hz;
         }
 
-        bool init() override final;
+        bool init();
 
-        core::ControllerOutput step_controller(const core::VehicleState &in) override;
+        core::ControllerOutput step_controller(const VehicleState &in) override;
 
     private:
 
-        void _handle_param_updates(const std::unordered_map<std::string, core::common::Configurable::ParamTypes> &new_param_map);
+        void _handle_param_updates(const std::unordered_map<std::string, DBParam> &new_param_map);
         
         std::mutex _config_mutex;
         config _config{};

@@ -44,8 +44,8 @@ bool core::ControllerManager<ControllerType, NumControllers>::init()
         return false;
     }
     // Initialize state
-    _current_ctr_manager_state = control::ControllerManagerState{
-        .current_status = core::control::ControllerManagerStatus::NO_ERROR,
+    _current_ctr_manager_state = ControllerManagerState{
+        .current_status = ControllerManagerStatus::NO_ERROR,
         .current_controller_output = std::monostate{}
     };
     
@@ -54,12 +54,12 @@ bool core::ControllerManager<ControllerType, NumControllers>::init()
 }
 
 template<typename ControllerType, size_t NumControllers>
-core::control::ControllerManagerStatus core::ControllerManager<ControllerType, NumControllers>::_can_switch_controller(const core::VehicleState &current_state,
+core::ControllerManagerStatus core::ControllerManager<ControllerType, NumControllers>::_can_switch_controller(const core::VehicleState &current_state,
                                                                                                                        const core::ControllerOutput &previous_output,
                                                                                                                        const core::ControllerOutput &next_controller_output)
 {
 
-    using status_type = core::control::ControllerManagerStatus;
+    using status_type = core::ControllerManagerStatus;
 
     // shared function to check if values are above a maximum value
     auto check_veh_vec = [](core::veh_vec<float> vehicle_vector, float max_val, bool check_with_abs) -> bool
@@ -137,7 +137,7 @@ core::control::ControllerManagerStatus core::ControllerManager<ControllerType, N
 template <typename ControllerType, size_t NumControllers>
 bool core::ControllerManager<ControllerType, NumControllers>::swap_active_controller(size_t new_controller_index, const core::VehicleState& input)
 {
-    using status_type = core::control::ControllerManagerStatus;
+    using status_type = core::ControllerManagerStatus;
     static const size_t num_controllers = _controllers.size(); // size_t is unsigned, new_controller_index being less than 0 is always false. 
     
     if (new_controller_index >= num_controllers) {

@@ -25,7 +25,7 @@
         "motor_rpmlimit": 2000,
         "steer_sensor_offset": 33.0
     },
-    "LoadCellVectoringTorqueController": {
+    "LoadCellTorqueController": {
         "max_torque": 21.0,
         "max_regen_torque": 10.0,
         "rear_torque_scale": 1.0,

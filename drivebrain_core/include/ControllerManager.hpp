@@ -92,7 +92,7 @@ public:
      * @brief Fetches the current controller manager state
      * @return ControllerManagerState types: ControllerManagerStatus, ControllerOutput
      */
-    core::control::ControllerManagerState get_current_ctr_manager_state() {
+    ControllerManagerState get_current_ctr_manager_state() {
         return _current_ctr_manager_state;
     }
 
@@ -104,7 +104,7 @@ public:
     core::ControllerOutput step_active_controller(const core::VehicleState& input)
     {
         if(!_controllers[_current_controller_index] || _controllers[_current_controller_index] == nullptr) {
-            _current_ctr_manager_state.current_status = core::control::ControllerManagerStatus::ERROR_NULLPTR_CONTROLLER;
+            _current_ctr_manager_state.current_status = core::ControllerManagerStatus::ERROR_NULLPTR_CONTROLLER;
             return {std::monostate()};
         }
         return _controllers[_current_controller_index]->step_controller(input);
@@ -119,10 +119,10 @@ private:
      */
     ControllerManager(std::array<std::shared_ptr<ControllerType>, NumControllers> controllers) : _controllers(std::move(controllers)) {
         auto& foxglove = core::FoxgloveServer::instance();
-        auto max_speed = foxglove.get_param<double>("controllermanager/max_controller_switch_speed_ms");
-        auto max_torque = foxglove.get_param<double>("controllermanager/max_torque_switch_nm");
-        auto max_accel = foxglove.get_param<double>("controllermanager/max_accel_switch_float");
-        auto max_rpm = foxglove.get_param<double>("controllermanager/max_requested_rpm");
+        auto max_speed = foxglove.get_param<float>("controllermanager/max_controller_switch_speed_ms");
+        auto max_torque = foxglove.get_param<float>("controllermanager/max_torque_switch_nm");
+        auto max_accel = foxglove.get_param<float>("controllermanager/max_accel_switch_float");
+        auto max_rpm = foxglove.get_param<float>("controllermanager/max_requested_rpm");
         _max_switch_rpm = max_speed.value_or(5.0f) * constants::METERS_PER_SECOND_TO_RPM;
         _max_torque_req_switch = max_torque.value_or(10.0f);
         _max_accel_req_switch = max_accel.value_or(0.5f);
@@ -135,10 +135,10 @@ private:
     /**
      * @brief Helper method to decide if we can switch the controller based on current and next state and next controller output
      */
-    core::control::ControllerManagerStatus _can_switch_controller(const core::VehicleState &current_state, const core::ControllerOutput &previous_output, const core::ControllerOutput &next_controller_output);
+    core::ControllerManagerStatus _can_switch_controller(const core::VehicleState &current_state, const core::ControllerOutput &previous_output, const core::ControllerOutput &next_controller_output);
 
     size_t _current_controller_index = 0;
-    core::control::ControllerManagerState _current_ctr_manager_state;
+    core::ControllerManagerState _current_ctr_manager_state;
     std::array<std::shared_ptr<ControllerType>, NumControllers> _controllers;
 
     float _max_switch_rpm; /* the maximum rpm at which you allow switching */
