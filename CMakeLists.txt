@@ -11,6 +11,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #################################
 add_subdirectory(drivebrain_core)
 add_subdirectory(drivebrain_comms)
+add_subdirectory(drivebrain_control)
 
 #################################
 # Find packages
@@ -77,6 +78,7 @@ target_link_libraries(drivebrain PUBLIC
     hytech_can_msgs_cpp_lib
     drivebrain_core
     drivebrain_comms
+    drivebrain_control
     matlab_model
 )
 

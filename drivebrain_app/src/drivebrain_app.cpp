@@ -63,6 +63,12 @@ void DrivebrainApp::run() {
   _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
   _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
 
+  // Initialize controllers
+  _controller1 = std::make_shared<control::LoadCellTorqueController>(); 
+  if (!_controller1->init()) {
+    throw std::runtime_error("Failed to initialize controller");
+  }
+
   spdlog::info("Initialized CAN drivers");
 
   running = true; 
