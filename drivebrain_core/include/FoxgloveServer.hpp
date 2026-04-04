@@ -21,6 +21,9 @@
 #include "hytech_msgs.pb.h"
 
 namespace core {
+
+    using DBParam = std::variant<bool, int, float, double, std::string, std::monostate>; 
+
     class FoxgloveServer {
         public: 
             /**
@@ -64,7 +67,7 @@ namespace core {
              * @param The function to be reigstered, which takes the form of (const string, param) -> void
              * @return The newly created boost connection
             */
-            boost::signals2::connection register_param_callback(std::function<void(const std::unordered_map<std::string, foxglove::ParameterValue>&)> callback);
+            boost::signals2::connection register_param_callback(std::function<void(const std::unordered_map<std::string, DBParam>&)> callback);
 
             /**
              * Returns all the current parameter values in a JSON format. Mostly used to log the current parameters in an MCAP file
@@ -79,7 +82,6 @@ namespace core {
              */
             template <typename param_type> 
             std::optional<param_type> get_param(std::string param_name) {
-                
                 std::unique_lock lock(_parameter_mutex); 
                 std::transform(param_name.begin(), param_name.end(), param_name.begin(),
                     [](unsigned char c){ return static_cast<unsigned char>(std::tolower(c)); });
@@ -89,10 +91,9 @@ namespace core {
                     return std::nullopt;
                 }
 
-                try {
-                    return _foxglove_params_map[param_name].getValue<param_type>();
-                } catch (const std::exception& e) {
-                    spdlog::warn("Incorrect parameter type for param {}: {}", param_name, e.what());
+                if (auto pval = std::get_if<param_type>(&_foxglove_params_map[param_name])) {
+                    return *pval;
+                } else {
                     return std::nullopt;
                 }
             }
@@ -111,12 +112,18 @@ namespace core {
             inline static std::atomic<FoxgloveServer*> _s_instance;
 
             /* Boost signal for parameter updates */
-            boost::signals2::signal<void(const std::unordered_map<std::string, foxglove::ParameterValue>&)> _param_update_signal;
+            boost::signals2::signal<void(const std::unordered_map<std::string, DBParam>&)> _param_update_signal;
 
             /* Method to handle converting foxglove params to avoid type conflicts */
-            std::optional<foxglove::Parameter> _convert_foxglove_parameter(foxglove::Parameter current_param, foxglove::Parameter incoming_param);
+            std::optional<foxglove::Parameter> _convert_foxglove_parameter(DBParam current_param, foxglove::Parameter incoming_param);
+
+            /* Method to go from db param to foxglove param */
+            std::optional<foxglove::Parameter> _get_foxglove_parameter(std::string set_name, DBParam db_param); 
+
+            /* Method to go from foxglove param to db param */
+            DBParam _get_db_param(foxglove::Parameter foxglove_parameter);
             
-            std::unordered_map<std::string, foxglove::ParameterValue> _foxglove_params_map; 
+            std::unordered_map<std::string, DBParam> _foxglove_params_map; 
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
             
             std::unique_ptr<foxglove::ServerInterface<websocketpp::connection_hdl>> _server;

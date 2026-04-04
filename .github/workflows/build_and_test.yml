@@ -1,27 +1,29 @@
 name: Build and publish image to Docker Hub
-on: 
-  push
+on:
+  push:
+    branches:
+      - '**'
 
-jobs: 
-  publish-image: 
+jobs:
+  publish-image:
     runs-on: ubuntu-latest
-    steps: 
-      - name: Checkout 
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Build image
         run: docker build -t kkittur/drivebrain_cross_compile:latest .
 
-      - name: push image to docker Hub
-        run: | 
+      - name: Push image to Docker Hub
+        run: |
           docker login -u kkittur -p ${{ secrets.DOCKER_HUB_TOKEN }}
           docker push kkittur/drivebrain_cross_compile:latest
 
-  build-executable: 
+  build-executable:
     needs: publish-image
     runs-on: ubuntu-latest
-    steps: 
-      - name: Checkout 
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Pull from container registry
@@ -29,5 +31,62 @@ jobs:
           docker pull kkittur/drivebrain_cross_compile:latest
 
       - name: Enter container and build
-        run: | 
+        run: |
           docker compose run --rm dev ./build_script.sh
+
+      - name: Extract binary from build
+        run: |
+          docker compose run --rm dev cp build-arm/drivebrain /app/drivebrain-arm
+
+      - name: Upload build artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: drivebrain-arm-binary
+          path: drivebrain-arm
+
+  create-release:
+    needs: [publish-image, build-executable]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: version
+        run: |
+          git fetch --tags
+          LATEST=$(git tag -l 'v[0-9]*' | sort -t'v' -k2 -n | tail -1)
+          if [ -z "$LATEST" ]; then
+            NEXT="v1"
+          else
+            NUM=${LATEST#v}
+            NEXT="v$((NUM + 1))"
+          fi
+          echo "tag=$NEXT" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: drivebrain-arm-binary
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ steps.version.outputs.tag }} \
+            --title "Release ${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+            drivebrain-arm
+
+      - name: Tag and push versioned Docker image
+        run: |
+          docker login -u kkittur -p ${{ secrets.DOCKER_HUB_TOKEN }}
+          docker pull kkittur/drivebrain_cross_compile:latest
+          docker tag kkittur/drivebrain_cross_compile:latest kkittur/drivebrain_cross_compile:${{ steps.version.outputs.tag }}
+          docker push kkittur/drivebrain_cross_compile:${{ steps.version.outputs.tag }}

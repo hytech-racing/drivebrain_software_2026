@@ -3,6 +3,9 @@
 #include "FoxgloveServer.hpp"
 #include "MCAPLogger.hpp"
 #include "hytech_msgs.pb.h"
+#include "Telemetry.hpp"
+#include "ControllerManager.hpp"
+#include "DrivebrainControllerInterface.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -10,6 +13,7 @@
 #include <memory>
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
+#include <filesystem>
 
 std::atomic<bool> running{true};
 
@@ -38,10 +42,15 @@ void DrivebrainApp::run() {
   // TODO: remove hardcoded paths
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
-  core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
+
+  core::MCAPLogger::instance().open_new_mcap();
   core::MCAPLogger::instance().init_logging();
 
   spdlog::info("Constructed logging singletons");
+
+  core::DrivebrainControllerInterface::create(); 
+
+  spdlog::info("Constructed drivebrain controller interface");
 
   _acu_core_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUCoreData>>(_io_context, 7777);
   _acu_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUAllData>>(_io_context, 7766);
@@ -86,10 +95,20 @@ void DrivebrainApp::_loop() {
   while(running) {
     next_tick += loop_time_ms;
 
-    // TODO: update vehicle state
-    // TODO: send control requests
-    spdlog::debug("yo mama");
+    std::shared_ptr<hytech::drivebrain_speed_set_input> speed_msg = std::make_shared<hytech::drivebrain_speed_set_input>(); 
+    speed_msg->set_drivebrain_set_rpm_fl(1.0);
+    speed_msg->set_drivebrain_set_rpm_fr(2.0);
+    speed_msg->set_drivebrain_set_rpm_rl(4.0);
+    speed_msg->set_drivebrain_set_rpm_rr(8.0);
+    _telem_can->send_message(speed_msg);
 
+    std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
+    std::string logile_name = std::get<0>(mcap_status);
+
+    std::shared_ptr<hytech_msgs::McapInfo> mcap_info = std::make_shared<hytech_msgs::McapInfo>();
+    mcap_info->set_current_mcap(logile_name);
+
+    core::log(mcap_info);
 
     auto now = std::chrono::steady_clock::now();
     if(now > next_tick) {

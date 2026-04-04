@@ -51,7 +51,7 @@ namespace core {
              * Destructs MCAPLogger instance, frees singleton instance and joins all running log threads
              */
             ~MCAPLogger() {
-              spdlog::info("Destructing message logger");
+              spdlog::info("Destructing mcap logger");
               _logging = false;
               _running = false;
 
@@ -67,10 +67,9 @@ namespace core {
             /**
              * Opens a new mcap file by adding options and all protobuf schema
              * 
-             * @param name name of the new file to be opened 
              * @return 0 on success, negative err code on failure
              */
-            int open_new_mcap(const std::string &name);
+            int open_new_mcap();
 
             /**
              * Closes the current mcap file. Only runs if there is a file open. 
@@ -100,11 +99,6 @@ namespace core {
              * To not be confused with halting, which stops logging and running the MCAPLogger entirely.
             */
             void stop_logging();
-
-            /*
-             * Stops logging and running the MCAPLogger
-            */
-            void halt();
 
             /**
              * Logs a protobuf message to the current MCAP file

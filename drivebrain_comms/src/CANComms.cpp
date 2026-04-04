@@ -130,15 +130,12 @@ void comms::CANComms::_receive_handler() {
 std::optional<std::shared_ptr<google::protobuf::Message>> comms::CANComms::_decode_can_frame(struct can_frame &frame) {
 
     const dbcppp::IMessage* dbc_msg = _messages[frame.can_id];
-    spdlog::info("Received can frame id {}", frame.can_id);
-    
     if (dbc_msg == nullptr) {
         spdlog::error("DBC message does not exist");
         return std::nullopt; 
     }
 
     std::shared_ptr<google::protobuf::Message> proto_message = get_proto_message_from_name(dbc_msg->Name());
-    spdlog::info("{}", dbc_msg->Name());
     if (proto_message == nullptr) {
         spdlog::error("Protobuf message not found");
         return std::nullopt;
