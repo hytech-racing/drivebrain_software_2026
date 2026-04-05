@@ -10,6 +10,7 @@
 #include <string> 
 #include <fstream> 
 #include <thread>
+#include <spdlog/spdlog.h>
 
 #include "hytech_msgs.pb.h"
 #include "hytech.pb.h"
@@ -270,9 +271,25 @@ namespace core {
         public: 
 
             /**
-             * Constructs a new state tracker.
+             * Constructor for initializing a new StateTracker singleton instance
              */
-            StateTracker() = default;
+            static void create(); 
+
+            /**
+             * Fetches the StateTracker singleton instance
+             */
+            static StateTracker& instance(); 
+
+            /* Destroys the StateTracker singleton instance */
+            static void destroy(); 
+
+            /* Destructs an instnace of the StateTracker */
+            ~StateTracker() {
+                spdlog::info("Destructing state tracker");
+
+                _s_instance.store(nullptr, std::memory_order_release);
+                spdlog::info("State tracker instance released");
+            }
 
             /**
              * Receives a protobuf message and adds any useful information to the internal 
@@ -315,8 +332,17 @@ namespace core {
             VehicleState _vehicle_state = { };
             RawInputData _raw_input_data = { };
             std::mutex _state_mutex;
-            std::array<std::chrono::microseconds, 4> _timestamp_array; 
+            std::array<std::chrono::microseconds, 4> _timestamp_array;
+            
+            /* Private constructor called by the init method */
+            StateTracker() {}; 
+            
+            /* Singleton move semantics */
+            StateTracker(const StateTracker&) = delete; 
+            StateTracker& operator=(const StateTracker&) = delete;
 
+            /* Singleton instance */
+            inline static std::atomic<StateTracker*> _s_instance; 
 
     };
 }

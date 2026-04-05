@@ -57,16 +57,23 @@ void DrivebrainApp::run() {
   _vcr_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCRData_s>>(_io_context, 9999);
   _vcf_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCFData_s>>(_io_context, 4444);
 
+  bool vn_init_not_successful;
+  _vn_driver = std::make_unique<comms::VNDriver>(_io_context, vn_init_not_successful);
+  if (vn_init_not_successful) {
+    spdlog::error("Failed to initialize vectornav driver");
+  }
+
+
   spdlog::info("Initialized ethernet drivers");
 
   // CAN device names are defined in the drivebrain JSON config
-  _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
-  _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
+  // _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
+  // _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
 
   // Initialize controllers
   _controller1 = std::make_shared<control::LoadCellTorqueController>(); 
   if (!_controller1->init()) {
-    throw std::runtime_error("Failed to initialize controller");
+    spdlog::error("Failed to initialize controller");
   }
 
   spdlog::info("Initialized CAN drivers");
@@ -82,8 +89,6 @@ void DrivebrainApp::run() {
 
   _loop_thread = std::thread([this]() { _loop(); });
   spdlog::info("Spawned threads");
-
-  // TODO: spawn future usb driver threads
   
   // Join threads when loop thread finishes
   if(_loop_thread.joinable()) _loop_thread.join();
@@ -106,7 +111,7 @@ void DrivebrainApp::_loop() {
     speed_msg->set_drivebrain_set_rpm_fr(2.0);
     speed_msg->set_drivebrain_set_rpm_rl(4.0);
     speed_msg->set_drivebrain_set_rpm_rr(8.0);
-    _telem_can->send_message(speed_msg);
+    // _telem_can->send_message(speed_msg);
 
     std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
     std::string logile_name = std::get<0>(mcap_status);

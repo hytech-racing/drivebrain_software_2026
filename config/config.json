@@ -36,7 +36,7 @@
         "apply_vectoring_in_regen": true
     },
     "vn_driver": {
-        "device_name": "/dev/ttyUSB1",
+        "device_name": "/dev/ttyUSB0",
         "baud_rate": 921600, 
         "port": 1,
         "freq_divisor": 1

@@ -5,6 +5,7 @@
 #include <memory>
 #include <foxglove/websocket/base64.hpp>
 #include "LoadCellTorqueController.hpp"
+#include "VNComms.hpp"
 
 #include "hytech_msgs.pb.h"
 
@@ -56,5 +57,8 @@ private:
   
   /* Controllers */
   std::shared_ptr<control::LoadCellTorqueController> _controller1; 
+
+  /* Vectornav */
+  std::unique_ptr<comms::VNDriver> _vn_driver; 
 
 };

@@ -61,7 +61,7 @@ namespace comms
         spdlog::info("Configuring binary outputs.");
         _configure_binary_outputs();
 
-        spdlog::info("INS config");
+        // spdlog::info("INS config");
         // TODO: uncomment
         // _configure_INS();
         
@@ -69,21 +69,20 @@ namespace comms
         return true;
     }
 
-    VNDriver::VNDriver(std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context& io, bool &init_not_successful)
-        : _state_tracker(state_tracker),
-          _serial(io) {
+    VNDriver::VNDriver(boost::asio::io_context& io, bool &init_not_successful) : _serial(io) {
+
         init_not_successful = !init();
 
         // Starts read
-        if(!init_not_successful) {
+        if (!init_not_successful) {
             spdlog::info("Starting vn driver recieve.");
             _start_recieve();
-        }
+        } 
         
     }
 
     void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg) {
-        _state_tracker->handle_receive_protobuf_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
+        // core::StateTracker::instance().handle_receive_protobuf_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
         core::log(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
     }
 
@@ -127,7 +126,7 @@ namespace comms
             boost::asio::buffer(_output_buff.data(), num_of_bytes),
             [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
             if (!ec) {
-                spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
+                spdlog::info("Successfully sent {} bytes.", bytes_transferred);
             } else {
                 spdlog::error("Error sending data: {}", ec.message());
             }
@@ -153,7 +152,7 @@ namespace comms
             boost::asio::buffer(_output_buff.data(), num_of_bytes),
             [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
             if (!ec) {
-                spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
+                spdlog::info("Successfully sent {} bytes.", bytes_transferred);
             } else {
                 spdlog::error("Error sending data: {}", ec.message());
             }
@@ -182,7 +181,7 @@ namespace comms
                 boost::asio::buffer(_output_buff.data(), num_of_bytes),
                 [](const boost::system::error_code &ec, std::size_t bytes_transferred) {
                 if (!ec) {
-                    spdlog::warn("Successfully sent {} bytes.", bytes_transferred);
+                    spdlog::info("Successfully sent {} bytes.", bytes_transferred);
                 } else {
                     spdlog::error("Error sending data: {}", ec.message());
                 }
@@ -201,10 +200,10 @@ namespace comms
             AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY,
             (InsGroup::INSGROUP_INSSTATUS | InsGroup::INSGROUP_POSLLA | InsGroup::INSGROUP_VELBODY | InsGroup::INSGROUP_VELU),
             GpsGroup::GPSGROUP_NONE)) {
-                spdlog::warn("ERROR: packet is not what we want");
+                spdlog::warn("ERROR: packet format invalid");
                 return;
             }
-            
+
             // Extract data in correct order
             auto ypr_data = packet.extractVec3f();
             auto angular_rate_data = packet.extractVec3f();
@@ -265,7 +264,7 @@ namespace comms
 
             this_instance->log_proto_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg_out));
         } else {
-            spdlog::warn("Packet not correct");
+            spdlog::warn("Packet not correct. Are you sure the vectornav is configured to only send binary outputs?");
         }
     }
 

@@ -114,7 +114,6 @@ static nlohmann::json generate_json_schema(const nlohmann::json& obj) {
 /****************************************************************
  * PUBLIC CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-
 void core::MCAPLogger::create(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) {
     MCAPLogger* expected = nullptr;
     MCAPLogger* local = new MCAPLogger(base_dir, options, params_file);

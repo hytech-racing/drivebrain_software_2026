@@ -39,7 +39,7 @@ namespace comms {
     class VNDriver
     {
         public:
-            VNDriver(std::shared_ptr<core::StateTracker> state_tracker, boost::asio::io_context &io_context, bool &init_successful); 
+            VNDriver(boost::asio::io_context &io_context, bool &init_successful); 
             ~VNDriver() {
                 spdlog::info("destructed %s");
             }
@@ -50,7 +50,6 @@ namespace comms {
             };
 
         private: 
-            std::shared_ptr<core::StateTracker> _state_tracker;
             vn::protocol::uart::PacketFinder _processor;
             boost::array<std::uint8_t, 512> _output_buff;
             boost::array<std::uint8_t, 512> _input_buff;

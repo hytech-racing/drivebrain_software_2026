@@ -5,6 +5,28 @@ using namespace core;
 /****************************************************************
  * Public class methods
  ****************************************************************/
+void core::StateTracker::create() {
+    StateTracker* expected = nullptr;
+    StateTracker* local = new StateTracker();
+    if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+        // Already initialized, delete local instance
+        delete local;
+    }
+}
+
+core::StateTracker& core::StateTracker::instance() {
+    StateTracker* instance = _s_instance.load(std::memory_order_acquire);
+    assert(instance != nullptr && "StateTracker has not been initialized");
+    return *instance;
+}
+
+void core::StateTracker::destroy() {
+    StateTracker* instance = _s_instance.exchange(nullptr, std::memory_order_acq_rel);
+    if (instance) {
+        delete instance;
+    }
+}
+
 void StateTracker::set_previous_control_output(core::ControllerOutput &prev_controller_output) {
     std::unique_lock lk(_state_mutex);
     _vehicle_state.prev_controller_output = prev_controller_output;
