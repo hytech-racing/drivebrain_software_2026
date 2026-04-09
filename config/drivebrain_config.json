@@ -30,9 +30,9 @@
         "max_regen_torque": 10.0,
         "rear_torque_scale": 1.0,
         "regen_torque_scale": 0.6,
-        "positive_speed_set" : 45,
+        "positive_speed_set" : 45.0,
         "max_power_kw": 63.0,
-        "dt_rate_hz": 1000,
+        "dt_rate_hz": 1000.0,
         "apply_vectoring_in_regen": true
     },
     "vn_driver": {
@@ -146,6 +146,10 @@
         "w_derate_ending_kW_delta": 5.0,
         "use_qp_internal_torq_feedback": false,
         "use_min_cell_derate": false
+    },
+    "DrivebrainControllerInterface": {
+	"should_log": true, 
+	"controller_index": 1
     },
     "use_vectornav": false,
     "use_fake_vn": false,

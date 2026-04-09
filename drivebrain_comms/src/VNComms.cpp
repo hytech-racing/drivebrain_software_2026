@@ -27,6 +27,7 @@ namespace comms
         auto& foxglove = core::FoxgloveServer::instance();
 
         auto device_name = foxglove.get_param<std::string>("vn_driver/device_name");
+        
         auto baud_rate = foxglove.get_param<int>("vn_driver/baud_rate");
         auto freq_divisor = foxglove.get_param<int>("vn_driver/freq_divisor");
         auto port = foxglove.get_param<int>("vn_driver/port");
@@ -72,7 +73,6 @@ namespace comms
     VNDriver::VNDriver(boost::asio::io_context& io, bool &init_not_successful) : _serial(io) {
 
         init_not_successful = !init();
-
         // Starts read
         if (!init_not_successful) {
             spdlog::info("Starting vn driver recieve.");
