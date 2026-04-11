@@ -25,4 +25,5 @@ target_link_libraries(drivebrain_core PUBLIC
     protobuf::libprotobuf
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
+    matlab_model
 )

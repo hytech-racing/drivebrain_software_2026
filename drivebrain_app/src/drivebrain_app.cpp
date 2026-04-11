@@ -6,7 +6,7 @@
 #include "Telemetry.hpp"
 #include "ControllerManager.hpp"
 #include "DrivebrainControllerInterface.hpp"
-
+#include <StateTracker.hpp>
 #include <atomic>
 #include <chrono>
 #include <mcap/writer.hpp>
@@ -42,6 +42,7 @@ void DrivebrainApp::run() {
   // TODO: remove hardcoded paths
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
+  core::StateTracker::create();
 
   core::MCAPLogger::instance().open_new_mcap();
   core::MCAPLogger::instance().init_logging();
@@ -78,6 +79,10 @@ void DrivebrainApp::run() {
 
   spdlog::info("Initialized CAN drivers");
 
+  _estim_manager = std::make_shared<estimation::EstimatorManager>();
+  _estim_manager->handle_inits();
+  spdlog::info("Constructed estimator manager");
+
   running = true; 
   _io_context_thread = std::thread([this]() {
     try {
@@ -105,6 +110,9 @@ void DrivebrainApp::_loop() {
 
   while(running) {
     next_tick += loop_time_ms;
+
+    auto state_and_validity = core::StateTracker::instance().get_latest_state_and_validity();
+    _estim_manager->evaluate_all_estimators(state_and_validity.first);
 
     std::shared_ptr<hytech::drivebrain_speed_set_input> speed_msg = std::make_shared<hytech::drivebrain_speed_set_input>(); 
     speed_msg->set_drivebrain_set_rpm_fl(1.0);

@@ -123,7 +123,9 @@
         "amk_eff_modifier_fl": 1.0,
         "amk_eff_modifier_fr": 1.0,
         "amk_eff_modifier_rl": 1.0,
-        "global_eff_modifier": 1.0
+        "global_eff_modifier": 1.0, 
+        "rack_pot_presence": 0.0, 
+        "brake_eff_modifier": 1.0
         
     },
     "qp_torq_allocator_MatlabModel": {
