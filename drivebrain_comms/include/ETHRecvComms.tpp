@@ -28,7 +28,7 @@ ETHRecvComms<ETHMsgType>::~ETHRecvComms() {
 template <typename MsgType>
 void ETHRecvComms<MsgType>::_handle_receive(const boost::system::error_code &error, std::size_t size) {
   if (_running && !error) {
-      _received_msg ->ParseFromArray(_recv_buffer.data(), size);
+      _received_msg->ParseFromArray(_recv_buffer.data(), size);
       _handler(_received_msg);
       _start_receive();
   }

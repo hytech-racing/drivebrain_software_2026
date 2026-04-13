@@ -39,7 +39,6 @@ DrivebrainApp::~DrivebrainApp() {
 void DrivebrainApp::run() {
   std::signal(SIGINT, sig_handler);
 
-  // TODO: remove hardcoded paths
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
   core::StateTracker::create();
@@ -76,6 +75,8 @@ void DrivebrainApp::run() {
   if (!_controller1->init()) {
     spdlog::error("Failed to initialize controller");
   }
+
+
 
   spdlog::info("Initialized CAN drivers");
 

@@ -82,7 +82,6 @@ namespace comms
     }
 
     void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg) {
-        // core::StateTracker::instance().handle_receive_protobuf_message(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
         core::log(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
     }
 
