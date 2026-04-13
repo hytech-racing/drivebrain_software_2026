@@ -2,6 +2,7 @@
 #include "ETHRecvComms.hpp"
 #include "FoxgloveServer.hpp"
 #include "MCAPLogger.hpp"
+#include "MatlabModelAddHelper.hpp"
 #include "hytech_msgs.pb.h"
 #include "Telemetry.hpp"
 #include "ControllerManager.hpp"
@@ -14,6 +15,7 @@
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 #include <filesystem>
+#include <stdexcept>
 
 std::atomic<bool> running{true};
 
@@ -63,23 +65,35 @@ void DrivebrainApp::run() {
     spdlog::error("Failed to initialize vectornav driver");
   }
 
-
   spdlog::info("Initialized ethernet drivers");
 
   // CAN device names are defined in the drivebrain JSON config
   _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
   _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
-
-  // Initialize controllers
-  _controller1 = std::make_shared<control::LoadCellTorqueController>(); 
-  if (!_controller1->init()) {
-    spdlog::error("Failed to initialize controller");
-  }
-
-
-
   spdlog::info("Initialized CAN drivers");
 
+  // Initialize controllers
+  const size_t num_controllers = 1 + matlab_model_gen::num_controllers;
+    _mode1 = std::make_shared<control::LoadCellTorqueController>(); 
+  if (!_mode1->init()) {
+    spdlog::error("Failed to initialize mode 1");
+  }
+
+  std::array<std::shared_ptr<control::Controller<core::ControllerOutput, core::VehicleState>>, num_controllers> controllers{_mode1};
+  auto _gend_controllers =  matlab_model_gen::create_controllers(_estim_manager);
+  if (_gend_controllers.size() + 1 != controllers.size()) {
+    throw std::runtime_error("Failed to initialize matlab generated controllers! Wrong vector size!");
+  }
+  std::copy(_gend_controllers.begin(), _gend_controllers.end(), controllers.begin() + 1);
+  
+  // Create controller manager instance
+  ControllerManager<control::Controller<ControllerOutput, VehicleState>, num_controllers>::create(controllers);
+  if(!ControllerManager<control::Controller<ControllerOutput, VehicleState>, num_controllers>::instance().init()) {
+    throw std::runtime_error("Failed to initialize controller manager");
+  }
+
+  spdlog::info("Constructed controller manager");
+ 
   _estim_manager = std::make_shared<estimation::EstimatorManager>();
   _estim_manager->handle_inits();
   spdlog::info("Constructed estimator manager");
