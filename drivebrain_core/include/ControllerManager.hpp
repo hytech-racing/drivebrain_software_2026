@@ -16,7 +16,7 @@
 
 
 namespace core {
-using DefaultControllerType = <core::ControllerOutput, core::VehicleState>;
+
 
 template <typename ControllerType, size_t NumControllers>
 class ControllerManager {
