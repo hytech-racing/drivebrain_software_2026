@@ -5,7 +5,7 @@
 
 #include <MCAPLogger.hpp>
 
-#include <MatlabModelAddHelper.hpp>
+#include <MatlabModelProtoRegHelper.hpp>
 
 /****************************************************************
  * HELPER METHODS
@@ -150,8 +150,10 @@ int core::MCAPLogger::open_new_mcap() {
     }
 
     std::vector<std::string> proto_names = {"hytech_msgs.proto", "hytech.proto"};
-    std::vector<std::string> gend_names = matlab_model_gen::get_proto_filenames();
-    proto_names.insert(proto_names.end(), gend_names.begin(), gend_names.end());
+    proto_names.insert(
+        proto_names.end(),
+        matlab_model_gen::matlab_model_gend_protos.begin(),
+        matlab_model_gen::matlab_model_gend_protos.end());
 
     auto descriptors = get_pb_descriptors(proto_names);
 

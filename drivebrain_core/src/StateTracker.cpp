@@ -87,6 +87,7 @@ std::pair<core::VehicleState, bool> StateTracker::get_latest_state_and_validity(
 
     {
         std::unique_lock lk(_state_mutex);
+        _vehicle_state.state_is_valid = state_is_valid;
         current_state = _vehicle_state;
     }
 
@@ -112,13 +113,11 @@ template <size_t ind, typename inverter_temps_message>
 void StateTracker::_handle_set_inverter_temps(std::shared_ptr<google::protobuf::Message> msg) {
     
     auto in_msg = std::static_pointer_cast<inverter_temps_message>(msg);
-    core::DrivetrainData dt_data = {};
-    dt_data.inverter_igbt_temps_c.set_from_index<ind>(in_msg->igbt_temp());
-    dt_data.inverter_temps_c.set_from_index<ind>(in_msg->inverter_temp());
-    dt_data.inverter_motor_temps_c.set_from_index<ind>(in_msg->motor_temp());
     {
         std::unique_lock lk(_state_mutex);
-        _vehicle_state.dt_data = dt_data;
+        _vehicle_state.dt_data.inverter_igbt_temps_c.set_from_index<ind>(in_msg->igbt_temp());
+        _vehicle_state.dt_data.inverter_temps_c.set_from_index<ind>(in_msg->inverter_temp());
+        _vehicle_state.dt_data.inverter_motor_temps_c.set_from_index<ind>(in_msg->motor_temp());
     }
 }
 
@@ -133,6 +132,8 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_load_cell_values.RR = in_msg->rr_load_cell();
             _raw_input_data.raw_shock_pot_values.RL = in_msg->rl_shock_pot();
             _raw_input_data.raw_shock_pot_values.RR = in_msg->rr_shock_pot();
+            _vehicle_state.loadcells = _raw_input_data.raw_load_cell_values;
+            _vehicle_state.suspension_potentiometers_mm = _raw_input_data.raw_shock_pot_values;
         }
     } else if (msg->GetDescriptor() == hytech::front_suspension::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::front_suspension>(msg);
@@ -144,6 +145,8 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
             _raw_input_data.raw_load_cell_values.FR = in_msg->fr_load_cell();
             _raw_input_data.raw_shock_pot_values.FL = in_msg->fl_shock_pot();
             _raw_input_data.raw_shock_pot_values.FR = in_msg->fr_shock_pot();
+            _vehicle_state.loadcells = _raw_input_data.raw_load_cell_values;
+            _vehicle_state.suspension_potentiometers_mm = _raw_input_data.raw_shock_pot_values;
         }
     } else if (msg->GetDescriptor() == hytech::pedals_system_data::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::pedals_system_data>(msg);
@@ -162,6 +165,7 @@ void StateTracker::_receive_low_level_state(std::shared_ptr<google::protobuf::Me
                 std::chrono::high_resolution_clock::now().time_since_epoch());
             _raw_input_data.raw_steering_analog = in_msg->steering_analog_raw();
             _raw_input_data.raw_steering_digital = in_msg->steering_digital_raw();
+            _vehicle_state.steering_angle_deg = _raw_input_data.raw_steering_analog;
         }
     } else if (msg->GetDescriptor() == hytech::em_measurement::descriptor()) {
         auto in_msg = std::static_pointer_cast<hytech::em_measurement>(msg);
