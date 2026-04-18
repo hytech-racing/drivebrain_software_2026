@@ -162,6 +162,9 @@ void DrivebrainApp::_loop() {
             _telem_can->send_message(desired_rpm_msg);
             _telem_can->send_message(torque_limit_msg);
 
+            _aux_can->send_message(desired_rpm_msg);
+            _aux_can->send_message(torque_limit_msg);
+
         } else if (const core::TorqueControlOut* torqueControl = std::get_if<core::TorqueControlOut>(&cmd_out)){ // if it is a torque controller:
             // set desired torque
 
@@ -170,8 +173,10 @@ void DrivebrainApp::_loop() {
             desired_torque_msg->set_drivebrain_torque_fr(torqueControl->desired_torques_nm.FR);
             desired_torque_msg->set_drivebrain_torque_rl(torqueControl->desired_torques_nm.RL);
             desired_torque_msg->set_drivebrain_torque_rr(torqueControl->desired_torques_nm.RR);
+
+           _telem_can->send_message(desired_torque_msg);
+           _aux_can->send_message(desired_torque_msg);
             
-            _telem_can->send_message(desired_torque_msg);
         }
     }
 
