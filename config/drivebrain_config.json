@@ -150,8 +150,8 @@
         "use_min_cell_derate": false
     },
     "DrivebrainControllerInterface": {
-	"should_log": true, 
-	"controller_index": 1
+        "should_log": true,
+        "controller_index": 0
     },
     "use_vectornav": false,
     "use_fake_vn": false,
