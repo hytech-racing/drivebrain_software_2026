@@ -9,6 +9,7 @@
 
 #include "hytech_msgs.pb.h"
 #include <EstimatorManager.hpp>
+#include <MatlabModelAddHelper.hpp>
 
 class DrivebrainApp {
 public:
@@ -57,7 +58,8 @@ private:
   std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver; 
   
   /* Controllers */
-  std::shared_ptr<control::LoadCellTorqueController> _controller1; 
+  std::shared_ptr<control::LoadCellTorqueController> _mode1;
+  std::vector<std::shared_ptr<MatlabModel>> _gend_controllers;
 
   /* Vectornav */
   std::unique_ptr<comms::VNDriver> _vn_driver; 

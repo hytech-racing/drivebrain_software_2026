@@ -17,6 +17,7 @@
 
 namespace core {
 
+
 template <typename ControllerType, size_t NumControllers>
 class ControllerManager {
 public:

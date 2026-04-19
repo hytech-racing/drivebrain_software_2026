@@ -1,4 +1,12 @@
+#include "Controller.hpp"
+#include "ControllerManager.hpp"
+#include "StateTracker.hpp"
 #include <DrivebrainControllerInterface.hpp>
+#include <cstddef>
+
+namespace matlab_model_gen {
+inline constexpr std::size_t num_controllers = 1;
+}
 
 /** Singleton Methods */
 void core::DrivebrainControllerInterface::create() {
@@ -65,7 +73,26 @@ void core::DrivebrainControllerInterface::_request_stop_logging() {
 }
 
 void core::DrivebrainControllerInterface::_request_controller_change(int controller_index) {
-    spdlog::info("Controller change requested, {}", controller_index);
+    const size_t num_controllers = 1 + matlab_model_gen::num_controllers;
+    auto& controller_manager = ControllerManager<control::Controller<ControllerOutput, VehicleState>, num_controllers>::instance();
+
+    if (controller_index == controller_manager.get_active_controller_index()) {
+        return;
+    }
+
+    spdlog::info("Controller swap requested to controller: {}", controller_index);
+    
+    if (controller_index < 0) {
+        spdlog::warn("Ignoring negative controller index request: {}", controller_index);
+        return;
+    }
+
+    const auto state_and_validity = core::StateTracker::instance().get_latest_state_and_validity();
+    const bool switched = controller_manager.swap_active_controller(static_cast<size_t>(controller_index), state_and_validity.first);
+
+    if (!switched) {
+        spdlog::warn("Controller switch rejected for index {}", controller_index);
+    }
 }
 
 
