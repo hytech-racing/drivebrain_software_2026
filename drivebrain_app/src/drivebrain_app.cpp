@@ -120,7 +120,8 @@ void DrivebrainApp::_loop() {
     speed_msg->set_drivebrain_set_rpm_fr(2.0);
     speed_msg->set_drivebrain_set_rpm_rl(4.0);
     speed_msg->set_drivebrain_set_rpm_rr(8.0);
-    // _telem_can->send_message(speed_msg);
+    // spdlog::info("param {}", core::FoxgloveServer::instance().get_param<float>("estimator_matlabestimmodel/accel_gamma").value());
+    _telem_can->send_message(speed_msg);
 
     std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
     std::string logile_name = std::get<0>(mcap_status);

@@ -65,7 +65,7 @@ void core::DrivebrainControllerInterface::_request_stop_logging() {
 }
 
 void core::DrivebrainControllerInterface::_request_controller_change(int controller_index) {
-    spdlog::info("Controller change requested");
+    spdlog::info("Controller change requested, {}", controller_index);
 }
 
 
