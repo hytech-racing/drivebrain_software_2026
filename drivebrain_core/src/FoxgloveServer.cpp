@@ -150,6 +150,8 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
                 }
                 core::DBParam current_param = _foxglove_params_map[incoming_param.getName()];
                 std::optional<foxglove::Parameter> converted_param = _convert_foxglove_parameter(current_param, incoming_param);
+
+                spdlog::info("trying to change param {}", incoming_param.getName());
                 if (converted_param) {
                     auto value = _get_db_param(converted_param.value());
                     _foxglove_params_map[incoming_param.getName()] = value;

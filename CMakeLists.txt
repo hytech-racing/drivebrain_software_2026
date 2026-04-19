@@ -80,6 +80,9 @@ target_link_libraries(drivebrain PUBLIC
     drivebrain_comms
     drivebrain_control
     matlab_model
+    -Wl,--whole-archive
+    simulink_automation_msgs_proto_cpp
+    -Wl,--no-whole-archive
 )
 
 #################################

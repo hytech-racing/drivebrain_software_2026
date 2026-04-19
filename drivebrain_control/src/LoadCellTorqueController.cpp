@@ -6,42 +6,42 @@
 void control::LoadCellTorqueController::_handle_param_updates(const std::unordered_map<std::string, DBParam> &new_param_map) {
 
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/max_torque"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/max_torque"))) {
         std::unique_lock lk(_config_mutex);
         _config.max_torque = *pval;
     }
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/max_regen_torque"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/max_regen_torque"))) {
         std::unique_lock lk(_config_mutex);
         _config.max_regen_torque = *pval;
     }
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/rear_torque_scale"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/rear_torque_scale"))) {
         std::unique_lock lk(_config_mutex);
         _config.rear_torque_scale = *pval;
     }
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/regen_torque_scale"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/regen_torque_scale"))) {
         std::unique_lock lk(_config_mutex);
         _config.regen_torque_scale = *pval;
     }
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/positive_speed_set"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/positive_speed_set"))) {
         std::unique_lock lk(_config_mutex);
         _config.positive_speed_set = *pval;
     }
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/max_power_kw"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/max_power_kw"))) {
         std::unique_lock lk(_config_mutex);
         _config.max_power_kw = *pval;
     }
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/dt_rate_hz"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/dt_rate_hz"))) {
         std::unique_lock lk(_config_mutex);
         _config.dt_rate_hz = *pval;
     }
 
-    if (auto pval = std::get_if<float>(&new_param_map.at("LoadCellTorqueController/apply_vectoring_in_regen"))) {
+    if (auto pval = std::get_if<float>(&new_param_map.at("loadcelltorquecontroller/apply_vectoring_in_regen"))) {
         std::unique_lock lk(_config_mutex);
         _config.apply_vectoring_in_regen = *pval;
     }
