@@ -79,6 +79,11 @@ void DrivebrainApp::run() {
     spdlog::error("Failed to initialize mode 1");
   }
 
+  // Estimator Manager
+  _estim_manager = std::make_shared<estimation::EstimatorManager>();
+  _estim_manager->handle_inits();
+  spdlog::info("Constructed estimator manager");
+
   std::array<std::shared_ptr<control::Controller<core::ControllerOutput, core::VehicleState>>, num_controllers> controllers{_mode1};
   auto _gend_controllers =  matlab_model_gen::create_controllers(_estim_manager);
   if (_gend_controllers.size() + 1 != controllers.size()) {
@@ -93,10 +98,6 @@ void DrivebrainApp::run() {
   }
 
   spdlog::info("Constructed controller manager");
- 
-  _estim_manager = std::make_shared<estimation::EstimatorManager>();
-  _estim_manager->handle_inits();
-  spdlog::info("Constructed estimator manager");
 
   running = true; 
   _io_context_thread = std::thread([this]() {
