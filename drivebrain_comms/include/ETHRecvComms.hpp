@@ -10,6 +10,7 @@
 #include <memory>
 #include <google/protobuf/message.h>
 
+#include "StateTracker.hpp"
 #include "Telemetry.hpp"
 
 namespace comms {
@@ -29,10 +30,12 @@ namespace comms {
      *
      * @param io_context The reference to the initialized io_context
      * @param port The port to listen/receive messages from
-     * @param handler The handler function to be called on the received message. By default the message is logged to an MCAP.
+     * @param handler The handler function to be called on the received message. By default the message is logged to an MCAP and sent to the State Tracker.
     */
     ETHRecvComms(boost::asio::io_context& io_context, uint16_t port,
-              std::function<void(std::shared_ptr<MsgType>)> handler = [](std::shared_ptr<MsgType> msg){ core::log(msg); });
+              std::function<void(std::shared_ptr<MsgType>)> handler = [](std::shared_ptr<MsgType> msg) {
+                core::log(msg); core::StateTracker::instance().handle_receive_protobuf_message(msg);
+              });
     
     private:
       /* Deserializes the received ethernet message and logs to the MessagerLogger and state estimator */
