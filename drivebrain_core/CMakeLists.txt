@@ -11,6 +11,7 @@ add_library(drivebrain_core
     src/FoxgloveServer.cpp
     src/MCAPLogger.cpp
     src/StateTracker.cpp
+    src/DrivebrainControllerInterface.cpp
 )
 
 target_include_directories(drivebrain_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -24,4 +25,5 @@ target_link_libraries(drivebrain_core PUBLIC
     protobuf::libprotobuf
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
+    matlab_model
 )

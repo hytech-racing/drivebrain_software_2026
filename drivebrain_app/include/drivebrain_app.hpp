@@ -3,8 +3,13 @@
 #include <MCAPLogger.hpp>
 #include <boost/asio.hpp>
 #include <memory>
+#include <foxglove/websocket/base64.hpp>
+#include "LoadCellTorqueController.hpp"
+#include "VNComms.hpp"
 
 #include "hytech_msgs.pb.h"
+#include <EstimatorManager.hpp>
+#include <MatlabModelAddHelper.hpp>
 
 class DrivebrainApp {
 public:
@@ -50,6 +55,16 @@ private:
   std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUAllData>> _acu_eth_driver;
   std::unique_ptr<comms::ETHRecvComms<hytech_msgs::ACUCoreData>> _acu_core_eth_driver;
   std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCRData_s>> _vcr_eth_driver;
-  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver;
+  std::unique_ptr<comms::ETHRecvComms<hytech_msgs::VCFData_s>> _vcf_eth_driver; 
+  
+  /* Controllers */
+  std::shared_ptr<control::LoadCellTorqueController> _mode1;
+  std::vector<std::shared_ptr<MatlabModel>> _gend_controllers;
+
+  /* Vectornav */
+  std::unique_ptr<comms::VNDriver> _vn_driver; 
+
+  /* Estimator Manager */
+  std::shared_ptr<estimation::EstimatorManager> _estim_manager;
 
 };

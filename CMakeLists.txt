@@ -11,6 +11,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #################################
 add_subdirectory(drivebrain_core)
 add_subdirectory(drivebrain_comms)
+add_subdirectory(drivebrain_control)
 
 #################################
 # Find packages
@@ -29,7 +30,7 @@ find_package(GTSAM REQUIRED)
 FetchContent_Declare(
     HT_Proto 
     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG Feature/breanna
+    GIT_TAG f4fc651
 )
 FetchContent_MakeAvailable(HT_Proto)
 
@@ -42,9 +43,22 @@ FetchContent_MakeAvailable(vn_driver_lib)
 
 FetchContent_Declare(
     HT_CAN
-    URL "https://github.com/hytech-racing/HT_CAN/releases/download/231/drivebrain_can_lib.tar.gz"
+    URL "https://github.com/hytech-racing/HT_CAN/releases/download/250/drivebrain_can_lib.tar.gz"
 )
 FetchContent_MakeAvailable(HT_CAN)
+
+FetchContent_Declare(
+    simulink_automation_msgs_cpp
+    URL "https://github.com/hytech-racing/drivebrain_simulink_models/releases/download/rel50/proto_outputs.tar.gz"
+)
+
+FetchContent_MakeAvailable(simulink_automation_msgs_cpp)
+
+FetchContent_Declare(
+    drivebrain_simulink_models
+    URL "https://github.com/hytech-racing/drivebrain_simulink_models/releases/download/rel50/codegen_outputs.tar.gz"
+)
+FetchContent_MakeAvailable(drivebrain_simulink_models)
 
 #################################
 # Linking to main app
@@ -66,7 +80,9 @@ target_link_libraries(drivebrain PUBLIC
     hytech_can_msgs_cpp_lib
     drivebrain_core
     drivebrain_comms
-
+    drivebrain_control
+    # matlab_model
+    simulink_automation_msgs_proto_cpp
 )
 
 #################################

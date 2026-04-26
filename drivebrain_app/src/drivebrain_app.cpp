@@ -2,13 +2,20 @@
 #include "ETHRecvComms.hpp"
 #include "FoxgloveServer.hpp"
 #include "MCAPLogger.hpp"
+#include "MatlabModelAddHelper.hpp"
 #include "hytech_msgs.pb.h"
+#include "Telemetry.hpp"
+#include "ControllerManager.hpp"
+#include "DrivebrainControllerInterface.hpp"
+#include <StateTracker.hpp>
 #include <atomic>
 #include <chrono>
 #include <mcap/writer.hpp>
 #include <memory>
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
+#include <filesystem>
+#include <stdexcept>
 
 std::atomic<bool> running{true};
 
@@ -34,26 +41,63 @@ DrivebrainApp::~DrivebrainApp() {
 void DrivebrainApp::run() {
   std::signal(SIGINT, sig_handler);
 
-  // TODO: remove hardcoded paths
   core::MCAPLogger::create("recordings/", mcap::McapWriterOptions(""), _json_params_path);
   core::FoxgloveServer::create(_json_params_path);
-  core::MCAPLogger::instance().open_new_mcap("test_1.mcap");
+  core::StateTracker::create();
+
+  core::MCAPLogger::instance().open_new_mcap();
   core::MCAPLogger::instance().init_logging();
 
   spdlog::info("Constructed logging singletons");
+
+  core::DrivebrainControllerInterface::create(); 
+
+  spdlog::info("Constructed drivebrain controller interface");
 
   _acu_core_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUCoreData>>(_io_context, 7777);
   _acu_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::ACUAllData>>(_io_context, 7766);
   _vcr_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCRData_s>>(_io_context, 9999);
   _vcf_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCFData_s>>(_io_context, 4444);
 
+  bool vn_init_not_successful;
+  _vn_driver = std::make_unique<comms::VNDriver>(_io_context, vn_init_not_successful);
+  if (vn_init_not_successful) {
+    spdlog::error("Failed to initialize vectornav driver");
+  }
+
   spdlog::info("Initialized ethernet drivers");
 
   // CAN device names are defined in the drivebrain JSON config
   _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
   _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
-
   spdlog::info("Initialized CAN drivers");
+
+  // Initialize controllers
+  const size_t num_controllers = 1 + matlab_model_gen::num_controllers;
+    _mode1 = std::make_shared<control::LoadCellTorqueController>(); 
+  if (!_mode1->init()) {
+    spdlog::error("Failed to initialize mode 1");
+  }
+
+  // Estimator Manager
+  _estim_manager = std::make_shared<estimation::EstimatorManager>();
+  _estim_manager->handle_inits();
+  spdlog::info("Constructed estimator manager");
+
+  std::array<std::shared_ptr<control::Controller<core::ControllerOutput, core::VehicleState>>, num_controllers> controllers{_mode1};
+  auto _gend_controllers =  matlab_model_gen::create_controllers(_estim_manager);
+  if (_gend_controllers.size() + 1 != controllers.size()) {
+    throw std::runtime_error("Failed to initialize matlab generated controllers! Wrong vector size!");
+  }
+  std::copy(_gend_controllers.begin(), _gend_controllers.end(), controllers.begin() + 1);
+  
+  // Create controller manager instance
+  ControllerManager<control::Controller<ControllerOutput, VehicleState>, num_controllers>::create(controllers);
+  if(!ControllerManager<control::Controller<ControllerOutput, VehicleState>, num_controllers>::instance().init()) {
+    throw std::runtime_error("Failed to initialize controller manager");
+  }
+
+  spdlog::info("Constructed controller manager");
 
   running = true; 
   _io_context_thread = std::thread([this]() {
@@ -66,8 +110,6 @@ void DrivebrainApp::run() {
 
   _loop_thread = std::thread([this]() { _loop(); });
   spdlog::info("Spawned threads");
-
-  // TODO: spawn future usb driver threads
   
   // Join threads when loop thread finishes
   if(_loop_thread.joinable()) _loop_thread.join();
@@ -82,6 +124,10 @@ void DrivebrainApp::_loop() {
   std::chrono::microseconds loop_time_ms((int) (loop_time * 1000000.0f));
   auto next_tick = std::chrono::steady_clock::now();
 
+  auto desired_rpm_msg = std::make_shared<hytech::drivebrain_speed_set_input>();
+  auto torque_limit_msg = std::make_shared<hytech::drivebrain_torque_lim_input>();
+  auto desired_torque_msg = std::make_shared<hytech::drivebrain_desired_torque_input>();
+
   while(running) {
     next_tick += loop_time_ms;
 
@@ -95,8 +141,68 @@ void DrivebrainApp::_loop() {
     
     /* Compute control request */
     // 
+    // TODO: update vehicle state
+    // TODO: send control requests
+    spdlog::debug("yo mama");
+    auto state_and_validity = core::StateTracker::instance().get_latest_state_and_validity();
+    _estim_manager->evaluate_all_estimators(state_and_validity.first);
 
     spdlog::debug("yo mama");
+    auto& controller_manager = ControllerManager<control::Controller<ControllerOutput, VehicleState>, 1 + matlab_model_gen::num_controllers>::instance();
+    auto out_struct = controller_manager.step_active_controller(state_and_validity.first);
+
+    std::variant<core::SpeedControlOut, core::TorqueControlOut, std::monostate> cmd_out = out_struct.out;
+    core::StateTracker::instance().set_previous_control_output(out_struct);
+
+    bool state_is_valid = state_and_validity.second;
+    if(state_is_valid)
+    {
+
+        if (const core::SpeedControlOut* speedControl = std::get_if<core::SpeedControlOut>(&cmd_out)) { // speed controller, set RPM
+       
+            desired_rpm_msg->set_drivebrain_set_rpm_fl(speedControl->desired_rpms.FL);
+            desired_rpm_msg->set_drivebrain_set_rpm_fr(speedControl->desired_rpms.FR);
+            desired_rpm_msg->set_drivebrain_set_rpm_rl(speedControl->desired_rpms.RL);
+            desired_rpm_msg->set_drivebrain_set_rpm_rr(speedControl->desired_rpms.RR);
+
+            core::log(desired_rpm_msg);
+            core::log(torque_limit_msg);
+
+            // same with torque limits
+            torque_limit_msg->set_drivebrain_torque_fl(::abs(speedControl->torque_lim_nm.FL));
+            torque_limit_msg->set_drivebrain_torque_fr(::abs(speedControl->torque_lim_nm.FR));
+            torque_limit_msg->set_drivebrain_torque_rl(::abs(speedControl->torque_lim_nm.RL));
+            torque_limit_msg->set_drivebrain_torque_rr(::abs(speedControl->torque_lim_nm.RR));
+       
+            _telem_can->send_message(desired_rpm_msg);
+            _telem_can->send_message(torque_limit_msg);
+
+            _aux_can->send_message(desired_rpm_msg);
+            _aux_can->send_message(torque_limit_msg);
+
+        } else if (const core::TorqueControlOut* torqueControl = std::get_if<core::TorqueControlOut>(&cmd_out)){ // if it is a torque controller:
+            // set desired torque
+
+            core::log(desired_torque_msg);
+            desired_torque_msg->set_drivebrain_torque_fl(torqueControl->desired_torques_nm.FL);
+            desired_torque_msg->set_drivebrain_torque_fr(torqueControl->desired_torques_nm.FR);
+            desired_torque_msg->set_drivebrain_torque_rl(torqueControl->desired_torques_nm.RL);
+            desired_torque_msg->set_drivebrain_torque_rr(torqueControl->desired_torques_nm.RR);
+
+           _telem_can->send_message(desired_torque_msg);
+           _aux_can->send_message(desired_torque_msg);
+            
+        }
+    }
+
+
+    std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();
+    std::string logile_name = std::get<0>(mcap_status);
+
+    std::shared_ptr<hytech_msgs::McapInfo> mcap_info = std::make_shared<hytech_msgs::McapInfo>();
+    mcap_info->set_current_mcap(logile_name);
+
+    core::log(mcap_info);
 
     auto now = std::chrono::steady_clock::now();
     if(now > next_tick) {

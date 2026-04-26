@@ -7,15 +7,14 @@ find_package(foxglove-websocket REQUIRED)
 find_package(Protobuf REQUIRED CONFIG)
 find_package(dbcppp REQUIRED)
 
-add_library(drivebrain_comms
-    src/CANComms.cpp
-    src/VNComms.cpp
-    src/ETHSendComms.cpp
+add_library(drivebrain_control
+    src/LoadCellTorqueController.cpp
+    src/SimplePowerLimiter.cpp
 )
 
-target_include_directories(drivebrain_comms PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(drivebrain_control PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-target_link_libraries(drivebrain_comms PUBLIC 
+target_link_libraries(drivebrain_control PUBLIC 
     drivebrain_core
     spdlog::spdlog
     nlohmann_json::nlohmann_json

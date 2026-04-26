@@ -10,6 +10,7 @@
 #include <string> 
 #include <fstream> 
 #include <thread>
+#include <spdlog/spdlog.h>
 
 #include "hytech_msgs.pb.h"
 #include "hytech.pb.h"
@@ -241,6 +242,26 @@ namespace core {
         AccumulatorData acc_data;
     };
 
+    enum class ControllerManagerStatus
+    {
+        NO_ERROR = 0,
+        ERROR_CONTROLLER_INDEX_OUT_OF_RANGE = 1,
+        ERROR_SPEED_TOO_HIGH = 2,
+        ERROR_TORQUE_TOO_HIGH = 3,
+        ERROR_DRIVER_ON_PEDAL = 4,
+        ERROR_CONTROLLER_NO_TORQUE_OR_SPEED_OUTPUT = 5,
+        ERROR_OUTPUT_EXCEEDS_PHYS_LIMITS = 6,
+        ERROR_REQUESTING_SAME_CTR_TYPE = 7,
+        NUM_CONTROLLER_MANAGER_STATUSES = 8,
+        ERROR_NULLPTR_CONTROLLER = 9
+    };
+
+    struct ControllerManagerState
+    {
+        ControllerManagerStatus current_status;
+        ControllerOutput current_controller_output;
+    };
+
     /**
      * Allows different communications interfaces
      * to update the internal state of drivebrain in a thread-safe manner
@@ -250,9 +271,25 @@ namespace core {
         public: 
 
             /**
-             * Constructs a new state tracker.
+             * Constructor for initializing a new StateTracker singleton instance
              */
-            StateTracker() = default;
+            static void create(); 
+
+            /**
+             * Fetches the StateTracker singleton instance
+             */
+            static StateTracker& instance(); 
+
+            /* Destroys the StateTracker singleton instance */
+            static void destroy(); 
+
+            /* Destructs an instnace of the StateTracker */
+            ~StateTracker() {
+                spdlog::info("Destructing state tracker");
+
+                _s_instance.store(nullptr, std::memory_order_release);
+                spdlog::info("State tracker instance released");
+            }
 
             /**
              * Receives a protobuf message and adds any useful information to the internal 
@@ -295,8 +332,17 @@ namespace core {
             VehicleState _vehicle_state = { };
             RawInputData _raw_input_data = { };
             std::mutex _state_mutex;
-            std::array<std::chrono::microseconds, 4> _timestamp_array; 
+            std::array<std::chrono::microseconds, 4> _timestamp_array;
+            
+            /* Private constructor called by the init method */
+            StateTracker() {}; 
+            
+            /* Singleton move semantics */
+            StateTracker(const StateTracker&) = delete; 
+            StateTracker& operator=(const StateTracker&) = delete;
 
+            /* Singleton instance */
+            inline static std::atomic<StateTracker*> _s_instance; 
 
     };
 }
