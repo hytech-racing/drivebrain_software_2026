@@ -83,6 +83,7 @@ namespace comms
 
     void VNDriver::log_proto_message(std::shared_ptr<google::protobuf::Message> msg) {
         core::log(static_cast<std::shared_ptr<google::protobuf::Message>>(msg));
+        STateT
     }
 
 

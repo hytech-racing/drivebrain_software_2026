@@ -2,6 +2,7 @@
 #include "SimplePowerLimiter.hpp"
 #include <variant>
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 void control::LoadCellTorqueController::_handle_param_updates(const std::unordered_map<std::string, DBParam> &new_param_map) {
 
@@ -108,8 +109,7 @@ ControllerOutput control::LoadCellTorqueController::step_controller(const Vehicl
     cmd_out.out = type_set;
     auto& speed_out = std::get<SpeedControlOut>(cmd_out.out);
     speed_out = {};
-    speed_out.mcu_recv_millis = in.prev_MCU_recv_millis; // heartbeat TODO this isnt needed any more, prob should remove
-    
+    speed_out.mcu_recv_millis = in.prev_MCU_recv_millis; // heartbeat TODO this isnt needed any more, prob should remove    
     
     float sum_normal = in.loadcells.FL + in.loadcells.FR + in.loadcells.RL+ in.loadcells.RR;
     if (accelRequest >= 0.0)
@@ -121,16 +121,25 @@ ControllerOutput control::LoadCellTorqueController::step_controller(const Vehicl
         
         
         auto max_rpm = cur_config.positive_speed_set * constants::METERS_PER_SECOND_TO_RPM;
-        speed_out.desired_rpms.FL = max_rpm;
-        speed_out.desired_rpms.FR = max_rpm;
-        speed_out.desired_rpms.RL = max_rpm;
-        speed_out.desired_rpms.RR = max_rpm;
+        speed_out.desired_rpms.FL = 21000;
+        speed_out.desired_rpms.FR = 21000;
+        speed_out.desired_rpms.RL = 21000;
+        speed_out.desired_rpms.RR = 21000;
 
         speed_out.torque_lim_nm.FL = ((2.0 - cur_config.rear_torque_scale) * accel_torque_pool * (in.loadcells.FL / sum_normal) );
         speed_out.torque_lim_nm.FR = ((2.0 - cur_config.rear_torque_scale) * accel_torque_pool * (in.loadcells.FR / sum_normal) );
         speed_out.torque_lim_nm.RL = (cur_config.rear_torque_scale * accel_torque_pool * (in.loadcells.RL / sum_normal) );
         speed_out.torque_lim_nm.RR = (cur_config.rear_torque_scale * accel_torque_pool * (in.loadcells.RR / sum_normal) );
+
         cmd_out.out = control::apply_power_limit(speed_out, in.current_rpms, cur_config.max_power_kw);
+
+        speed_out.torque_lim_nm.FL = std::min(speed_out.torque_lim_nm.FL, 21.0f);
+        speed_out.torque_lim_nm.FR = std::min(speed_out.torque_lim_nm.FR, 21.0f);
+        speed_out.torque_lim_nm.RL = std::min(speed_out.torque_lim_nm.RL, 21.0f);
+        speed_out.torque_lim_nm.RR = std::min(speed_out.torque_lim_nm.RR, 21.0f);
+
+
+        spdlog::info("Ticked torque controller mode, {} {} {}", torqueRequest, sum_normal, max_rpm);
     }
     else
     {
