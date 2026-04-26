@@ -149,7 +149,10 @@ void comms::CANComms::_receive_handler() {
         }
 
         auto dmsg = _decode_can_frame(_frame);
-        if(dmsg.has_value()) core::log(dmsg.value());
+        if(dmsg.has_value()) {
+            core::log(dmsg.value());
+            core::StateTracker::instance().handle_receive_protobuf_message(dmsg.value());
+        }
         else spdlog::error("Did not receive valid protobuf message. Skipping...");
     }
 }
