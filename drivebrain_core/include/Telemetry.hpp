@@ -14,7 +14,6 @@ namespace core {
 inline void log(std::shared_ptr<google::protobuf::Message> msg) {
     MCAPLogger::instance().log_msg(msg);
     FoxgloveServer::instance().send_live_telem_msg(msg);
-    StateTracker::instance().handle_receive_protobuf_message(msg);
 }
 
 }
