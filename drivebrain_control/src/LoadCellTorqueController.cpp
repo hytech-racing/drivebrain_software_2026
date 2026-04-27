@@ -121,23 +121,17 @@ ControllerOutput control::LoadCellTorqueController::step_controller(const Vehicl
         
         
         auto max_rpm = cur_config.positive_speed_set * constants::METERS_PER_SECOND_TO_RPM;
-        speed_out.desired_rpms.FL = 21000;
-        speed_out.desired_rpms.FR = 21000;
-        speed_out.desired_rpms.RL = 21000;
-        speed_out.desired_rpms.RR = 21000;
+        speed_out.desired_rpms.FL = 20000;
+        speed_out.desired_rpms.FR = 20000;
+        speed_out.desired_rpms.RL = 20000;
+        speed_out.desired_rpms.RR = 20000;
 
         speed_out.torque_lim_nm.FL = ((2.0 - cur_config.rear_torque_scale) * accel_torque_pool * (in.loadcells.FL / sum_normal) );
         speed_out.torque_lim_nm.FR = ((2.0 - cur_config.rear_torque_scale) * accel_torque_pool * (in.loadcells.FR / sum_normal) );
         speed_out.torque_lim_nm.RL = (cur_config.rear_torque_scale * accel_torque_pool * (in.loadcells.RL / sum_normal) );
         speed_out.torque_lim_nm.RR = (cur_config.rear_torque_scale * accel_torque_pool * (in.loadcells.RR / sum_normal) );
 
-        cmd_out.out = control::apply_power_limit(speed_out, in.current_rpms, cur_config.max_power_kw);
-
-        speed_out.torque_lim_nm.FL = std::min(speed_out.torque_lim_nm.FL, 21.0f);
-        speed_out.torque_lim_nm.FR = std::min(speed_out.torque_lim_nm.FR, 21.0f);
-        speed_out.torque_lim_nm.RL = std::min(speed_out.torque_lim_nm.RL, 21.0f);
-        speed_out.torque_lim_nm.RR = std::min(speed_out.torque_lim_nm.RR, 21.0f);
-
+        // cmd_out.out = control::apply_power_limit(speed_out, in.current_rpms, cur_config.max_power_kw);
 
         spdlog::info("Ticked torque controller mode, {} {} {}", torqueRequest, sum_normal, max_rpm);
     }
@@ -145,22 +139,23 @@ ControllerOutput control::LoadCellTorqueController::step_controller(const Vehicl
     {
         // Negative torque request
         
-        float regen_torque_pool = accelRequest * cur_config.max_regen_torque * 4 * -1.0; 
+        float regen_torque_pool = accelRequest * cur_config.max_regen_torque * 4; 
         
         speed_out.desired_rpms.FL = 0;
         speed_out.desired_rpms.FR = 0;
         speed_out.desired_rpms.RL = 0;
         speed_out.desired_rpms.RR = 0;
         
-        if(cur_config.apply_vectoring_in_regen)
-        {
+        if (cur_config.apply_vectoring_in_regen) {
             speed_out.torque_lim_nm.FL = (regen_torque_pool * (in.loadcells.FL / sum_normal) * (2.0 - cur_config.rear_torque_scale));
             speed_out.torque_lim_nm.FR = (regen_torque_pool * (in.loadcells.FR / sum_normal) * (2.0 - cur_config.rear_torque_scale));
             speed_out.torque_lim_nm.RL = (regen_torque_pool * (in.loadcells.RL / sum_normal) * cur_config.rear_torque_scale);
             speed_out.torque_lim_nm.RR = (regen_torque_pool * (in.loadcells.RR / sum_normal) * cur_config.rear_torque_scale);
             cmd_out.out = speed_out; // no need to apply power limit for regen request
+
+            std::cout << "Neg regen limits: " << speed_out.torque_lim_nm.FL << " " << speed_out.torque_lim_nm.RL << std::endl;
         } else {
-            float reg_torq = -1.0 * accelRequest * cur_config.max_regen_torque;
+            float reg_torq = accelRequest * cur_config.max_regen_torque;
             speed_out.torque_lim_nm.FL = ( reg_torq * ( 2.0 - cur_config.rear_torque_scale) );
             speed_out.torque_lim_nm.FR = ( reg_torq * ( 2.0 - cur_config.rear_torque_scale) );
             speed_out.torque_lim_nm.RL = ( reg_torq * cur_config.rear_torque_scale);

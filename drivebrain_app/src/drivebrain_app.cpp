@@ -175,10 +175,10 @@ void DrivebrainApp::_loop() {
             desired_rpm_msg->set_drivebrain_set_rpm_rr(speedControl->desired_rpms.RR);
 
             // same with torque limits
-            torque_limit_msg->set_drivebrain_torque_fl(::abs(speedControl->torque_lim_nm.FL));
-            torque_limit_msg->set_drivebrain_torque_fr(::abs(speedControl->torque_lim_nm.FR));
-            torque_limit_msg->set_drivebrain_torque_rl(::abs(speedControl->torque_lim_nm.RL));
-            torque_limit_msg->set_drivebrain_torque_rr(::abs(speedControl->torque_lim_nm.RR));
+            torque_limit_msg->set_drivebrain_torque_fl(speedControl->torque_lim_nm.FL);
+            torque_limit_msg->set_drivebrain_torque_fr(speedControl->torque_lim_nm.FR);
+            torque_limit_msg->set_drivebrain_torque_rl(speedControl->torque_lim_nm.RL);
+            torque_limit_msg->set_drivebrain_torque_rr(speedControl->torque_lim_nm.RR);
 
             // spdlog::info("tick: send_telem_speed");
 
@@ -187,8 +187,8 @@ void DrivebrainApp::_loop() {
             
             // spdlog::info("tick: send_aux_speed");
 
-            // _aux_can->send_message(desired_rpm_msg);
-            // _aux_can->send_message(torque_limit_msg);
+            _aux_can->send_message(desired_rpm_msg);
+            _aux_can->send_message(torque_limit_msg);
 
             // spdlog::info("tick: log_speed");
 
@@ -209,7 +209,7 @@ void DrivebrainApp::_loop() {
 
             // spdlog::info("tick: send_aux_torque");
 
-            //  _aux_can->send_message(desired_torque_msg);
+             _aux_can->send_message(desired_torque_msg);
 
             // spdlog::info("tick: log_aux_torque");
 
