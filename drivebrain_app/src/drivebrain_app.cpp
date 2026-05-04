@@ -185,7 +185,7 @@ void DrivebrainApp::_loop() {
             _telem_can->send_message(desired_rpm_msg);
             _telem_can->send_message(torque_limit_msg);
             
-            // spdlog::info("tick: send_aux_speed");
+            // // spdlog::info("tick: send_aux_speed");
 
             _aux_can->send_message(desired_rpm_msg);
             _aux_can->send_message(torque_limit_msg);
@@ -205,7 +205,7 @@ void DrivebrainApp::_loop() {
 
             // spdlog::info("tick: send_telem_torque");
             
-           _telem_can->send_message(desired_torque_msg);
+            _telem_can->send_message(desired_torque_msg);
 
             // spdlog::info("tick: send_aux_torque");
 

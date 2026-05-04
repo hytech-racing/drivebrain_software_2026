@@ -31,7 +31,7 @@ static std::string get_logfile_name() {
     }
   }  catch (const std::filesystem::filesystem_error& e) {
     spdlog::error("Filesystem error");
-    return "sdfsdf";
+    return "sdfsdf.mcap";
   } 
 
   return std::to_string(max_file_number + 1) + ".mcap";
