@@ -5,6 +5,9 @@
 #include <algorithm>
 
 void control::LoadCellTorqueController::_handle_param_updates(const std::unordered_map<std::string, DBParam> &new_param_map) {
+
+    spdlog::info("Entering load cell torque controller parameter updates.");
+
     if (auto it = new_param_map.find("loadcelltorquecontroller/max_torque"); it != new_param_map.end()) {
         if (auto pval = std::get_if<float>(&it->second)) {
             std::unique_lock lk(_config_mutex);
@@ -60,6 +63,8 @@ void control::LoadCellTorqueController::_handle_param_updates(const std::unorder
             _config.apply_vectoring_in_regen = *pval;
         }
     }
+
+    spdlog::info("Exiting load cell torque controller parameter updates.");
 }
 
 bool control::LoadCellTorqueController::init()
