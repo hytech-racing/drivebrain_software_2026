@@ -26,12 +26,26 @@ find_package(dbcppp REQUIRED)
 #################################
 # Upstreams (non-conan)
 #################################
-FetchContent_Declare(
-    HT_Proto 
-    GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG f4fc651
-)
-FetchContent_MakeAvailable(HT_Proto)
+# FetchContent_Declare(
+#     HT_Proto 
+#     GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
+#     GIT_TAG f4fc651
+# )
+# FetchContent_MakeAvailable(HT_Proto)
+set(HT_PROTO_LOCAL_PATH "" CACHE PATH "Local HT_proto checkout")
+
+if (HT_PROTO_LOCAL_PATH)
+    message(STATUS "Using local HT_proto from : ${HT_PROTO_LOCAL_PATH}")
+    add_subdirectory(${HT_PROTO_LOCAL_PATH} HT_proto_build)
+else()
+    message(STATUS "Fetching HT_proto from GitHub")
+    FetchContent_Declare(
+        HT_Proto
+        GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
+        GIT_TAG f4fc651
+    )
+    FetchContent_MakeAvailable(HT_Proto)
+endif()
 
 FetchContent_Declare(
     vn_driver_lib

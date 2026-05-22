@@ -39,8 +39,8 @@ cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_EXE_LINKER_FLAGS="-static"
-
+  -DCMAKE_EXE_LINKER_FLAGS="-static" \
+  ${HT_PROTO_LOCAL_PATH:+-DHT_PROTO_LOCAL_PATH="$HT_PROTO_LOCAL_PATH"}
 make -j
 
 # run unit tests

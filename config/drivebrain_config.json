@@ -6,7 +6,7 @@
         "max_regen_torque": 10.0,
         "rear_torque_scale": 1.0,
         "regen_torque_scale": 0.6,
-        "positive_speed_set" : 45,
+        "positive_speed_set": 45,
         "max_power_kw": 63.0,
         "dt_rate_hz": 1000
     },
@@ -30,19 +30,21 @@
         "max_regen_torque": 10.0,
         "rear_torque_scale": 1.0,
         "regen_torque_scale": 0.6,
-        "positive_speed_set" : 45.0,
+        "positive_speed_set": 45.0,
         "max_power_kw": 63.0,
         "dt_rate_hz": 1000.0,
         "apply_vectoring_in_regen": true
     },
     "vn_driver": {
         "device_name": "/dev/ttyUSB0",
-        "baud_rate": 921600, 
+        "baud_rate": 921600,
         "port": 1,
-        "freq_divisor": 1
+        "bo1_freq_divisor": 1,
+        "bo2_freq_divisor": 80,
+        "bo3_freq_divisor": 2
     },
     "ControllerManager": {
-        "max_controller_switch_speed_ms": 5.0, 
+        "max_controller_switch_speed_ms": 5.0,
         "max_requested_rpm": 20000.0,
         "max_torque_switch_nm": 10.0,
         "max_accel_switch_float": 0.1
@@ -80,12 +82,12 @@
         "baud_rate": 115200,
         "port_name": "/dev/ttyUSB0"
     },
-    "SpeedTechComms" :{
+    "SpeedTechComms": {
         "baud_rate": 9600,
         "port_name": "/dev/ttyUSB0"
     },
     "gain_MatlabEstimModel": {
-        "in":2.0
+        "in": 2.0
     },
     "estimator_MatlabEstimModel": {
         "proc_vx_std_m_s": 0.2,
@@ -135,7 +137,6 @@
         "amk_eff_modifier_rr": 0.9,
         "global_eff_modifier": 0.9,
         "brake_eff_modifier": 2
-        
     },
     "qp_torq_allocator_MatlabModel": {
         "mux": 2,
@@ -174,7 +175,7 @@
         "use_qp_internal_torq_feedback": 1
     },
     "DrivebrainControllerInterface": {
-        "should_log": true, 
+        "should_log": true,
         "controller_index": 1
     },
     "use_vectornav": false,
@@ -182,6 +183,4 @@
     "use_surrey_aero": false,
     "use_scale_comms": false,
     "use_laptimer": false
-
 }
-
