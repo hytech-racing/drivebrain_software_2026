@@ -26,6 +26,7 @@ class DrivebrainSoftware(ConanFile):
         self.requires("dbcppp/3.2.6")
         self.requires("gtsam/4.2")
         self.requires("onetbb/2021.10.0")        
+        self.requires("cppzmq/4.11.0")
 
     def build_requirements(self): 
         if not self.settings_build.get_safe("cross_build"):

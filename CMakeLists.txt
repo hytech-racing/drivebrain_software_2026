@@ -23,6 +23,7 @@ find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
 find_package(GTSAM REQUIRED)
+find_package(cppzmq REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -75,6 +76,7 @@ target_link_libraries(drivebrain PUBLIC
     mcap::mcap
     protobuf::libprotobuf 
     boost::boost
+    cppzmq::cppzmq
     gtsam
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
@@ -92,11 +94,12 @@ target_link_libraries(drivebrain PUBLIC
 if(NOT CMAKE_CROSSCOMPILING)
     enable_testing()
     add_subdirectory(tests)
-    find_package(gz-transport13 QUIET)
-        find_package(gz-msgs10 QUIET)
-        if(gz-transport13_FOUND)
-            add_subdirectory(sil_bridge)
-        else()
-            message(WARNING "gz-transport not found, SIL bridge not built")
-        endif()
+
+    # find_package(gz-transport13 QUIET)
+    # find_package(gz-msgs10 QUIET)
+    # if(gz-transport13_FOUND AND gz-msgs10_FOUND)
+    #     add_subdirectory(drivebrain_sim)
+    # else()
+    #     message(WARNING "gz-transport/msgs not found, SIL bridge not built")
+    # endif()
 endif()
