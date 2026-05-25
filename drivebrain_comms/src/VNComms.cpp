@@ -3,15 +3,21 @@
 // standard includes
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <cctype>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <memory>
+#include <utility>
 
+#include "EkfTelemHelpers.hpp"
 #include "FoxgloveServer.hpp"
 #include "Telemetry.hpp"
 #include "base_msgs.pb.h"
+#include "htx_ekf/ekf.hpp"
+#include "htx_ekf/ekf_manager.hpp"
 #include "hytech_msgs.pb.h"
 #include "libvncxx/packet.h"
 #include "libvncxx/packetfinder.h"
@@ -59,6 +65,7 @@ uint64_t now_ns()
             std::chrono::system_clock::now().time_since_epoch())
             .count());
 }
+
 };  // namespace
 
 namespace comms
@@ -125,10 +132,12 @@ bool VNDriver::init()
     return true;
 }
 
-VNDriver::VNDriver(boost::asio::io_context& io, bool& init_not_successful)
-    : _serial(io)
+VNDriver::VNDriver(boost::asio::io_context& io, bool& init_not_successful,
+                   std::shared_ptr<htx_ekf::EkfManager> ekf_manager)
+    : _serial(io), _ekf_manager(std::move(ekf_manager))
 {
     init_not_successful = !init();
+
     // Starts read
     if (!init_not_successful)
     {
@@ -263,7 +272,7 @@ void VNDriver::_configure_binary_outputs()
         _config.bo2_freq_divisor,
         (CommonGroup::COMMONGROUP_NONE),  // Note use of binary OR to
                                           // configure flags.
-        TimeGroup::TIMEGROUP_NONE, ImuGroup::IMUGROUP_NONE,
+        TimeGroup::TIMEGROUP_TIMESTARTUP, ImuGroup::IMUGROUP_NONE,
         (GpsGroup::GPSGROUP_TOW | GpsGroup::GPSGROUP_WEEK |
          GpsGroup::GPSGROUP_NUMSATS | GpsGroup::GPSGROUP_FIX |
          GpsGroup::GPSGROUP_POSLLA | GpsGroup::GPSGROUP_VELNED |
@@ -287,7 +296,7 @@ void VNDriver::_configure_binary_outputs()
         _config.bo3_freq_divisor,
         (CommonGroup::COMMONGROUP_NONE),  // Note use of binary OR to
                                           // configure flags.
-        TimeGroup::TIMEGROUP_NONE, ImuGroup::IMUGROUP_NONE,
+        TimeGroup::TIMEGROUP_TIMESTARTUP, ImuGroup::IMUGROUP_NONE,
         GpsGroup::GPSGROUP_NONE, AttitudeGroup::ATTITUDEGROUP_NONE,
         (InsGroup::INSGROUP_INSSTATUS | InsGroup::INSGROUP_POSLLA |
          InsGroup::INSGROUP_VELBODY | InsGroup::INSGROUP_VELNED |
@@ -305,6 +314,8 @@ void VNDriver::_handle_recieve(void* userData,
                                size_t runningIndexOfPacketStart, TimeStamp ts)
 {
     auto self = static_cast<VNDriver*>(userData);
+
+    // spdlog::info("handling VN data receive...");
 
     if (packet.type() != vn::protocol::uart::Packet::TYPE_BINARY)
     {
@@ -344,7 +355,32 @@ void VNDriver::_start_recieve()
                 }
                 return;
             }
-            // _logger.log_string("logging", core::LogLevel::INFO);
+
+            // spdlog::info("VN serial read {} bytes", bytesCount);
+
+            // std::string ascii;
+            // ascii.reserve(bytesCount);
+
+            // std::string hex;
+            // hex.reserve(bytesCount * 3);
+
+            // for (std::size_t i = 0; i < bytesCount; ++i)
+            // {
+            //     uint8_t b = _input_buff[i];
+
+            //     char hex_byte[4];
+            //     std::snprintf(hex_byte, sizeof(hex_byte), "%02X ", b);
+            //     hex += hex_byte;
+
+            //     if (std::isprint(b))
+            //         ascii.push_back(static_cast<char>(b));
+            //     else
+            //         ascii.push_back('.');
+            // }
+
+            // spdlog::info("VN raw hex: {}", hex);
+            // spdlog::info("VN raw ascii: {}", ascii);
+
             _processor.processReceivedData((char*)(_input_buff.data()),
                                            bytesCount);
             // Initiate another asynchronous read
@@ -370,7 +406,7 @@ bool VNDriver::_is_bo1_imu_packet(Packet& packet) const
 bool VNDriver::_is_bo2_gnss_packet(Packet& packet) const
 {
     const auto common_groups = CommonGroup::COMMONGROUP_NONE;
-    const auto time_groups = TimeGroup::TIMEGROUP_NONE;
+    const auto time_groups = TimeGroup::TIMEGROUP_TIMESTARTUP;
     const auto imu_groups = ImuGroup::IMUGROUP_NONE;
 
     const auto gps_groups = GpsGroup::GPSGROUP_TOW | GpsGroup::GPSGROUP_WEEK |
@@ -391,7 +427,7 @@ bool VNDriver::_is_bo2_gnss_packet(Packet& packet) const
 bool VNDriver::_is_bo3_ins_packet(Packet& packet) const
 {
     const auto common_groups = CommonGroup::COMMONGROUP_NONE;
-    const auto time_groups = TimeGroup::TIMEGROUP_NONE;
+    const auto time_groups = TimeGroup::TIMEGROUP_TIMESTARTUP;
     const auto imu_groups = ImuGroup::IMUGROUP_NONE;
     const auto gps_groups = GpsGroup::GPSGROUP_NONE;
     const auto attitude_groups = AttitudeGroup::ATTITUDEGROUP_NONE;
@@ -415,11 +451,11 @@ void VNDriver::_handle_bo1_imu_packet(Packet& packet, TimeStamp ts)
     auto uncomp_accel = packet.extractVec3f();
     auto uncomp_gyro = packet.extractVec3f();
 
-    float dt_s = 0.0f;
+    double dt_s = 0.0f;
 
     if (_last_bo1_time_startup_ns)
     {
-        dt_s = static_cast<float>(
+        dt_s = static_cast<double>(
             static_cast<double>(time_startup_ns -
                                 _last_bo1_time_startup_ns.value()) *
             1e-9);
@@ -466,18 +502,39 @@ void VNDriver::_handle_bo1_imu_packet(Packet& packet, TimeStamp ts)
 
     core::log(std::static_pointer_cast<google::protobuf::Message>(msg));
     core::log(std::static_pointer_cast<google::protobuf::Message>(ypr_msg));
+
+    // call Ekf manager
+    htx_ekf::ImuSample raw_vehicle_aligned_frd_imu_sample;
+
+    raw_vehicle_aligned_frd_imu_sample.time_startup_ns = time_startup_ns;
+    raw_vehicle_aligned_frd_imu_sample.dt_s = dt_s;
+
+    raw_vehicle_aligned_frd_imu_sample.ax_frd_m_s2 = accel_vehicle_frd.x;
+    raw_vehicle_aligned_frd_imu_sample.ay_frd_m_s2 = accel_vehicle_frd.y;
+    raw_vehicle_aligned_frd_imu_sample.gz_frd_rad_s = gyro_vehicle_frd.z;
+
+    if (_ekf_manager)
+    {
+        const htx_ekf::EkfStepResult ekf_result =
+            _ekf_manager->handle_imu(raw_vehicle_aligned_frd_imu_sample);
+
+        comms::publish_ekf_step_result(ekf_result);
+    }
 }
 
 void VNDriver::_handle_bo2_gnss_packet(Packet& packet, TimeStamp ts)
 {
     const uint64_t current_time_ns = now_ns();
 
+    auto time_startup_ns = packet.extractUint64();
+
     ParsedGnss gnss1_data = extract_gnss(packet);
     ParsedGnss gnss2_data = extract_gnss(packet);
 
     auto dual_gnss_msg = std::make_shared<hytech_msgs::VnDualGnssData>();
 
-    dual_gnss_msg->set_timestamp_ns(current_time_ns);
+    dual_gnss_msg->set_host_timestamp_ns(current_time_ns);
+    dual_gnss_msg->set_vn_time_startup_ns(time_startup_ns);
     fill_gnss_msg(dual_gnss_msg->mutable_gnss1(), gnss1_data);
     fill_gnss_msg(dual_gnss_msg->mutable_gnss2(), gnss2_data);
 
@@ -488,6 +545,8 @@ void VNDriver::_handle_bo2_gnss_packet(Packet& packet, TimeStamp ts)
 void VNDriver::_handle_bo3_ins_packet(Packet& packet, TimeStamp ts)
 {
     uint64_t current_time_ns = now_ns();
+
+    auto time_startup_ns = packet.extractUint64();
 
     uint16_t ins_status = packet.extractUint16();
     auto pos_lla = packet.extractVec3d();

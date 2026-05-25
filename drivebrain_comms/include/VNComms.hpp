@@ -36,6 +36,11 @@ using namespace vn::xplat;
 using namespace vn::protocol::uart;
 using SerialPort = boost::asio::serial_port;
 
+namespace htx_ekf
+{
+class EkfManager;
+}
+
 namespace comms
 {
 struct ParsedGnss
@@ -55,7 +60,8 @@ struct ParsedGnss
 class VNDriver
 {
    public:
-    VNDriver(boost::asio::io_context& io_context, bool& init_successful);
+    VNDriver(boost::asio::io_context& io_context, bool& init_successful,
+             std::shared_ptr<htx_ekf::EkfManager> ekf_manager);
     ~VNDriver() { spdlog::info("destructed %s"); }
     bool init();
     struct config
@@ -102,5 +108,7 @@ class VNDriver
 
     ParsedGnss extract_gnss(Packet& packet);
     void fill_gnss_msg(hytech_msgs::VnGnss* msg, const ParsedGnss& data);
+
+    std::shared_ptr<htx_ekf::EkfManager> _ekf_manager;
 };
 }  // namespace comms

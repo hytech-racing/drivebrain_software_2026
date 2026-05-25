@@ -10,6 +10,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Custom libs
 #################################
 add_subdirectory(drivebrain_core)
+add_subdirectory(drivebrain_estimation)
 add_subdirectory(drivebrain_comms)
 add_subdirectory(drivebrain_control)
 
@@ -22,6 +23,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -93,6 +95,7 @@ target_link_libraries(drivebrain PUBLIC
     drivebrain_core
     drivebrain_comms
     drivebrain_control
+    drivebrain_estimation
     matlab_model
     -Wl,--whole-archive
     simulink_automation_msgs_proto_cpp
