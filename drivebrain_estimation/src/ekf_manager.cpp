@@ -215,6 +215,43 @@ EkfStepResult EkfManager::handle_imu(const ImuSample& sample)
     result.has_state = true;
     result.state = latest_output_;
 
+    stationary_detected_ = is_stationary();
+
+    UpdateResult stationary_update_result;
+    if (stationary_detected_)
+    {
+        stationary_update_result = ekf_.update_zero_vel(
+            zero_vel_update_sigma_, zero_vel_confidence_level_);
+    }
+    update_ekf_output();
+    result.has_state = true;
+    result.state = latest_output_;
+    update_debug_statuses(MeasurementId::ZERO_VEL, stationary_update_result);
+
+    zero_lat_current_sigma_ = compute_zero_lat_sigma(sample);
+    zero_lat_vel_sigma_used_ = zero_lat_current_sigma_;
+
+    zero_lat_update_enabled_ =
+        zero_lat_current_sigma_ < zero_lat_disabled_sigma_;
+
+    bool zero_lat_update_accepted = false;
+
+    UpdateResult zero_lat_update_result;
+    if (zero_lat_update_enabled_)
+    {
+        zero_lat_update_result = ekf_.update_zero_lat_velocity(
+            zero_lat_current_sigma_, zero_lat_velocity_confidence_level_);
+        zero_lat_update_accepted = zero_lat_update_result.accepted;
+    }
+    update_ekf_output();
+    result.has_state = true;
+    result.state = latest_output_;
+    update_debug_statuses(MeasurementId::ZERO_LAT_VEL, zero_lat_update_result);
+
+    // check whether gnss has gone stale
+    check_gnss_stale_status();
+
+    // Decide whether to send debug snapshot at specified rate
     if (should_publish_debug_snapshot(sample.time_startup_ns))
     {
         update_debug_snapshot();
@@ -225,24 +262,338 @@ EkfStepResult EkfManager::handle_imu(const ImuSample& sample)
     return result;
 }
 
-EkfStepResult EkfManager::handle_gnss(const DualGnssSample& sample)
+bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
+                                    double gnss_speed_sigma,
+                                    double gnss_vel_sigma,
+                                    double gnss_pos_sigma, int antenna_id)
+{
+    determine_gnss_validities(sample, antenna_id);
+
+    int speed_meas_id = 0;
+    int vel_meas_id = 0;
+    int pos_meas_id = 0;
+    bool gnss_init_done = false;
+    double gnss_offset_x_vehicle_frd = 0.0;
+    double gnss_offset_y_vehicle_frd = 0.0;
+    Eigen::Vector3d gnss_pos_origin_lla = Eigen::Vector3d::Zero();
+
+    UpdateResult speed_update_result;
+    UpdateResult vel_update_result;
+    UpdateResult pos_update_result;
+
+    if (antenna_id == AntennaId::GNSS1)
+    {
+        speed_meas_id = MeasurementId::GNSS1_SPEED_MAG;
+        vel_meas_id = MeasurementId::GNSS1_VEL_NED;
+        pos_meas_id = MeasurementId::GNSS1_POS_NED;
+        gnss_init_done = gnss1_stationary_init_done_;
+        gnss_pos_origin_lla = gnss1_origin_lla_;
+        gnss_offset_x_vehicle_frd = gnss1_offset_x_vehicle_frd_;
+        gnss_offset_y_vehicle_frd = gnss1_offset_y_vehicle_frd_;
+    }
+    else if (antenna_id == AntennaId::GNSS2)
+    {
+        speed_meas_id = MeasurementId::GNSS2_SPEED_MAG;
+        vel_meas_id = MeasurementId::GNSS2_VEL_NED;
+        pos_meas_id = MeasurementId::GNSS2_POS_NED;
+        gnss_init_done = gnss2_stationary_init_done_;
+        gnss_pos_origin_lla = gnss2_origin_lla_;
+        gnss_offset_x_vehicle_frd = gnss2_offset_x_vehicle_frd_;
+        gnss_offset_y_vehicle_frd = gnss2_offset_y_vehicle_frd_;
+    }
+    else
+    {
+        spdlog::warn("UNKNOWN ANTENNA ID");
+        update_debug_statuses(speed_meas_id, speed_update_result);
+        update_debug_statuses(vel_meas_id, vel_update_result);
+        update_debug_statuses(pos_meas_id, pos_update_result);
+        return false;
+    }
+
+    if (!gnss_init_done)
+    {
+        handle_gnss_stationary_init(sample, antenna_id);
+        update_debug_statuses(speed_meas_id, speed_update_result);
+        update_debug_statuses(vel_meas_id, vel_update_result);
+        update_debug_statuses(pos_meas_id, pos_update_result);
+        return false;
+    }
+
+    if (!imu_stationary_init_done_)
+    {
+        update_debug_statuses(speed_meas_id, speed_update_result);
+        update_debug_statuses(vel_meas_id, vel_update_result);
+        update_debug_statuses(pos_meas_id, pos_update_result);
+        return false;
+    }
+
+    const double v_N = sample.vn_m_s;
+    const double v_E = sample.ve_m_s;
+    const double gnss_speed_meas = std::hypot(v_N, v_E);
+
+    if (antenna_id == AntennaId::GNSS1)
+    {
+        last_gnss1_speed_ = gnss_speed_meas;
+        last_ekf_speed_gnss1_ = current_ekf_speed();
+
+        last_gnss1_speed_valid_ = sample.vel_valid;
+
+        last_gnss1_vn_ = sample.vn_m_s;
+        last_gnss1_ve_ = sample.ve_m_s;
+        last_gnss1_vd_ = sample.vd_m_s;
+    }
+    else
+    {
+        last_gnss2_speed_ = gnss_speed_meas;
+        last_ekf_speed_gnss2_ = current_ekf_speed();
+
+        last_gnss2_speed_valid_ = sample.vel_valid;
+
+        last_gnss2_vn_ = sample.vn_m_s;
+        last_gnss2_ve_ = sample.ve_m_s;
+        last_gnss2_vd_ = sample.vd_m_s;
+    }
+
+    if (sample.vel_valid)
+    {
+        // -----SPEED update-----
+        speed_update_result = ekf_.update_gnss_speed_magnitude(
+            gnss_speed_meas, gnss_speed_sigma,
+            gnss_speed_magnitude_confidence_level_);
+
+        update_ekf_output();
+
+        if (!result.has_state)
+        {
+            result.has_state = true;
+        }
+
+        result.state = latest_output_;
+
+        update_debug_statuses(speed_meas_id, speed_update_result);
+
+        // -----SPEED update-----
+
+        if (!alpha_course_aligned_)
+        {
+            const StateVec& x_before = ekf_.state();
+
+            const double vx_body_before = x_before(StateIndex::VX);
+            const double vy_body_before = x_before(StateIndex::VY);
+            const double yaw_before = x_before(StateIndex::YAW);
+            const double ekf_speed_before = current_ekf_speed();
+
+            // -----ALPHA course over ground alignment-----
+            if (gnss_speed_meas >= alpha_alignment_min_speed_ &&
+                ekf_speed_before >= alpha_alignment_min_speed_)
+            {
+                const double course_ned = std::atan2(v_E, v_N);
+                const double course_body =
+                    std::atan2(vy_body_before, vx_body_before);
+
+                const double alpha_meas =
+                    wrap_angle(course_ned - yaw_before - course_body);
+
+                StateVec x_new = x_before;
+                x_new(StateIndex::ALPHA) = alpha_meas;
+
+                StateMat P_new = ekf_.covariance();
+                P_new.row(StateIndex::ALPHA).setZero();
+                P_new.col(StateIndex::ALPHA).setZero();
+                P_new(StateIndex::ALPHA, StateIndex::ALPHA) = 0.2 * 0.2;
+
+                ekf_.reset(x_new, P_new);
+
+                alpha_course_aligned_ = true;
+
+                // update initial heading for gnss
+                gnss_initial_heading_ned_ = alpha_meas;
+            }
+            // -----ALPHA course over ground alignment-----
+        }
+        else
+        {
+            // -----VELOCITY update-----
+            bool gnss_vel_enabled =
+                gnss_speed_meas >= gnss_velocity_ned_min_speed_;
+
+            bool gnss_vel_accepted = false;
+
+            if (gnss_vel_enabled)
+            {
+                vel_update_result = ekf_.update_gnss_velocity_ned(
+                    v_N, v_E, corrected_yaw_rate_vehicle_frd_,
+                    gnss_offset_x_vehicle_frd, gnss_offset_y_vehicle_frd,
+                    gnss_vel_sigma, gnss_velocity_ned_confidence_level_);
+                gnss_vel_accepted = vel_update_result.accepted;
+
+                update_ekf_output();
+
+                if (!result.has_state)
+                {
+                    result.has_state = true;
+                }
+
+                result.state = latest_output_;
+            }
+            update_debug_statuses(vel_meas_id, vel_update_result);
+
+            // -----VELOCITY update-----
+        }
+    }
+
+    if (sample.pos_valid)
+    {
+        bool gnss_pos_accepted = false;
+        const double point_lat_deg = sample.lat_deg;
+        const double point_lon_deg = sample.lon_deg;
+        const double point_alt_m = sample.alt_m;
+
+        Eigen::Vector3d gps_point_lla;
+        gps_point_lla << point_lat_deg, point_lon_deg, point_alt_m;
+
+        const Eigen::Vector2d gps_point_ned_2d =
+            lla_to_ned_2d(gps_point_lla, gnss_pos_origin_lla);
+
+        // -----POSITION update-----
+        if (alpha_course_aligned_)
+        {
+            pos_update_result = ekf_.update_gnss_position_ned(
+                gps_point_ned_2d, gnss_offset_x_vehicle_frd,
+                gnss_offset_y_vehicle_frd, gnss_initial_heading_ned_,
+                gnss_pos_sigma, gnss_pos_ned_confidence_level_);
+
+            const bool gnss_pos_enabled = pos_update_result.attempted;
+            gnss_pos_accepted = pos_update_result.accepted;
+
+            if (antenna_id == AntennaId::GNSS1)
+            {
+                last_gnss1_pn_ = gps_point_ned_2d(0);
+                last_gnss1_pe_ = gps_point_ned_2d(1);
+                last_gnss1_pos_valid_ = true;
+            }
+            else
+            {
+                last_gnss2_pn_ = gps_point_ned_2d(0);
+                last_gnss2_pe_ = gps_point_ned_2d(1);
+                last_gnss2_pos_valid_ = true;
+            }
+
+            update_ekf_output();
+
+            if (!result.has_state)
+            {
+                result.has_state = true;
+            }
+
+            result.state = latest_output_;
+        }
+        // -----POSITION update-----
+        else
+        {
+            if (antenna_id == AntennaId::GNSS1)
+            {
+                last_gnss1_pn_ = gps_point_ned_2d(0);
+                last_gnss1_pe_ = gps_point_ned_2d(1);
+                last_gnss1_pos_valid_ = true;
+            }
+            else
+            {
+                last_gnss2_pn_ = gps_point_ned_2d(0);
+                last_gnss2_pe_ = gps_point_ned_2d(1);
+                last_gnss2_pos_valid_ = true;
+            }
+        }
+    }
+    else
+    {
+        if (antenna_id == AntennaId::GNSS1)
+        {
+            last_gnss1_pos_valid_ = false;
+        }
+        else
+        {
+            last_gnss2_pos_valid_ = false;
+        }
+    }
+
+    update_debug_statuses(pos_meas_id, pos_update_result);
+    return true;
+}
+
+double EkfManager::current_ekf_speed() const
+{
+    const StateVec& x = ekf_.state();
+
+    const double vx = x(StateIndex::VX);
+    const double vy = x(StateIndex::VY);
+
+    return std::sqrt(vx * vx + vy * vy);
+}
+
+EkfStepResult EkfManager::handle_dual_gnss(DualGnssSample& sample)
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
     EkfStepResult result;
 
-    // TODO: port GNSS stationary init,
-    // alpha course-over-ground
-    // alignment, GNSS speed, GNSS
-    // velocity NED, and GNSS position
-    // NED updates.
-    (void)sample;
-    if (should_publish_debug_snapshot(sample.vn_time_startup_ns))
+    if (!last_dual_gnss_time_startup_ns_)
+    {
+        UpdateResult default_false_result;
+        last_dual_gnss_time_startup_ns_ = sample.time_startup_ns;
+        update_debug_statuses(MeasurementId::GNSS1_SPEED_MAG,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS1_VEL_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS1_POS_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_SPEED_MAG,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_VEL_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_POS_NED,
+                              default_false_result);
+        return result;
+    }
+
+    last_dual_gnss_time_startup_ns_ = sample.time_startup_ns;
+
+    const double gnss1_speed_sigma =
+        choose_sigma(gnss1_speed_update_sigma_floor_, sample.gnss1.velu_m_s);
+    const double gnss1_vel_sigma =
+        choose_sigma(gnss1_vel_update_sigma_floor_, sample.gnss1.velu_m_s);
+    const double gnss1_pos_sigma =
+        choose_sigma(gnss1_pos_update_sigma_floor_,
+                     std::hypot(sample.gnss1.posu_n_m, sample.gnss1.posu_e_m));
+
+    const double gnss2_speed_sigma =
+        choose_sigma(gnss2_speed_update_sigma_floor_, sample.gnss2.velu_m_s);
+    const double gnss2_vel_sigma =
+        choose_sigma(gnss2_vel_update_sigma_floor_, sample.gnss2.velu_m_s);
+    const double gnss2_pos_sigma =
+        choose_sigma(gnss2_pos_update_sigma_floor_,
+                     std::hypot(sample.gnss2.posu_n_m, sample.gnss2.posu_e_m));
+
+    handle_single_gnss(result, sample.gnss1, gnss1_speed_sigma, gnss1_vel_sigma,
+                       gnss1_pos_sigma, AntennaId::GNSS1);
+    handle_single_gnss(result, sample.gnss2, gnss2_speed_sigma, gnss2_vel_sigma,
+                       gnss2_pos_sigma, AntennaId::GNSS2);
+
+    gnss1_speed_sigma_used_ = gnss1_speed_sigma;
+    gnss1_vel_sigma_used_ = gnss1_vel_sigma;
+    gnss1_pos_sigma_used_ = gnss1_pos_sigma;
+
+    gnss2_speed_sigma_used_ = gnss2_speed_sigma;
+    gnss2_vel_sigma_used_ = gnss2_vel_sigma;
+    gnss2_pos_sigma_used_ = gnss2_pos_sigma;
+
+    if (should_publish_debug_snapshot(sample.time_startup_ns))
     {
         update_debug_snapshot();
         result.has_debug_snapshot = true;
         result.debug_snapshot = latest_debug_snapshot_;
     }
+
     return result;
 }
 
@@ -251,13 +602,12 @@ EkfStepResult EkfManager::handle_ins(const InsSample& sample)
     std::lock_guard<std::mutex> lock(mutex_);
 
     EkfStepResult result;
-    // TODO: port INS
-    // correction/supervisor logic
-    // later.
+    // TODO: INS logic
+    // intentionally left blank, might use later
 
     (void)sample;
 
-    if (should_publish_debug_snapshot(sample.vn_time_startup_ns))
+    if (should_publish_debug_snapshot(sample.time_startup_ns))
     {
         update_debug_snapshot();
         result.has_debug_snapshot = true;
@@ -265,6 +615,46 @@ EkfStepResult EkfManager::handle_ins(const InsSample& sample)
     }
 
     return result;
+}
+
+bool EkfManager::is_stationary()
+{
+    const bool gyro_is_stationary = std::abs(corrected_yaw_rate_vehicle_frd_) <
+                                    stationary_gyro_z_threshold_;
+    const bool accel_x_is_stationary =
+        std::abs(corrected_accel_x_vehicle_frd_) <
+        stationary_accel_xy_threshold_;
+    const bool accel_y_is_stationary =
+        std::abs(corrected_accel_y_vehicle_frd_) <
+        stationary_accel_xy_threshold_;
+
+    const bool gnss1_is_stationary =
+        (!last_gnss1_speed_valid_) || std::abs(last_gnss1_speed_) < 0.25;
+    const bool gnss2_is_stationary =
+        (!last_gnss2_speed_valid_) || std::abs(last_gnss2_speed_) < 0.25;
+
+    return gyro_is_stationary && accel_x_is_stationary &&
+           accel_y_is_stationary && gnss1_is_stationary && gnss2_is_stationary;
+}
+
+double EkfManager::compute_zero_lat_sigma(const ImuSample& imu)
+{
+    const double speed =
+        last_gnss2_speed_valid_ ? last_gnss2_speed_ : current_ekf_speed();
+
+    if (speed < zero_lat_min_speed_)
+    {
+        return zero_lat_disabled_sigma_;
+    }
+
+    double sigma = zero_lat_base_sigma_;
+
+    sigma *= 1.0 + zero_lat_yaw_rate_gain_ *
+                       std::abs(corrected_yaw_rate_vehicle_frd_);
+    sigma *= 1.0 + zero_lat_lateral_accel_gain_ *
+                       std::abs(corrected_accel_y_vehicle_frd_);
+
+    return std::clamp(sigma, zero_lat_base_sigma_, zero_lat_disabled_sigma_);
 }
 
 EkfOutput EkfManager::get_latest_output() const
@@ -332,6 +722,101 @@ void EkfManager::handle_imu_stationary_init(const ImuSample& sample)
         bg, bax, bay, zero_vel_update_result.accepted);
 }
 
+void EkfManager::handle_gnss_stationary_init(GnssSample& sample, int antenna_id)
+{
+    if (!sample.pos_valid)
+    {
+        return;
+    }
+
+    if (antenna_id == AntennaId::GNSS1)
+    {
+        if (gnss1_stationary_init_done_)
+        {
+            return;
+        }
+
+        gnss1_origin_lla_(0) += sample.lat_deg;
+        gnss1_origin_lla_(1) += sample.lon_deg;
+        gnss1_origin_lla_(2) += sample.alt_m;
+
+        gnss1_stationary_sample_count_ += 1;
+
+        if (gnss1_stationary_sample_count_ < gnss1_stationary_required_samples_)
+        {
+            if (gnss1_stationary_sample_count_ % 5 == 0)
+            {
+                spdlog::info(
+                    "**gnss1 stationary init progress: {}",
+                    static_cast<double>(gnss1_stationary_sample_count_) /
+                        gnss1_stationary_required_samples_ * 100.0);
+            }
+            return;
+        }
+    }
+    else if (antenna_id == AntennaId::GNSS2)
+    {
+        if (gnss2_stationary_init_done_)
+        {
+            return;
+        }
+
+        gnss2_origin_lla_(0) += sample.lat_deg;
+        gnss2_origin_lla_(1) += sample.lon_deg;
+        gnss2_origin_lla_(2) += sample.alt_m;
+
+        gnss2_stationary_sample_count_ += 1;
+
+        if (gnss2_stationary_sample_count_ < gnss2_stationary_required_samples_)
+        {
+            if (gnss2_stationary_sample_count_ % 5 == 0)
+            {
+                spdlog::info(
+                    "^^gnss2 stationary init progress: {}",
+                    static_cast<double>(gnss2_stationary_sample_count_) /
+                        gnss2_stationary_required_samples_ * 100.0);
+            }
+            return;
+        }
+    }
+    else
+    {
+        spdlog::warn("UNKNOWN ANTENNA ID");
+        return;
+    }
+
+    // collected enough data points, find origin
+    if (antenna_id == AntennaId::GNSS1)
+    {
+        const double count =
+            static_cast<double>(gnss1_stationary_sample_count_);
+
+        gnss1_origin_lla_(0) = gnss1_origin_lla_(0) / count;
+        gnss1_origin_lla_(1) = gnss1_origin_lla_(1) / count;
+        gnss1_origin_lla_(2) = gnss1_origin_lla_(2) / count;
+
+        gnss1_stationary_init_done_ = true;
+
+        spdlog::info("GNSS1 stationary initialization COMPLETE");
+
+        return;
+    }
+    else
+    {
+        const double count =
+            static_cast<double>(gnss2_stationary_sample_count_);
+
+        gnss2_origin_lla_(0) = gnss2_origin_lla_(0) / count;
+        gnss2_origin_lla_(1) = gnss2_origin_lla_(1) / count;
+        gnss2_origin_lla_(2) = gnss2_origin_lla_(2) / count;
+
+        gnss2_stationary_init_done_ = true;
+
+        spdlog::info("GNSS2 stationary initialization COMPLETE");
+
+        return;
+    }
+}
 void EkfManager::update_ekf_output()
 {
     const StateVec& x = ekf_.state();
@@ -376,6 +861,67 @@ void EkfManager::update_ekf_output()
     latest_output_.last_imu_dt_s = last_imu_dt_s_;
 }
 
+void EkfManager::determine_gnss_validities(GnssSample& sample, int antenna_id)
+{
+    sample.vel_valid = false;
+    sample.pos_valid = false;
+
+    if (antenna_id == AntennaId::GNSS1)
+    {
+        last_gnss1_pos_valid_ = false;
+        last_gnss1_speed_valid_ = false;
+        last_gnss1_vel_valid_ = false;
+    }
+    else if (antenna_id == AntennaId::GNSS2)
+    {
+        last_gnss2_pos_valid_ = false;
+        last_gnss2_speed_valid_ = false;
+        last_gnss2_vel_valid_ = false;
+    }
+
+    const double gnss_speed = std::hypot(sample.vn_m_s, sample.ve_m_s);
+
+    if (std::isfinite(sample.vn_m_s) && std::isfinite(sample.ve_m_s) &&
+        std::isfinite(sample.velu_m_s))
+    {
+        if (sample.fix >= 2 && gnss_speed <= 50.0 && sample.velu_m_s <= 2.0)
+        {
+            sample.vel_valid = true;
+
+            if (antenna_id == AntennaId::GNSS1)
+            {
+                last_gnss1_speed_valid_ = true;
+                last_gnss1_vel_valid_ = true;
+            }
+            else if (antenna_id == AntennaId::GNSS2)
+            {
+                last_gnss2_speed_valid_ = true;
+                last_gnss2_vel_valid_ = true;
+            }
+        }
+    }
+
+    if (std::isfinite(sample.lat_deg) && std::isfinite(sample.lon_deg) &&
+        std::isfinite(sample.posu_n_m) && std::isfinite(sample.posu_e_m))
+    {
+        const double posu_2d_ned = std::hypot(sample.posu_n_m, sample.posu_e_m);
+
+        if (sample.fix >= 2 && posu_2d_ned <= 10.0)
+        {
+            sample.pos_valid = true;
+
+            if (antenna_id == AntennaId::GNSS1)
+            {
+                last_gnss1_pos_valid_ = true;
+            }
+            else if (antenna_id == AntennaId::GNSS2)
+            {
+                last_gnss2_pos_valid_ = true;
+            }
+        }
+    }
+}
+
 void EkfManager::update_debug_statuses(int meas_id,
                                        const UpdateResult& update_result)
 {
@@ -397,6 +943,13 @@ void EkfManager::update_debug_statuses(int meas_id,
             zero_lat_vel_nis_ = update_result.nis;
             zero_lat_vel_gate_ = update_result.threshold;
 
+            zero_lat_vel_residual_ = 0.0;
+
+            if (update_result.residual.size() >= 1)
+            {
+                zero_lat_vel_residual_ = update_result.residual(0);
+            }
+
             break;
 
         case MeasurementId::GNSS1_SPEED_MAG:
@@ -405,6 +958,13 @@ void EkfManager::update_debug_statuses(int meas_id,
             gnss1_speed_update_accepted_ = update_result.accepted;
             gnss1_speed_nis_ = update_result.nis;
             gnss1_speed_gate_ = update_result.threshold;
+
+            gnss1_speed_residual_ = 0.0;
+
+            if (update_result.residual.size() >= 1)
+            {
+                gnss1_speed_residual_ = update_result.residual(0);
+            }
 
             break;
 
@@ -415,6 +975,15 @@ void EkfManager::update_debug_statuses(int meas_id,
             gnss1_vel_nis_ = update_result.nis;
             gnss1_vel_gate_ = update_result.threshold;
 
+            gnss1_vel_ned_n_residual_ = 0.0;
+            gnss1_vel_ned_e_residual_ = 0.0;
+
+            if (update_result.residual.size() >= 2)
+            {
+                gnss1_vel_ned_n_residual_ = update_result.residual(0);
+                gnss1_vel_ned_e_residual_ = update_result.residual(1);
+            }
+
             break;
 
         case MeasurementId::GNSS1_POS_NED:
@@ -423,6 +992,15 @@ void EkfManager::update_debug_statuses(int meas_id,
             gnss1_pos_update_accepted_ = update_result.accepted;
             gnss1_pos_nis_ = update_result.nis;
             gnss1_pos_gate_ = update_result.threshold;
+
+            gnss1_pos_ned_n_residual_ = 0.0;
+            gnss1_pos_ned_e_residual_ = 0.0;
+
+            if (update_result.residual.size() >= 2)
+            {
+                gnss1_pos_ned_n_residual_ = update_result.residual(0);
+                gnss1_pos_ned_e_residual_ = update_result.residual(1);
+            }
 
             break;
 
@@ -433,6 +1011,13 @@ void EkfManager::update_debug_statuses(int meas_id,
             gnss2_speed_nis_ = update_result.nis;
             gnss2_speed_gate_ = update_result.threshold;
 
+            gnss2_speed_residual_ = 0.0;
+
+            if (update_result.residual.size() >= 1)
+            {
+                gnss2_speed_residual_ = update_result.residual(0);
+            }
+
             break;
 
         case MeasurementId::GNSS2_VEL_NED:
@@ -442,6 +1027,15 @@ void EkfManager::update_debug_statuses(int meas_id,
             gnss2_vel_nis_ = update_result.nis;
             gnss2_vel_gate_ = update_result.threshold;
 
+            gnss2_vel_ned_n_residual_ = 0.0;
+            gnss2_vel_ned_e_residual_ = 0.0;
+
+            if (update_result.residual.size() >= 2)
+            {
+                gnss2_vel_ned_n_residual_ = update_result.residual(0);
+                gnss2_vel_ned_e_residual_ = update_result.residual(1);
+            }
+
             break;
 
         case MeasurementId::GNSS2_POS_NED:
@@ -450,6 +1044,15 @@ void EkfManager::update_debug_statuses(int meas_id,
             gnss2_pos_update_accepted_ = update_result.accepted;
             gnss2_pos_nis_ = update_result.nis;
             gnss2_pos_gate_ = update_result.threshold;
+
+            gnss2_pos_ned_n_residual_ = 0.0;
+            gnss2_pos_ned_e_residual_ = 0.0;
+
+            if (update_result.residual.size() >= 2)
+            {
+                gnss2_pos_ned_n_residual_ = update_result.residual(0);
+                gnss2_pos_ned_e_residual_ = update_result.residual(1);
+            }
 
             break;
 
@@ -635,6 +1238,29 @@ void EkfManager::update_debug_snapshot()
     latest_debug_snapshot_.latest_gnss2_pos_nis = gnss2_pos_nis_;
     latest_debug_snapshot_.latest_gnss2_pos_gate = gnss2_pos_gate_;
 
+    latest_debug_snapshot_.latest_zero_lat_vel_residual =
+        zero_lat_vel_residual_;
+
+    latest_debug_snapshot_.latest_gnss1_speed_residual = gnss1_speed_residual_;
+    latest_debug_snapshot_.latest_gnss1_vel_ned_n_residual =
+        gnss1_vel_ned_n_residual_;
+    latest_debug_snapshot_.latest_gnss1_vel_ned_e_residual =
+        gnss1_vel_ned_e_residual_;
+    latest_debug_snapshot_.latest_gnss1_pos_ned_n_residual =
+        gnss1_pos_ned_n_residual_;
+    latest_debug_snapshot_.latest_gnss1_pos_ned_e_residual =
+        gnss1_pos_ned_e_residual_;
+
+    latest_debug_snapshot_.latest_gnss2_speed_residual = gnss2_speed_residual_;
+    latest_debug_snapshot_.latest_gnss2_vel_ned_n_residual =
+        gnss2_vel_ned_n_residual_;
+    latest_debug_snapshot_.latest_gnss2_vel_ned_e_residual =
+        gnss2_vel_ned_e_residual_;
+    latest_debug_snapshot_.latest_gnss2_pos_ned_n_residual =
+        gnss2_pos_ned_n_residual_;
+    latest_debug_snapshot_.latest_gnss2_pos_ned_e_residual =
+        gnss2_pos_ned_e_residual_;
+
     latest_debug_snapshot_.latest_zero_lat_vel_sigma_used =
         zero_lat_vel_sigma_used_;
 
@@ -647,6 +1273,89 @@ void EkfManager::update_debug_snapshot()
         gnss2_speed_sigma_used_;
     latest_debug_snapshot_.latest_gnss2_vel_sigma_used = gnss2_vel_sigma_used_;
     latest_debug_snapshot_.latest_gnss2_pos_sigma_used = gnss2_pos_sigma_used_;
+
+    latest_debug_snapshot_.latest_gnss1_vel_valid = last_gnss1_vel_valid_;
+    latest_debug_snapshot_.latest_gnss1_pos_valid = last_gnss1_pos_valid_;
+    latest_debug_snapshot_.latest_gnss2_vel_valid = last_gnss2_vel_valid_;
+    latest_debug_snapshot_.latest_gnss2_pos_valid = last_gnss2_pos_valid_;
 }
 
+double EkfManager::choose_sigma(double floor_sigma, double reported_sigma)
+{
+    if (!use_gnss_reported_uncertainty_)
+    {
+        return floor_sigma;
+    }
+
+    if (!std::isfinite(reported_sigma) || reported_sigma <= 0.0)
+    {
+        return floor_sigma;
+    }
+
+    return std::max(floor_sigma, reported_sigma);
+}
+
+void EkfManager::check_gnss_stale_status()
+{
+    UpdateResult default_false_result;
+    if (!last_dual_gnss_time_startup_ns_)
+    {
+        update_debug_statuses(MeasurementId::GNSS1_SPEED_MAG,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS1_VEL_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS1_POS_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_SPEED_MAG,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_VEL_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_POS_NED,
+                              default_false_result);
+
+        last_gnss1_speed_valid_ = false;
+        last_gnss1_vel_valid_ = false;
+        last_gnss1_pos_valid_ = false;
+        last_gnss2_speed_valid_ = false;
+        last_gnss2_vel_valid_ = false;
+        last_gnss2_pos_valid_ = false;
+
+        last_gnss1_speed_ = 0.0;
+        last_gnss2_speed_ = 0.0;
+
+        return;
+    }
+
+    double age = static_cast<double>(last_imu_time_startup_ns_.value() -
+                                     last_dual_gnss_time_startup_ns_.value()) *
+                 1e-9;
+
+    if (age > gnss_stale_timeout_s_)
+    {
+        update_debug_statuses(MeasurementId::GNSS1_SPEED_MAG,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS1_VEL_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS1_POS_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_SPEED_MAG,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_VEL_NED,
+                              default_false_result);
+        update_debug_statuses(MeasurementId::GNSS2_POS_NED,
+                              default_false_result);
+
+        last_gnss1_speed_valid_ = false;
+        last_gnss1_vel_valid_ = false;
+        last_gnss1_pos_valid_ = false;
+        last_gnss2_speed_valid_ = false;
+        last_gnss2_vel_valid_ = false;
+        last_gnss2_pos_valid_ = false;
+
+        last_gnss1_speed_ = 0.0;
+        last_gnss2_speed_ = 0.0;
+
+        return;
+    }
+}
 }  // namespace htx_ekf

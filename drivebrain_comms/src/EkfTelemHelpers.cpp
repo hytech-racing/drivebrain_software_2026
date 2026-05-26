@@ -85,30 +85,36 @@ std::shared_ptr<hytech_msgs::EkfDebugSnapshot> make_ekf_debug_snapshot_msg(
 
     msg->set_time_startup_ns(debug.time_startup_ns);
 
+    // initialization status
     msg->set_imu_status(to_proto_init_status(debug.imu_status));
     msg->set_gnss1_status(to_proto_init_status(debug.gnss1_status));
     msg->set_gnss2_status(to_proto_init_status(debug.gnss2_status));
     msg->set_alpha_status(to_proto_init_status(debug.alpha_status));
 
+    // IMU initialization progress
     msg->set_imu_sample_count(static_cast<uint32_t>(debug.imu_sample_count));
     msg->set_imu_required_samples(
         static_cast<uint32_t>(debug.imu_required_samples));
     msg->set_imu_init_progress(debug.imu_init_progress);
 
+    // GNSS1 initialization progress
     msg->set_gnss1_sample_count(
         static_cast<uint32_t>(debug.gnss1_sample_count));
     msg->set_gnss1_required_samples(
         static_cast<uint32_t>(debug.gnss1_required_samples));
     msg->set_gnss1_init_progress(debug.gnss1_init_progress);
 
+    // GNSS2 initialization progress
     msg->set_gnss2_sample_count(
         static_cast<uint32_t>(debug.gnss2_sample_count));
     msg->set_gnss2_required_samples(
         static_cast<uint32_t>(debug.gnss2_required_samples));
     msg->set_gnss2_init_progress(debug.gnss2_init_progress);
 
+    // stationary detection
     msg->set_stationary_detected(debug.stationary_detected);
 
+    // zero-velocity update debug
     msg->set_latest_zero_vel_update_enabled(
         debug.latest_zero_vel_update_enabled);
     msg->set_latest_zero_vel_update_accepted(
@@ -116,6 +122,7 @@ std::shared_ptr<hytech_msgs::EkfDebugSnapshot> make_ekf_debug_snapshot_msg(
     msg->set_latest_zero_vel_nis(debug.latest_zero_vel_nis);
     msg->set_latest_zero_vel_gate(debug.latest_zero_vel_gate);
 
+    // zero-lat-velocity update debug
     msg->set_latest_zero_lat_vel_update_enabled(
         debug.latest_zero_lat_vel_update_enabled);
     msg->set_latest_zero_lat_vel_update_accepted(
@@ -124,49 +131,75 @@ std::shared_ptr<hytech_msgs::EkfDebugSnapshot> make_ekf_debug_snapshot_msg(
     msg->set_latest_zero_lat_vel_gate(debug.latest_zero_lat_vel_gate);
     msg->set_latest_zero_lat_vel_sigma_used(
         debug.latest_zero_lat_vel_sigma_used);
+    msg->set_latest_zero_lat_vel_residual(debug.latest_zero_lat_vel_residual);
 
+    // GNSS1 speed update debug
     msg->set_latest_gnss1_speed_update_enabled(
         debug.latest_gnss1_speed_update_enabled);
     msg->set_latest_gnss1_speed_update_accepted(
         debug.latest_gnss1_speed_update_accepted);
     msg->set_latest_gnss1_speed_nis(debug.latest_gnss1_speed_nis);
     msg->set_latest_gnss1_speed_gate(debug.latest_gnss1_speed_gate);
+    msg->set_latest_gnss1_speed_residual(debug.latest_gnss1_speed_residual);
 
+    // GNSS1 velocity update debug
     msg->set_latest_gnss1_vel_update_enabled(
         debug.latest_gnss1_vel_update_enabled);
     msg->set_latest_gnss1_vel_update_accepted(
         debug.latest_gnss1_vel_update_accepted);
     msg->set_latest_gnss1_vel_nis(debug.latest_gnss1_vel_nis);
     msg->set_latest_gnss1_vel_gate(debug.latest_gnss1_vel_gate);
+    msg->set_latest_gnss1_vel_ned_n_residual(
+        debug.latest_gnss1_vel_ned_n_residual);
+    msg->set_latest_gnss1_vel_ned_e_residual(
+        debug.latest_gnss1_vel_ned_e_residual);
 
+    // GNSS1 position update debug
     msg->set_latest_gnss1_pos_update_enabled(
         debug.latest_gnss1_pos_update_enabled);
     msg->set_latest_gnss1_pos_update_accepted(
         debug.latest_gnss1_pos_update_accepted);
     msg->set_latest_gnss1_pos_nis(debug.latest_gnss1_pos_nis);
     msg->set_latest_gnss1_pos_gate(debug.latest_gnss1_pos_gate);
+    msg->set_latest_gnss1_pos_ned_n_residual(
+        debug.latest_gnss1_pos_ned_n_residual);
+    msg->set_latest_gnss1_pos_ned_e_residual(
+        debug.latest_gnss1_pos_ned_e_residual);
 
+    // GNSS2 speed update debug
     msg->set_latest_gnss2_speed_update_enabled(
         debug.latest_gnss2_speed_update_enabled);
     msg->set_latest_gnss2_speed_update_accepted(
         debug.latest_gnss2_speed_update_accepted);
     msg->set_latest_gnss2_speed_nis(debug.latest_gnss2_speed_nis);
     msg->set_latest_gnss2_speed_gate(debug.latest_gnss2_speed_gate);
+    msg->set_latest_gnss2_speed_residual(debug.latest_gnss2_speed_residual);
 
+    // GNSS2 velocity update debug
     msg->set_latest_gnss2_vel_update_enabled(
         debug.latest_gnss2_vel_update_enabled);
     msg->set_latest_gnss2_vel_update_accepted(
         debug.latest_gnss2_vel_update_accepted);
     msg->set_latest_gnss2_vel_nis(debug.latest_gnss2_vel_nis);
     msg->set_latest_gnss2_vel_gate(debug.latest_gnss2_vel_gate);
+    msg->set_latest_gnss2_vel_ned_n_residual(
+        debug.latest_gnss2_vel_ned_n_residual);
+    msg->set_latest_gnss2_vel_ned_e_residual(
+        debug.latest_gnss2_vel_ned_e_residual);
 
+    // GNSS2 position update debug
     msg->set_latest_gnss2_pos_update_enabled(
         debug.latest_gnss2_pos_update_enabled);
     msg->set_latest_gnss2_pos_update_accepted(
         debug.latest_gnss2_pos_update_accepted);
     msg->set_latest_gnss2_pos_nis(debug.latest_gnss2_pos_nis);
     msg->set_latest_gnss2_pos_gate(debug.latest_gnss2_pos_gate);
+    msg->set_latest_gnss2_pos_ned_n_residual(
+        debug.latest_gnss2_pos_ned_n_residual);
+    msg->set_latest_gnss2_pos_ned_e_residual(
+        debug.latest_gnss2_pos_ned_e_residual);
 
+    // measurement sigma actually used
     msg->set_latest_gnss1_speed_sigma_used(debug.latest_gnss1_speed_sigma_used);
     msg->set_latest_gnss1_vel_sigma_used(debug.latest_gnss1_vel_sigma_used);
     msg->set_latest_gnss1_pos_sigma_used(debug.latest_gnss1_pos_sigma_used);
@@ -174,6 +207,13 @@ std::shared_ptr<hytech_msgs::EkfDebugSnapshot> make_ekf_debug_snapshot_msg(
     msg->set_latest_gnss2_speed_sigma_used(debug.latest_gnss2_speed_sigma_used);
     msg->set_latest_gnss2_vel_sigma_used(debug.latest_gnss2_vel_sigma_used);
     msg->set_latest_gnss2_pos_sigma_used(debug.latest_gnss2_pos_sigma_used);
+
+    // latest GNSS measurement validity flags
+    msg->set_latest_gnss1_vel_valid(debug.latest_gnss1_vel_valid);
+    msg->set_latest_gnss1_pos_valid(debug.latest_gnss1_pos_valid);
+
+    msg->set_latest_gnss2_vel_valid(debug.latest_gnss2_vel_valid);
+    msg->set_latest_gnss2_pos_valid(debug.latest_gnss2_pos_valid);
 
     return msg;
 }

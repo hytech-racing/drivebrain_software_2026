@@ -40,11 +40,14 @@ struct GnssSample
     double posu_d_m = 0.0;
 
     double velu_m_s = 0.0;
+
+    bool pos_valid = false;
+    bool vel_valid = false;
 };
 
 struct DualGnssSample
 {
-    uint64_t vn_time_startup_ns = 0;
+    uint64_t time_startup_ns = 0;
 
     GnssSample gnss1;
     GnssSample gnss2;
@@ -52,12 +55,12 @@ struct DualGnssSample
 
 struct InsSample
 {
-    uint64_t vn_time_startup_ns = 0;
+    uint64_t time_startup_ns = 0;
     uint32_t ins_status = 0;
 
     double lat_deg = 0.0;
     double lon_deg = 0.0;
-    double atl_m = 0.0;
+    double alt_m = 0.0;
 
     // Vehicle aligned FRD
     double vx_body_frd_m_s = 0.0;

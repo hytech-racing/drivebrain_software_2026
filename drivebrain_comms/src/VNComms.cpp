@@ -538,6 +538,51 @@ void VNDriver::_handle_bo2_gnss_packet(Packet& packet, TimeStamp ts)
     fill_gnss_msg(dual_gnss_msg->mutable_gnss1(), gnss1_data);
     fill_gnss_msg(dual_gnss_msg->mutable_gnss2(), gnss2_data);
 
+    htx_ekf::GnssSample gnss1_sample;
+    gnss1_sample.tow_ns = gnss1_data.tow_ns;
+    gnss1_sample.week = gnss1_data.week;
+    gnss1_sample.num_sats = gnss1_data.num_sats;
+    gnss1_sample.fix = gnss1_data.fix;
+    gnss1_sample.lat_deg = gnss1_data.poslla.x;
+    gnss1_sample.lon_deg = gnss1_data.poslla.y;
+    gnss1_sample.alt_m = gnss1_data.poslla.z;
+    gnss1_sample.vn_m_s = gnss1_data.velned.x;
+    gnss1_sample.ve_m_s = gnss1_data.velned.y;
+    gnss1_sample.vd_m_s = gnss1_data.velned.z;
+    gnss1_sample.posu_n_m = gnss1_data.posu.x;
+    gnss1_sample.posu_e_m = gnss1_data.posu.y;
+    gnss1_sample.posu_d_m = gnss1_data.posu.z;
+    gnss1_sample.velu_m_s = gnss1_data.velu;
+
+    htx_ekf::GnssSample gnss2_sample;
+    gnss2_sample.tow_ns = gnss2_data.tow_ns;
+    gnss2_sample.week = gnss2_data.week;
+    gnss2_sample.num_sats = gnss2_data.num_sats;
+    gnss2_sample.fix = gnss2_data.fix;
+    gnss2_sample.lat_deg = gnss2_data.poslla.x;
+    gnss2_sample.lon_deg = gnss2_data.poslla.y;
+    gnss2_sample.alt_m = gnss2_data.poslla.z;
+    gnss2_sample.vn_m_s = gnss2_data.velned.x;
+    gnss2_sample.ve_m_s = gnss2_data.velned.y;
+    gnss2_sample.vd_m_s = gnss2_data.velned.z;
+    gnss2_sample.posu_n_m = gnss2_data.posu.x;
+    gnss2_sample.posu_e_m = gnss2_data.posu.y;
+    gnss2_sample.posu_d_m = gnss2_data.posu.z;
+    gnss2_sample.velu_m_s = gnss2_data.velu;
+
+    htx_ekf::DualGnssSample dual_gnss_sample;
+    dual_gnss_sample.time_startup_ns = time_startup_ns;
+    dual_gnss_sample.gnss1 = gnss1_sample;
+    dual_gnss_sample.gnss2 = gnss2_sample;
+
+    if (_ekf_manager)
+    {
+        const htx_ekf::EkfStepResult ekf_result =
+            _ekf_manager->handle_dual_gnss(dual_gnss_sample);
+
+        comms::publish_ekf_step_result(ekf_result);
+    }
+
     core::log(
         std::static_pointer_cast<google::protobuf::Message>(dual_gnss_msg));
 }

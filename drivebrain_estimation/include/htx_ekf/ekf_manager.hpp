@@ -11,6 +11,7 @@
 
 #include "htx_ekf/ekf.hpp"
 #include "htx_ekf/state.hpp"
+#include "htx_ekf/types.hpp"
 
 namespace htx_ekf
 {
@@ -22,6 +23,12 @@ enum InitStatus
     InProgress = 2,
     Done = 3,
     Failed = 4
+};
+
+struct AntennaId
+{
+    static constexpr int GNSS1 = 0;
+    static constexpr int GNSS2 = 1;
 };
 
 struct MeasurementId
@@ -175,36 +182,47 @@ struct EkfDebugSnapshot
     double latest_zero_lat_vel_nis = 0.0;
     double latest_zero_lat_vel_gate = 0.0;
     double latest_zero_lat_vel_sigma_used = 0.0;
+    double latest_zero_lat_vel_residual = 0.0;
 
     bool latest_gnss1_speed_update_enabled = false;
     bool latest_gnss1_speed_update_accepted = false;
     double latest_gnss1_speed_nis = 0.0;
     double latest_gnss1_speed_gate = 0.0;
+    double latest_gnss1_speed_residual = 0.0;
 
     bool latest_gnss1_vel_update_enabled = false;
     bool latest_gnss1_vel_update_accepted = false;
     double latest_gnss1_vel_nis = 0.0;
     double latest_gnss1_vel_gate = 0.0;
+    double latest_gnss1_vel_ned_n_residual = 0.0;
+    double latest_gnss1_vel_ned_e_residual = 0.0;
 
     bool latest_gnss1_pos_update_enabled = false;
     bool latest_gnss1_pos_update_accepted = false;
     double latest_gnss1_pos_nis = 0.0;
     double latest_gnss1_pos_gate = 0.0;
+    double latest_gnss1_pos_ned_n_residual = 0.0;
+    double latest_gnss1_pos_ned_e_residual = 0.0;
 
     bool latest_gnss2_speed_update_enabled = false;
     bool latest_gnss2_speed_update_accepted = false;
     double latest_gnss2_speed_nis = 0.0;
     double latest_gnss2_speed_gate = 0.0;
+    double latest_gnss2_speed_residual = 0.0;
 
     bool latest_gnss2_vel_update_enabled = false;
     bool latest_gnss2_vel_update_accepted = false;
     double latest_gnss2_vel_nis = 0.0;
     double latest_gnss2_vel_gate = 0.0;
+    double latest_gnss2_vel_ned_n_residual = 0.0;
+    double latest_gnss2_vel_ned_e_residual = 0.0;
 
     bool latest_gnss2_pos_update_enabled = false;
     bool latest_gnss2_pos_update_accepted = false;
     double latest_gnss2_pos_nis = 0.0;
     double latest_gnss2_pos_gate = 0.0;
+    double latest_gnss2_pos_ned_n_residual = 0.0;
+    double latest_gnss2_pos_ned_e_residual = 0.0;
 
     double latest_gnss1_speed_sigma_used = 0.0;
     double latest_gnss1_vel_sigma_used = 0.0;
@@ -213,6 +231,12 @@ struct EkfDebugSnapshot
     double latest_gnss2_speed_sigma_used = 0.0;
     double latest_gnss2_vel_sigma_used = 0.0;
     double latest_gnss2_pos_sigma_used = 0.0;
+
+    bool latest_gnss1_vel_valid = false;
+    bool latest_gnss1_pos_valid = false;
+
+    bool latest_gnss2_vel_valid = false;
+    bool latest_gnss2_pos_valid = false;
 };
 
 struct EkfStepResult
@@ -230,7 +254,7 @@ class EkfManager
     explicit EkfManager(const EkfManagerConfig& config = EkfManagerConfig{});
 
     EkfStepResult handle_imu(const ImuSample& sample);
-    EkfStepResult handle_gnss(const DualGnssSample& sample);
+    EkfStepResult handle_dual_gnss(DualGnssSample& sample);
     EkfStepResult handle_ins(const InsSample& sample);
 
     EkfOutput get_latest_output() const;
@@ -245,6 +269,19 @@ class EkfManager
     void initialize_ekf();
 
     void handle_imu_stationary_init(const ImuSample& imu);
+    void handle_gnss_stationary_init(GnssSample& sample, int antenna_id);
+
+    bool is_stationary();
+
+    bool handle_single_gnss(EkfStepResult& result, GnssSample& sample,
+                            double gnss_speed_sigma, double gnss_vel_sigma,
+                            double gnss_pos_sigma, int antenna_id);
+
+    double compute_zero_lat_sigma(const ImuSample& imu);
+
+    double choose_sigma(double floor_sigma, double reported_sigma);
+
+    void check_gnss_stale_status();
 
     void update_ekf_output();
     void update_debug_snapshot();
@@ -256,10 +293,14 @@ class EkfManager
     InitStatus compute_gnss2_status() const;
     InitStatus compute_alpha_status() const;
 
+    void determine_gnss_validities(GnssSample& sample, int antenna_id);
+
     double progress_ratio(std::size_t count, std::size_t required);
 
     void update_debug_statuses(int measurement_id,
                                const UpdateResult& update_result);
+
+    double current_ekf_speed() const;
 
     mutable std::mutex mutex_;
 
@@ -284,6 +325,10 @@ class EkfManager
     double gz_sum_ = 0.0;
     double ax_sum_ = 0.0;
     double ay_sum_ = 0.0;
+
+    // stationary gnss member variables
+    Eigen::Vector3d gnss1_origin_lla_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d gnss2_origin_lla_ = Eigen::Vector3d::Zero();
 
     // corrected imu values
     double corrected_yaw_rate_vehicle_frd_ = 0.0;
@@ -311,6 +356,8 @@ class EkfManager
     double gnss2_vel_update_sigma_floor_ = 0.2;
     double gnss2_pos_update_sigma_floor_ = 1.5;
 
+    bool zero_lat_update_enabled_ = false;
+
     double zero_lat_base_sigma_ = 0.20;
     double zero_lat_disabled_sigma_ = 6.0;
     double zero_lat_yaw_rate_gain_ = 15.0;
@@ -333,6 +380,7 @@ class EkfManager
     // GNSS course-over-ground alignment
     bool alpha_course_aligned_ = false;
     double alpha_alignment_min_speed_ = 1.0;
+    double gnss_initial_heading_ned_ = 0.0;
 
     // Stationary detection
     double stationary_gyro_z_threshold_ = 0.05;
@@ -368,6 +416,34 @@ class EkfManager
     bool gnss2_vel_update_accepted_ = false;
     bool gnss2_pos_update_accepted_ = false;
 
+    // gnss1 debug values
+    double last_gnss1_speed_ = 0.0;
+    double last_ekf_speed_gnss1_ = 0.0;
+    bool last_gnss1_speed_valid_ = false;
+
+    double last_gnss1_vn_ = 0.0;
+    double last_gnss1_ve_ = 0.0;
+    double last_gnss1_vd_ = 0.0;
+    bool last_gnss1_vel_valid_ = false;
+
+    double last_gnss1_pn_ = 0.0;
+    double last_gnss1_pe_ = 0.0;
+    bool last_gnss1_pos_valid_ = false;
+
+    // gnss2 debug values
+    double last_gnss2_speed_ = 0.0;
+    double last_ekf_speed_gnss2_ = 0.0;
+    bool last_gnss2_speed_valid_ = false;
+
+    double last_gnss2_vn_ = 0.0;
+    double last_gnss2_ve_ = 0.0;
+    double last_gnss2_vd_ = 0.0;
+    bool last_gnss2_vel_valid_ = false;
+
+    double last_gnss2_pn_ = 0.0;
+    double last_gnss2_pe_ = 0.0;
+    bool last_gnss2_pos_valid_ = false;
+
     // NIS/gate
     double zero_vel_nis_ = 0.0;
     double zero_vel_gate_ = 0.0;
@@ -389,6 +465,21 @@ class EkfManager
     double gnss2_pos_nis_ = 0.0;
     double gnss2_pos_gate_ = 0.0;
 
+    // residuals
+    double zero_lat_vel_residual_ = 0.0;
+
+    double gnss1_speed_residual_ = 0.0;
+    double gnss1_vel_ned_n_residual_ = 0.0;
+    double gnss1_vel_ned_e_residual_ = 0.0;
+    double gnss1_pos_ned_n_residual_ = 0.0;
+    double gnss1_pos_ned_e_residual_ = 0.0;
+
+    double gnss2_speed_residual_ = 0.0;
+    double gnss2_vel_ned_n_residual_ = 0.0;
+    double gnss2_vel_ned_e_residual_ = 0.0;
+    double gnss2_pos_ned_n_residual_ = 0.0;
+    double gnss2_pos_ned_e_residual_ = 0.0;
+
     // dynamic sigma
     double zero_lat_vel_sigma_used_ = 0.0;
 
@@ -402,6 +493,7 @@ class EkfManager
 
     // GNSS stale timeout
     double gnss_stale_timeout_s_ = 0.5;
+    std::optional<uint64_t> last_dual_gnss_time_startup_ns_;
 
     EkfOutput latest_output_;
     EkfDebugSnapshot latest_debug_snapshot_;
