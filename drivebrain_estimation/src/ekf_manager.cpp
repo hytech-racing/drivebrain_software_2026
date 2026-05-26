@@ -281,6 +281,8 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
     UpdateResult vel_update_result;
     UpdateResult pos_update_result;
 
+    UpdateResult default_false_result;
+
     if (antenna_id == AntennaId::GNSS1)
     {
         speed_meas_id = MeasurementId::GNSS1_SPEED_MAG;
@@ -304,11 +306,12 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
     else
     {
         spdlog::warn("UNKNOWN ANTENNA ID");
-        update_debug_statuses(speed_meas_id, speed_update_result);
-        update_debug_statuses(vel_meas_id, vel_update_result);
-        update_debug_statuses(pos_meas_id, pos_update_result);
         return false;
     }
+
+    update_debug_statuses(speed_meas_id, default_false_result);
+    update_debug_statuses(vel_meas_id, default_false_result);
+    update_debug_statuses(pos_meas_id, default_false_result);
 
     if (!gnss_init_done)
     {
@@ -411,6 +414,7 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
             }
             // -----ALPHA course over ground alignment-----
         }
+
         else
         {
             // -----VELOCITY update-----
