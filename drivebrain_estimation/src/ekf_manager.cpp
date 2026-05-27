@@ -73,7 +73,9 @@ void EkfManager::load_config(const EkfManagerConfig& config)
         config.gnss2_stationary_required_samples;
 
     stationary_gyro_z_threshold_ = config.stationary_gyro_z_threshold;
-    stationary_accel_xy_threshold_ = config.stationary_accel_xy_threshold;
+    stationary_accel_threshold_ = config.stationary_accel_threshold;
+    stationary_speed_threshold_m_s_ = config.stationary_speed_threshold_m_s;
+    stationary_required_samples_ = config.stationary_required_samples;
 
     zero_lat_min_speed_ = config.zero_lat_min_speed;
     gnss_velocity_ned_min_speed_ = config.gnss_velocity_ned_min_speed;
@@ -173,6 +175,7 @@ void EkfManager::hard_reset()
     gnss_initial_heading_ned_ = 0.0;
     last_imu_dt_s_ = 0.0;
 
+    stationary_count_ = 0;
     stationary_detected_ = false;
 
     gnss1_origin_lla_.setZero();
@@ -342,7 +345,7 @@ EkfStepResult EkfManager::handle_imu(const ImuSample& sample)
     result.has_state = true;
     result.state = latest_output_;
 
-    stationary_detected_ = is_stationary();
+    stationary_detected_ = is_stationary(sample);
 
     UpdateResult stationary_update_result;
     if (stationary_detected_)
@@ -748,24 +751,46 @@ EkfStepResult EkfManager::handle_ins(const InsSample& sample)
     return result;
 }
 
-bool EkfManager::is_stationary()
+bool EkfManager::is_stationary(const ImuSample& imu)
 {
     const bool gyro_is_stationary = std::abs(corrected_yaw_rate_vehicle_frd_) <
                                     stationary_gyro_z_threshold_;
-    const bool accel_x_is_stationary =
-        std::abs(corrected_accel_x_vehicle_frd_) <
-        stationary_accel_xy_threshold_;
-    const bool accel_y_is_stationary =
-        std::abs(corrected_accel_y_vehicle_frd_) <
-        stationary_accel_xy_threshold_;
+
+    const double a_norm = std::sqrt(imu.ax_frd_m_s2 * imu.ax_frd_m_s2 +
+                                    imu.ay_frd_m_s2 * imu.ay_frd_m_s2 +
+                                    imu.az_frd_m_s2 * imu.az_frd_m_s2);
+
+    const bool accel_is_stationary =
+        std::abs(a_norm - 9.81) < stationary_accel_threshold_;
 
     const bool gnss1_is_stationary =
-        (!last_gnss1_speed_valid_) || std::abs(last_gnss1_speed_) < 0.25;
+        (!last_gnss1_speed_valid_) ||
+        std::abs(last_gnss1_speed_) < stationary_speed_threshold_m_s_;
     const bool gnss2_is_stationary =
-        (!last_gnss2_speed_valid_) || std::abs(last_gnss2_speed_) < 0.25;
+        (!last_gnss2_speed_valid_) ||
+        std::abs(last_gnss2_speed_) < stationary_speed_threshold_m_s_;
 
-    return gyro_is_stationary && accel_x_is_stationary &&
-           accel_y_is_stationary && gnss1_is_stationary && gnss2_is_stationary;
+    const bool both_gnss_invalid =
+        (!last_gnss1_speed_valid_) && (!last_gnss2_speed_valid_);
+    const bool ekf_speed_is_stationary =
+        current_ekf_speed() < stationary_speed_threshold_m_s_;
+
+    const bool overall_stationary =
+        gyro_is_stationary && accel_is_stationary && gnss1_is_stationary &&
+        gnss2_is_stationary &&
+        (!both_gnss_invalid || ekf_speed_is_stationary);
+
+    if (overall_stationary)
+    {
+        stationary_count_ = std::min(stationary_count_ + 1,
+                                     stationary_required_samples_);
+    }
+    else
+    {
+        stationary_count_ = 0;
+    }
+
+    return stationary_count_ == stationary_required_samples_;
 }
 
 double EkfManager::compute_zero_lat_sigma(const ImuSample& imu)

@@ -565,7 +565,7 @@ void VNDriver::_handle_bo1_imu_packet(Packet& packet, TimeStamp ts)
 
     core::StateTracker::instance().handle_receive_protobuf_message(msg);
     core::StateTracker::instance().handle_receive_protobuf_message(ypr_msg);
-    
+
     // call Ekf manager
     htx_ekf::ImuSample raw_vehicle_aligned_frd_imu_sample;
 
@@ -574,6 +574,8 @@ void VNDriver::_handle_bo1_imu_packet(Packet& packet, TimeStamp ts)
 
     raw_vehicle_aligned_frd_imu_sample.ax_frd_m_s2 = uncomp_accel_vehicle_frd.x;
     raw_vehicle_aligned_frd_imu_sample.ay_frd_m_s2 = uncomp_accel_vehicle_frd.y;
+    raw_vehicle_aligned_frd_imu_sample.az_frd_m_s2 = uncomp_accel_vehicle_frd.z;
+
     raw_vehicle_aligned_frd_imu_sample.gz_frd_rad_s = uncomp_gyro_vehicle_frd.z;
 
     if (_ekf_manager)

@@ -207,9 +207,15 @@ htx_ekf::EkfManagerConfig load_ekf_manager_config_from_params()
     config.stationary_gyro_z_threshold =
         try_get_ekf_double_param("htx_ekf/stationary_gyro_z_threshold",
                                  config.stationary_gyro_z_threshold);
-    config.stationary_accel_xy_threshold =
-        try_get_ekf_double_param("htx_ekf/stationary_accel_xy_threshold",
-                                 config.stationary_accel_xy_threshold);
+    config.stationary_accel_threshold =
+        try_get_ekf_double_param("htx_ekf/stationary_accel_threshold",
+                                 config.stationary_accel_threshold);
+    config.stationary_speed_threshold_m_s =
+        try_get_ekf_double_param("htx_ekf/stationary_speed_threshold_m_s",
+                                 config.stationary_speed_threshold_m_s);
+    config.stationary_required_samples =
+        try_get_ekf_size_param("htx_ekf/stationary_required_samples",
+                               config.stationary_required_samples);
 
     config.zero_lat_min_speed = try_get_ekf_double_param(
         "htx_ekf/zero_lat_min_speed", config.zero_lat_min_speed);

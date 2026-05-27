@@ -17,6 +17,7 @@ struct ImuSample
     // vehicle aligned FRD
     double ax_frd_m_s2 = 0.0;
     double ay_frd_m_s2 = 0.0;
+    double az_frd_m_s2 = 0.0;
     double gz_frd_rad_s = 0.0;
 };
 

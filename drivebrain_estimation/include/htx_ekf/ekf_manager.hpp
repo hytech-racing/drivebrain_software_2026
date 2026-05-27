@@ -98,7 +98,9 @@ struct EkfManagerConfig
 
     // Stationary detection
     double stationary_gyro_z_threshold = 0.05;
-    double stationary_accel_xy_threshold = 0.50;
+    double stationary_accel_threshold = 0.50;
+    double stationary_speed_threshold_m_s = 0.25;
+    std::size_t stationary_required_samples = 25;
 
     // Measurement enable thresholds
     double zero_lat_min_speed = 1.0;
@@ -273,7 +275,7 @@ class EkfManager
     void handle_imu_stationary_init(const ImuSample& imu);
     void handle_gnss_stationary_init(GnssSample& sample, int antenna_id);
 
-    bool is_stationary();
+    bool is_stationary(const ImuSample& imu);
 
     bool handle_single_gnss(EkfStepResult& result, GnssSample& sample,
                             double gnss_speed_sigma, double gnss_vel_sigma,
@@ -386,7 +388,11 @@ class EkfManager
 
     // Stationary detection
     double stationary_gyro_z_threshold_ = 0.05;
-    double stationary_accel_xy_threshold_ = 0.50;
+    double stationary_accel_threshold_ = 0.50;
+    double stationary_speed_threshold_m_s_ = 0.25;
+
+    std::size_t stationary_count_ = 0;
+    std::size_t stationary_required_samples_ = 25;
     bool stationary_detected_ = false;
 
     // GNSS uncertainty behavior
