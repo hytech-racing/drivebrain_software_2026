@@ -40,19 +40,24 @@ void core::DrivebrainControllerInterface::_handle_parameter_updates(const std::u
 
     spdlog::info("Entering drivebrain controller interface parameter updates.");
     
-    // TODO update this
-    if (auto pval = std::get_if<bool>(&new_params.at("drivebraincontrollerinterface/should_log"))) {
-        bool should_log = *pval;
-        if (should_log) {
-            _request_start_logging();
-        } else {
-            _request_stop_logging();
+    if (auto should_log_it = new_params.find("drivebraincontrollerinterface/should_log");
+        should_log_it != new_params.end()) {
+        if (auto pval = std::get_if<bool>(&should_log_it->second)) {
+            bool should_log = *pval;
+            if (should_log) {
+                _request_start_logging();
+            } else {
+                _request_stop_logging();
+            }
         }
     }
 
-    if (auto pval = std::get_if<int>(&new_params.at("drivebraincontrollerinterface/controller_index"))) {
-        int controller_index = *pval;
-        _request_controller_change(controller_index);
+    if (auto controller_index_it = new_params.find("drivebraincontrollerinterface/controller_index");
+        controller_index_it != new_params.end()) {
+        if (auto pval = std::get_if<int>(&controller_index_it->second)) {
+            int controller_index = *pval;
+            _request_controller_change(controller_index);
+        }
     }
 
     spdlog::info("Exiting drivebrain controller interface parameter updates.");
@@ -100,7 +105,6 @@ void core::DrivebrainControllerInterface::_request_controller_change(int control
     }
 
 }
-
 
 
 

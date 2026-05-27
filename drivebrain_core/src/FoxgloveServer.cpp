@@ -193,11 +193,14 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name)
             const std::optional<std::string>& request_id,
             foxglove::ConnHandle clientHandle)
     {
+        const auto clientStr = _server->remoteEndpointString(clientHandle);
+        const auto handler_start = std::chrono::steady_clock::now();
         spdlog::info(
-            "PARAM_CHANGE_HANDLER enter: count={}, request_id_present={}",
-            params.size(), request_id.has_value());
+            "PARAM_CHANGE_HANDLER enter: client={}, count={}, request_id_present={}",
+            clientStr, params.size(), request_id.has_value());
 
-        std::unordered_map<std::string, DBParam> param_copy;
+        std::unordered_map<std::string, DBParam> changed_params;
+        changed_params.reserve(params.size());
         {
             std::unique_lock lock(_parameter_mutex);
             for (const auto& incoming_param : params)
@@ -231,18 +234,39 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name)
 
                     auto value = _get_db_param(converted_param.value());
                     _foxglove_params_map[incoming_param.getName()] = value;
+                    changed_params[incoming_param.getName()] = value;
                 }
             }
-            param_copy = _foxglove_params_map;
         }
+
+        const auto update_done = std::chrono::steady_clock::now();
+
         MCAPLogger::instance().log_params(
             get_all_params()); /* Needed for showing param updates in the
                                   outputted MCAP file */
+
+        const auto mcap_done = std::chrono::steady_clock::now();
         try
         {
-            spdlog::info("PARAM_SIGNAL_EMIT begin");
-            _param_update_signal(param_copy);
-            spdlog::info("PARAM_SIGNAL_EMIT end");
+            spdlog::info("PARAM_SIGNAL_EMIT begin: changed_count={}",
+                         changed_params.size());
+            _param_update_signal(changed_params);
+            const auto emit_done = std::chrono::steady_clock::now();
+            spdlog::info(
+                "PARAM_SIGNAL_EMIT end: client={}, map_update_ms={}, mcap_ms={}, emit_ms={}, total_ms={}",
+                clientStr,
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    update_done - handler_start)
+                    .count(),
+                std::chrono::duration_cast<std::chrono::milliseconds>(mcap_done -
+                                                                       update_done)
+                    .count(),
+                std::chrono::duration_cast<std::chrono::milliseconds>(emit_done -
+                                                                       mcap_done)
+                    .count(),
+                std::chrono::duration_cast<std::chrono::milliseconds>(emit_done -
+                                                                       handler_start)
+                    .count());
         }
         catch (const std::exception& e)
         {
@@ -255,10 +279,12 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name)
                const std::optional<std::string>& request_id,
                foxglove::ConnHandle clientHandle)
     {
+        const auto clientStr = _server->remoteEndpointString(clientHandle);
+        const auto request_start = std::chrono::steady_clock::now();
         spdlog::info(
-            "PARAM_REQUEST_HANDLER enter: names_count={}, "
+            "PARAM_REQUEST_HANDLER enter: client={}, names_count={}, "
             "request_id_present={}",
-            param_names.size(), request_id.has_value());
+            clientStr, param_names.size(), request_id.has_value());
 
         std::vector<foxglove::Parameter> foxglove_params;
 
@@ -278,11 +304,18 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name)
             }
         }
 
-        spdlog::info("PARAM_REQUEST_HANDLER publish: count={}",
-                     foxglove_params.size());
+        spdlog::info("PARAM_REQUEST_HANDLER publish: client={}, count={}",
+                     clientStr, foxglove_params.size());
 
         _server->publishParameterValues(clientHandle, foxglove_params,
                                         request_id);
+
+        const auto request_done = std::chrono::steady_clock::now();
+        spdlog::info("PARAM_REQUEST_HANDLER done: client={}, total_ms={}",
+                     clientStr,
+                     std::chrono::duration_cast<std::chrono::milliseconds>(
+                         request_done - request_start)
+                         .count());
     };
 
     std::vector<std::string> proto_names = {"hytech_msgs.proto",
