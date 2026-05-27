@@ -2,6 +2,8 @@
 #include <MCAPLogger.hpp>
 #include <MatlabModelAddHelper.hpp>
 #include <boost/asio.hpp>
+#include <boost/signals2/connection.hpp>
+#include <boost/signals2/shared_connection_block.hpp>
 #include <foxglove/websocket/base64.hpp>
 #include <memory>
 
@@ -76,4 +78,6 @@ class DrivebrainApp
 
     /* Ekf Manager */
     std::shared_ptr<htx_ekf::EkfManager> _ekf_manager;
+    int _last_ekf_reset_request;
+    boost::signals2::connection _ekf_reset_param_conn;
 };

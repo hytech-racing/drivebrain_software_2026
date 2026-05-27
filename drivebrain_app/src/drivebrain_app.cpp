@@ -254,6 +254,71 @@ void DrivebrainApp::run()
 
     spdlog::info("Constructed EKF manager");
 
+    _last_ekf_reset_request = core::FoxgloveServer::instance()
+                                  .get_param<int>("htx_ekf/reset_request_id")
+                                  .value_or(0);
+
+    _ekf_reset_param_conn =
+        core::FoxgloveServer::instance().register_param_callback(
+            [this](const std::unordered_map<std::string, core::DBParam>&
+                       params) mutable
+            {
+                spdlog::info(
+                    "*********I is in the EKF reset callback*********");
+                const auto it = params.find("htx_ekf/reset_request_id");
+
+                if (it == params.end())
+                {
+                    spdlog::info("EKF callback: reset key missing this cycle");
+                    return;
+                }
+
+                int request_id = _last_ekf_reset_request;
+                bool parsed = false;
+
+                if (const auto as_int = std::get_if<int>(&it->second))
+                {
+                    request_id = *as_int;
+                    parsed = true;
+                }
+                else if (const auto as_float = std::get_if<float>(&it->second))
+                {
+                    request_id = static_cast<int>(*as_float);
+                    parsed = true;
+                }
+                if (!parsed)
+                {
+                    spdlog::warn(
+                        "Ignoring htx_ekf/reset_request_id with unsupported "
+                        "type");
+                    return;
+                }
+                if (request_id < 0)
+                {
+                    spdlog::warn(
+                        "Ignoring negative htx_ekf/reset_request_id={}",
+                        request_id);
+                    return;
+                }
+
+                spdlog::info("EKF hard reset request id: {}", request_id);
+                spdlog::info("EKF hard reset last request id: {}",
+                             _last_ekf_reset_request);
+
+                if (request_id != _last_ekf_reset_request)
+                {
+                    spdlog::warn("EKF hard reset requested: {} -> {}",
+                                 _last_ekf_reset_request, request_id);
+                    if (_ekf_manager)
+                    {
+                        _ekf_manager->hard_reset();
+                    }
+                    _last_ekf_reset_request = request_id;
+                }
+            });
+
+    spdlog::info("Registered EKF reset param callback");
+
     core::MCAPLogger::instance().open_new_mcap();
     core::MCAPLogger::instance().init_logging();
 

@@ -259,6 +259,8 @@ class EkfManager
 
     EkfOutput get_latest_output() const;
 
+    void hard_reset();
+
    private:
     void load_config(const EkfManagerConfig& config);
     void load_ekf_proc_config(const EkfProcConfig& config);

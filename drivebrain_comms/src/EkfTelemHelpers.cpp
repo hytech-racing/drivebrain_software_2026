@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "StateTracker.hpp"
 #include "Telemetry.hpp"
 #include "htx_ekf/ekf_manager.hpp"
 #include "hytech_msgs.pb.h"
@@ -227,6 +228,8 @@ void publish_ekf_step_result(const htx_ekf::EkfStepResult& result)
 
         core::log(
             std::static_pointer_cast<google::protobuf::Message>(state_msg));
+        core::StateTracker::instance().handle_receive_protobuf_message(
+            state_msg);
     }
 
     if (result.has_debug_snapshot)

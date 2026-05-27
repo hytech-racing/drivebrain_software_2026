@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cerrno>
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -257,8 +258,9 @@ void VNDriver::_configure_binary_outputs()
         (CommonGroup::COMMONGROUP_YAWPITCHROLL),  // Note use of binary OR to
                                                   // configure flags.
         TimeGroup::TIMEGROUP_TIMESTARTUP,
-        (ImuGroup::IMUGROUP_UNCOMPACCEL | ImuGroup::IMUGROUP_UNCOMPGYRO),
-        GpsGroup::GPSGROUP_NONE, AttitudeGroup::ATTITUDEGROUP_NONE,
+        (ImuGroup::IMUGROUP_UNCOMPACCEL | ImuGroup::IMUGROUP_UNCOMPGYRO |
+         ImuGroup::IMUGROUP_ACCEL | ImuGroup::IMUGROUP_ANGULARRATE),
+        GpsGroup::GPSGROUP_NONE, AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY,
         (InsGroup::INSGROUP_NONE), GpsGroup::GPSGROUP_NONE);
 
     boost::asio::write(_serial,
@@ -393,9 +395,10 @@ bool VNDriver::_is_bo1_imu_packet(Packet& packet) const
     const auto common_groups = CommonGroup::COMMONGROUP_YAWPITCHROLL;
     const auto time_groups = TimeGroup::TIMEGROUP_TIMESTARTUP;
     const auto imu_groups =
-        ImuGroup::IMUGROUP_UNCOMPACCEL | ImuGroup::IMUGROUP_UNCOMPGYRO;
+        ImuGroup::IMUGROUP_UNCOMPACCEL | ImuGroup::IMUGROUP_UNCOMPGYRO |
+        ImuGroup::IMUGROUP_ACCEL | ImuGroup::IMUGROUP_ANGULARRATE;
     const auto gps_groups = GpsGroup::GPSGROUP_NONE;
-    const auto attitude_groups = AttitudeGroup::ATTITUDEGROUP_NONE;
+    const auto attitude_groups = AttitudeGroup::ATTITUDEGROUP_LINEARACCELBODY;
     const auto ins_groups = InsGroup::INSGROUP_NONE;
 
     return packet.isCompatible(common_groups, time_groups, imu_groups,
@@ -450,6 +453,9 @@ void VNDriver::_handle_bo1_imu_packet(Packet& packet, TimeStamp ts)
     auto time_startup_ns = packet.extractUint64();
     auto uncomp_accel = packet.extractVec3f();
     auto uncomp_gyro = packet.extractVec3f();
+    auto comp_accel = packet.extractVec3f();
+    auto comp_angular_rate = packet.extractVec3f();
+    auto comp_no_gravity_linear_accel = packet.extractVec3f();
 
     double dt_s = 0.0f;
 
@@ -463,33 +469,87 @@ void VNDriver::_handle_bo1_imu_packet(Packet& packet, TimeStamp ts)
 
     _last_bo1_time_startup_ns = time_startup_ns;
 
-    const Vec3 accel_sensor_frd{
+    const Vec3 uncomp_accel_sensor_frd{
         .x = uncomp_accel.x, .y = uncomp_accel.y, .z = uncomp_accel.z};
 
-    const Vec3 gyro_sensor_frd{
+    const Vec3 uncomp_gyro_sensor_frd{
         .x = uncomp_gyro.x, .y = uncomp_gyro.y, .z = uncomp_gyro.z};
 
-    const Vec3 accel_vehicle_frd = sensor_frd_to_vehicle_frd(accel_sensor_frd);
-    const Vec3 gyro_vehicle_frd = sensor_frd_to_vehicle_frd(gyro_sensor_frd);
+    const Vec3 uncomp_accel_vehicle_frd =
+        sensor_frd_to_vehicle_frd(uncomp_accel_sensor_frd);
+    const Vec3 uncomp_gyro_vehicle_frd =
+        sensor_frd_to_vehicle_frd(uncomp_gyro_sensor_frd);
 
-    const Vec3 accel_vehicle_flu =
-        vehicle_frd_to_vehicle_flu(accel_vehicle_frd);
-    const Vec3 gyro_vehicle_flu = vehicle_frd_to_vehicle_flu(gyro_vehicle_frd);
+    const Vec3 uncomp_accel_vehicle_flu =
+        vehicle_frd_to_vehicle_flu(uncomp_accel_vehicle_frd);
+    const Vec3 uncomp_gyro_vehicle_flu =
+        vehicle_frd_to_vehicle_flu(uncomp_gyro_vehicle_frd);
 
-    auto msg = std::make_shared<hytech_msgs::VnRawImuData>();
+    const Vec3 comp_accel_sensor_frd{
+        .x = comp_accel.x, .y = comp_accel.y, .z = comp_accel.z};
+    const Vec3 comp_angular_rate_sensor_frd{.x = comp_angular_rate.x,
+                                            .y = comp_angular_rate.y,
+                                            .z = comp_angular_rate.z};
+
+    const Vec3 comp_accel_vehicle_frd =
+        sensor_frd_to_vehicle_frd(comp_accel_sensor_frd);
+    const Vec3 comp_angular_rate_vehicle_frd =
+        sensor_frd_to_vehicle_frd(comp_angular_rate_sensor_frd);
+
+    const Vec3 comp_accel_vehicle_flu =
+        vehicle_frd_to_vehicle_flu(comp_accel_vehicle_frd);
+    const Vec3 comp_angular_rate_vehicle_flu =
+        vehicle_frd_to_vehicle_flu(comp_angular_rate_vehicle_frd);
+
+    const Vec3 comp_no_gravity_accel_sensor_frd = {
+        .x = comp_no_gravity_linear_accel.x,
+        .y = comp_no_gravity_linear_accel.y,
+        .z = comp_no_gravity_linear_accel.z};
+
+    const Vec3 comp_no_gravity_accel_vehicle_frd =
+        sensor_frd_to_vehicle_frd(comp_no_gravity_accel_sensor_frd);
+
+    const Vec3 comp_no_gravity_accel_vehicle_flu =
+        vehicle_frd_to_vehicle_flu(comp_no_gravity_accel_vehicle_frd);
+
+    auto msg = std::make_shared<hytech_msgs::VnImuData>();
 
     msg->set_host_timestamp_ns(current_time_ns);
     msg->set_vn_time_startup_ns(time_startup_ns);
 
     msg->set_dt_s(dt_s);
 
-    set_xyz(msg->mutable_uncomp_accel_sensor_frd_m_ss(), accel_sensor_frd);
-    set_xyz(msg->mutable_uncomp_accel_vehicle_frd_m_ss(), accel_vehicle_frd);
-    set_xyz(msg->mutable_uncomp_accel_vehicle_flu_m_ss(), accel_vehicle_flu);
+    set_xyz(msg->mutable_uncomp_accel_sensor_frd_m_ss(),
+            uncomp_accel_sensor_frd);
+    set_xyz(msg->mutable_uncomp_accel_vehicle_frd_m_ss(),
+            uncomp_accel_vehicle_frd);
+    set_xyz(msg->mutable_uncomp_accel_vehicle_flu_m_ss(),
+            uncomp_accel_vehicle_flu);
 
-    set_xyz(msg->mutable_uncomp_gyro_sensor_frd_rad_s(), gyro_sensor_frd);
-    set_xyz(msg->mutable_uncomp_gyro_vehicle_frd_rad_s(), gyro_vehicle_frd);
-    set_xyz(msg->mutable_uncomp_gyro_vehicle_flu_rad_s(), gyro_vehicle_flu);
+    set_xyz(msg->mutable_uncomp_gyro_sensor_frd_rad_s(),
+            uncomp_gyro_sensor_frd);
+    set_xyz(msg->mutable_uncomp_gyro_vehicle_frd_rad_s(),
+            uncomp_gyro_vehicle_frd);
+    set_xyz(msg->mutable_uncomp_gyro_vehicle_flu_rad_s(),
+            uncomp_gyro_vehicle_flu);
+
+    set_xyz(msg->mutable_comp_accel_sensor_frd_m_ss(), comp_accel_sensor_frd);
+    set_xyz(msg->mutable_comp_accel_vehicle_frd_m_ss(), comp_accel_vehicle_frd);
+    set_xyz(msg->mutable_comp_accel_vehicle_flu_m_ss(), comp_accel_vehicle_flu);
+
+    set_xyz(msg->mutable_comp_gyro_sensor_frd_rad_s(),
+            comp_angular_rate_sensor_frd);
+    set_xyz(msg->mutable_comp_gyro_vehicle_frd_rad_s(),
+            comp_angular_rate_vehicle_frd);
+    set_xyz(msg->mutable_comp_gyro_vehicle_flu_rad_s(),
+            comp_angular_rate_vehicle_flu);
+
+    set_xyz(msg->mutable_comp_no_gravity_accel_sensor_frd_m_ss(),
+            comp_no_gravity_accel_sensor_frd);
+    set_xyz(msg->mutable_comp_no_gravity_accel_vehicle_frd_m_ss(),
+            comp_no_gravity_accel_vehicle_frd);
+    set_xyz(msg->mutable_comp_no_gravity_accel_vehicle_flu_m_ss(),
+            comp_no_gravity_accel_vehicle_flu);
 
     auto ypr_msg = std::make_shared<hytech_msgs::VnYprData>();
 
@@ -503,15 +563,18 @@ void VNDriver::_handle_bo1_imu_packet(Packet& packet, TimeStamp ts)
     core::log(std::static_pointer_cast<google::protobuf::Message>(msg));
     core::log(std::static_pointer_cast<google::protobuf::Message>(ypr_msg));
 
+    core::StateTracker::instance().handle_receive_protobuf_message(msg);
+    core::StateTracker::instance().handle_receive_protobuf_message(ypr_msg);
+    
     // call Ekf manager
     htx_ekf::ImuSample raw_vehicle_aligned_frd_imu_sample;
 
     raw_vehicle_aligned_frd_imu_sample.time_startup_ns = time_startup_ns;
     raw_vehicle_aligned_frd_imu_sample.dt_s = dt_s;
 
-    raw_vehicle_aligned_frd_imu_sample.ax_frd_m_s2 = accel_vehicle_frd.x;
-    raw_vehicle_aligned_frd_imu_sample.ay_frd_m_s2 = accel_vehicle_frd.y;
-    raw_vehicle_aligned_frd_imu_sample.gz_frd_rad_s = gyro_vehicle_frd.z;
+    raw_vehicle_aligned_frd_imu_sample.ax_frd_m_s2 = uncomp_accel_vehicle_frd.x;
+    raw_vehicle_aligned_frd_imu_sample.ay_frd_m_s2 = uncomp_accel_vehicle_frd.y;
+    raw_vehicle_aligned_frd_imu_sample.gz_frd_rad_s = uncomp_gyro_vehicle_frd.z;
 
     if (_ekf_manager)
     {
@@ -585,6 +648,9 @@ void VNDriver::_handle_bo2_gnss_packet(Packet& packet, TimeStamp ts)
 
     core::log(
         std::static_pointer_cast<google::protobuf::Message>(dual_gnss_msg));
+
+    core::StateTracker::instance().handle_receive_protobuf_message(
+        dual_gnss_msg);
 }
 
 void VNDriver::_handle_bo3_ins_packet(Packet& packet, TimeStamp ts)
@@ -593,22 +659,40 @@ void VNDriver::_handle_bo3_ins_packet(Packet& packet, TimeStamp ts)
 
     auto time_startup_ns = packet.extractUint64();
 
-    uint16_t ins_status = packet.extractUint16();
+    uint16_t raw_ins_status = packet.extractUint16();
     auto pos_lla = packet.extractVec3d();
     auto vel_body = packet.extractVec3f();
     auto vel_ned = packet.extractVec3f();
     auto posu = packet.extractFloat();
     auto velu = packet.extractFloat();
 
-    auto msg = std::make_shared<hytech_msgs::VnInsData>();
+    auto ins_msg = std::make_shared<hytech_msgs::VnInsData>();
 
-    msg->set_timestamp_ns(current_time_ns);
+    ins_msg->set_timestamp_ns(current_time_ns);
 
-    msg->set_ins_status(ins_status);
+    auto ins_status_msg = ins_msg->mutable_ins_status();
+    const uint8_t mode = raw_ins_status & 0x3;
+    ins_status_msg->set_ins_mode(static_cast<hytech_msgs::INSMode>(mode));
+    ins_status_msg->set_ins_mode_int(mode);
 
-    msg->set_lat_deg(pos_lla.x);
-    msg->set_lon_deg(pos_lla.y);
-    msg->set_alt_m(pos_lla.z);
+    ins_status_msg->set_gnss_fix(((raw_ins_status >> 2) & 0x1) != 0);
+
+    const uint8_t err = (raw_ins_status >> 3) & 0xF;
+    ins_status_msg->set_error_imu(((err >> 1) & 0x1) != 0);
+    ins_status_msg->set_error_mag_pres(((err >> 2) & 0x1) != 0);
+    ins_status_msg->set_error_gnss(((err >> 3) & 0x1) != 0);
+
+    ins_status_msg->set_gnss_heading_ins(((raw_ins_status >> 8) & 0x1) != 0);
+
+    ins_status_msg->set_gnss_compass(((raw_ins_status >> 9) & 0x1) != 0);
+
+    ins_status_msg->set_ins_vel_u(velu);
+
+    // msg->set_ins_status(ins_status);
+
+    ins_msg->set_lat_deg(pos_lla.x);
+    ins_msg->set_lon_deg(pos_lla.y);
+    ins_msg->set_alt_m(pos_lla.z);
 
     const Vec3 vel_body_sensor_frd{
         .x = vel_body.x, .y = vel_body.y, .z = vel_body.z};
@@ -617,17 +701,18 @@ void VNDriver::_handle_bo3_ins_packet(Packet& packet, TimeStamp ts)
     const Vec3 vel_body_vehicle_flu =
         vehicle_frd_to_vehicle_flu(vel_body_vehicle_frd);
 
-    set_xyz(msg->mutable_vel_body_sensor_frd_m_s(), vel_body_sensor_frd);
-    set_xyz(msg->mutable_vel_body_vehicle_frd_m_s(), vel_body_vehicle_frd);
-    set_xyz(msg->mutable_vel_body_vehicle_flu_m_s(), vel_body_vehicle_flu);
+    set_xyz(ins_msg->mutable_vel_body_sensor_frd_m_s(), vel_body_sensor_frd);
+    set_xyz(ins_msg->mutable_vel_body_vehicle_frd_m_s(), vel_body_vehicle_frd);
+    set_xyz(ins_msg->mutable_vel_body_vehicle_flu_m_s(), vel_body_vehicle_flu);
 
     const Vec3 vel_ned_vec{.x = vel_ned.x, .y = vel_ned.y, .z = vel_ned.z};
-    set_xyz(msg->mutable_vel_ned_m_s(), vel_ned_vec);
+    set_xyz(ins_msg->mutable_vel_ned_m_s(), vel_ned_vec);
 
-    msg->set_posu_m(posu);
-    msg->set_velu_m_s(velu);
+    ins_msg->set_posu_m(posu);
+    ins_msg->set_velu_m_s(velu);
 
-    core::log(std::static_pointer_cast<google::protobuf::Message>(msg));
+    core::log(std::static_pointer_cast<google::protobuf::Message>(ins_msg));
+    core::StateTracker::instance().handle_receive_protobuf_message(ins_msg);
 }
 
 ParsedGnss VNDriver::extract_gnss(Packet& packet)

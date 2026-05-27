@@ -152,6 +152,133 @@ void EkfManager::initialize_ekf()
     ekf_.reset(x0, P0);
 }
 
+void EkfManager::hard_reset()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    initialize_ekf();
+
+    imu_stationary_init_done_ = false;
+    gnss1_stationary_init_done_ = false;
+    gnss2_stationary_init_done_ = false;
+
+    ax_sum_ = 0.0;
+    ay_sum_ = 0.0;
+    gz_sum_ = 0.0;
+
+    imu_stationary_sample_count_ = 0;
+    gnss1_stationary_sample_count_ = 0;
+    gnss2_stationary_sample_count_ = 0;
+
+    alpha_course_aligned_ = false;
+    gnss_initial_heading_ned_ = 0.0;
+    last_imu_dt_s_ = 0.0;
+
+    stationary_detected_ = false;
+
+    gnss1_origin_lla_.setZero();
+    gnss2_origin_lla_.setZero();
+
+    last_imu_time_startup_ns_.reset();
+    last_dual_gnss_time_startup_ns_.reset();
+    last_debug_snapshot_publish_time_ns_.reset();
+
+    last_gnss1_pos_valid_ = false;
+    last_gnss1_speed_valid_ = false;
+    last_gnss1_vel_valid_ = false;
+
+    last_gnss2_pos_valid_ = false;
+    last_gnss2_speed_valid_ = false;
+    last_gnss2_vel_valid_ = false;
+
+    zero_vel_update_enabled_ = false;
+    zero_vel_update_accepted_ = false;
+
+    zero_lat_vel_update_enabled_ = false;
+    zero_lat_vel_update_accepted_ = false;
+
+    gnss1_speed_update_enabled_ = false;
+    gnss1_speed_update_accepted_ = false;
+    gnss1_vel_update_enabled_ = false;
+    gnss1_vel_update_accepted_ = false;
+    gnss1_pos_update_enabled_ = false;
+    gnss1_pos_update_accepted_ = false;
+
+    gnss2_speed_update_enabled_ = false;
+    gnss2_speed_update_accepted_ = false;
+    gnss2_vel_update_enabled_ = false;
+    gnss2_vel_update_accepted_ = false;
+    gnss2_pos_update_enabled_ = false;
+    gnss2_pos_update_accepted_ = false;
+
+    zero_lat_vel_residual_ = 0.0;
+
+    gnss1_speed_residual_ = 0.0;
+    gnss1_vel_ned_n_residual_ = 0.0;
+    gnss1_vel_ned_e_residual_ = 0.0;
+    gnss1_pos_ned_n_residual_ = 0.0;
+    gnss1_pos_ned_e_residual_ = 0.0;
+
+    gnss2_speed_residual_ = 0.0;
+    gnss2_vel_ned_n_residual_ = 0.0;
+    gnss2_vel_ned_e_residual_ = 0.0;
+    gnss2_pos_ned_n_residual_ = 0.0;
+    gnss2_pos_ned_e_residual_ = 0.0;
+
+    last_gnss1_speed_ = 0.0;
+    last_gnss1_vn_ = 0.0;
+    last_gnss1_ve_ = 0.0;
+    last_gnss1_vd_ = 0.0;
+    last_gnss1_pn_ = 0.0;
+    last_gnss1_pe_ = 0.0;
+
+    last_gnss2_speed_ = 0.0;
+    last_gnss2_vn_ = 0.0;
+    last_gnss2_ve_ = 0.0;
+    last_gnss2_vd_ = 0.0;
+    last_gnss2_pn_ = 0.0;
+    last_gnss2_pe_ = 0.0;
+
+    zero_vel_nis_ = 0.0;
+    zero_lat_vel_nis_ = 0.0;
+
+    gnss1_speed_nis_ = 0.0;
+    gnss1_vel_nis_ = 0.0;
+    gnss1_pos_nis_ = 0.0;
+
+    gnss2_speed_nis_ = 0.0;
+    gnss2_vel_nis_ = 0.0;
+    gnss2_pos_nis_ = 0.0;
+
+    gnss1_speed_gate_ = 0.0;
+    gnss1_vel_gate_ = 0.0;
+    gnss1_pos_gate_ = 0.0;
+
+    gnss2_speed_gate_ = 0.0;
+    gnss2_vel_gate_ = 0.0;
+    gnss2_pos_gate_ = 0.0;
+
+    zero_lat_vel_sigma_used_ = 0.0;
+
+    gnss1_speed_sigma_used_ = 0.0;
+    gnss1_vel_sigma_used_ = 0.0;
+    gnss1_pos_sigma_used_ = 0.0;
+
+    gnss2_speed_sigma_used_ = 0.0;
+    gnss2_vel_sigma_used_ = 0.0;
+    gnss2_pos_sigma_used_ = 0.0;
+
+    zero_lat_current_sigma_ = zero_lat_base_sigma_;
+
+    corrected_accel_x_vehicle_frd_ = 0.0;
+    corrected_accel_y_vehicle_frd_ = 0.0;
+    corrected_yaw_rate_vehicle_frd_ = 0.0;
+
+    update_ekf_output();
+    update_debug_snapshot();
+
+    spdlog::warn("EKF hard reset requested and performed");
+}
+
 EkfStepResult EkfManager::handle_imu(const ImuSample& sample)
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -1362,4 +1489,5 @@ void EkfManager::check_gnss_stale_status()
         return;
     }
 }
+
 }  // namespace htx_ekf

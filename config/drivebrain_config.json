@@ -232,6 +232,7 @@
         "stationary_accel_xy_threshold": 0.50,
         "zero_lat_min_speed": 1.0,
         "gnss_velocity_ned_min_speed": 1.0,
-        "gnss_stale_timeout_s": 0.5
+        "gnss_stale_timeout_s": 0.5,
+        "reset_request_id": 0
     }
 }
