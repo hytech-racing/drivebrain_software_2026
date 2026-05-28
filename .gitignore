@@ -18,3 +18,4 @@ build-*
 .cache
 compile_commands.json
 *.xz
+assets/objects/SpinyMouse.glb
