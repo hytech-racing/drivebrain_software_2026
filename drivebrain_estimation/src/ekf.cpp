@@ -306,8 +306,9 @@ UpdateResult Ekf::update_gnss_speed_magnitude(double speed_meas, double sigma,
 }
 
 UpdateResult Ekf::update_gnss_velocity_ned(
-    double v_n, double v_e, double imu_yaw_rate, double gnss_offset_x_frd,
-    double gnss_offset_y_frd, double sigma, double confidence_level)
+    double v_n, double v_e, double imu_yaw_rate, bool alpha_course_aligned,
+    double gnss_offset_x_frd, double gnss_offset_y_frd, double sigma,
+    double confidence_level)
 {
     UpdateResult update_result;
     if (!initialized_)
@@ -377,6 +378,12 @@ UpdateResult Ekf::update_gnss_velocity_ned(
     H(1, StateIndex::VY) = c;
     H(1, StateIndex::ALPHA) = vbx * c - vby * s;
 
+    if (alpha_course_aligned)
+    {
+        H(0, StateIndex::ALPHA) = 0.0;
+        H(1, StateIndex::ALPHA) = 0.0;
+    }
+
     Eigen::Matrix<double, 2, 2> R = Eigen::Matrix<double, 2, 2>::Identity();
     R *= sigma * sigma;
 
@@ -385,12 +392,10 @@ UpdateResult Ekf::update_gnss_velocity_ned(
     return update_result;
 }
 
-UpdateResult Ekf::update_gnss_position_ned(Eigen::Vector2d point_ned_2d,
-                                           double gnss_offset_x_frd,
-                                           double gnss_offset_y_frd,
-                                           double gnss_initial_heading_ned,
-                                           double sigma,
-                                           double confidence_level)
+UpdateResult Ekf::update_gnss_position_ned(
+    Eigen::Vector2d point_ned_2d, bool alpha_course_aligned,
+    double gnss_offset_x_frd, double gnss_offset_y_frd,
+    double gnss_initial_heading_ned, double sigma, double confidence_level)
 {
     UpdateResult update_result;
     if (!initialized_)
@@ -458,6 +463,12 @@ UpdateResult Ekf::update_gnss_position_ned(Eigen::Vector2d point_ned_2d,
 
     Eigen::Matrix<double, 2, 2> R = Eigen::Matrix<double, 2, 2>::Identity();
     R *= sigma * sigma;
+
+    if (alpha_course_aligned)
+    {
+        H(0, StateIndex::ALPHA) = 0.0;
+        H(1, StateIndex::ALPHA) = 0.0;
+    }
 
     update_result = update_generic(residual, H, R, confidence_level);
 

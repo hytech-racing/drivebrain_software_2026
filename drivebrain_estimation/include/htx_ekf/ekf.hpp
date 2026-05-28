@@ -133,15 +133,14 @@ class Ekf
                                              double confidence_level);
 
     UpdateResult update_gnss_velocity_ned(
-        double v_n, double v_e, double imu_yaw_rate, double gnss_offset_x_frd,
-        double gnss_offset_y_frd, double sigma, double confidence_level);
+        double v_n, double v_e, double imu_yaw_rate, bool alpha_course_aligned,
+        double gnss_offset_x_frd, double gnss_offset_y_frd, double sigma,
+        double confidence_level);
 
-    UpdateResult update_gnss_position_ned(Eigen::Vector2d point_ned_2d,
-                                          double gnss_offset_x_frd,
-                                          double gnss_offset_y_frd,
-                                          double gnss_initial_heading_ned,
-                                          double sigma,
-                                          double confidence_level);
+    UpdateResult update_gnss_position_ned(
+        Eigen::Vector2d point_ned_2d, bool alpha_course_aligned,
+        double gnss_offset_x_frd, double gnss_offset_y_frd,
+        double gnss_initial_heading_ned, double sigma, double confidence_level);
 
     // may want to constrain vy?
     void constrain_vy();

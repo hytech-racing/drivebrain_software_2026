@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <vector>
 
 #include "htx_ekf/ekf.hpp"
 #include "htx_ekf/math_utils.hpp"
@@ -82,6 +83,12 @@ void EkfManager::load_config(const EkfManagerConfig& config)
 
     gnss_stale_timeout_s_ = config.gnss_stale_timeout_s;
 
+    alpha_lock_required_samples_ = config.alpha_lock_required_samples;
+    alpha_gate_yaw_rate_max_rad_s_ = config.alpha_gate_yaw_rate_max_rad_s;
+    alpha_gate_lateral_accel_max_m_s2_ =
+        config.alpha_gate_lateral_accel_max_m_s2;
+    alpha_lock_spread_max_rad_ = config.alpha_lock_spread_max_rad;
+
     load_ekf_proc_config(config.proc);
 
     spdlog::info(
@@ -150,6 +157,8 @@ void EkfManager::initialize_ekf()
 {
     StateVec x0 = make_initial_state();
     StateMat P0 = make_initial_covariance();
+
+    alpha_candidates_.reserve(alpha_lock_required_samples_);
 
     ekf_.reset(x0, P0);
 }
@@ -275,6 +284,8 @@ void EkfManager::hard_reset()
     corrected_accel_x_vehicle_frd_ = 0.0;
     corrected_accel_y_vehicle_frd_ = 0.0;
     corrected_yaw_rate_vehicle_frd_ = 0.0;
+
+    alpha_candidates_.clear();
 
     update_ekf_output();
     update_debug_snapshot();
@@ -509,17 +520,22 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
 
         if (!alpha_course_aligned_)
         {
-            const StateVec& x_before = ekf_.state();
+            const bool straight_line_candidate =
+                likely_straight_line(gnss_speed_meas);
 
-            const double vx_body_before = x_before(StateIndex::VX);
-            const double vy_body_before = x_before(StateIndex::VY);
-            const double yaw_before = x_before(StateIndex::YAW);
-            const double ekf_speed_before = current_ekf_speed();
-
-            // -----ALPHA course over ground alignment-----
-            if (gnss_speed_meas >= alpha_alignment_min_speed_ &&
-                ekf_speed_before >= alpha_alignment_min_speed_)
+            if (!straight_line_candidate)
             {
+                alpha_candidates_.clear();
+            }
+            else if (alpha_candidates_.size() < alpha_lock_required_samples_)
+            {
+                const StateVec& x_before = ekf_.state();
+
+                const double vx_body_before = x_before(StateIndex::VX);
+                const double vy_body_before = x_before(StateIndex::VY);
+                const double yaw_before = x_before(StateIndex::YAW);
+                const double ekf_speed_before = current_ekf_speed();
+
                 const double course_ned = std::atan2(v_E, v_N);
                 const double course_body =
                     std::atan2(vy_body_before, vx_body_before);
@@ -527,21 +543,44 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
                 const double alpha_meas =
                     wrap_angle(course_ned - yaw_before - course_body);
 
-                StateVec x_new = x_before;
-                x_new(StateIndex::ALPHA) = alpha_meas;
-
-                StateMat P_new = ekf_.covariance();
-                P_new.row(StateIndex::ALPHA).setZero();
-                P_new.col(StateIndex::ALPHA).setZero();
-                P_new(StateIndex::ALPHA, StateIndex::ALPHA) = 0.2 * 0.2;
-
-                ekf_.reset(x_new, P_new);
-
-                alpha_course_aligned_ = true;
-
-                // update initial heading for gnss
-                gnss_initial_heading_ned_ = alpha_meas;
+                alpha_candidates_.emplace_back(alpha_meas);
             }
+
+            if (alpha_candidates_.size() == alpha_lock_required_samples_)
+            {
+                const StateVec& x_before = ekf_.state();
+                const double alpha_mean = circular_mean(alpha_candidates_);
+                const double alpha_spread_max =
+                    circular_spread_max(alpha_candidates_, alpha_mean);
+
+                if (alpha_spread_max > alpha_lock_spread_max_rad_)
+                {
+                    spdlog::warn(
+                        "Alpha lock spread too high: {:.4f} rad > {:.4f} rad. "
+                        "Clearing candidates.",
+                        alpha_spread_max, alpha_lock_spread_max_rad_);
+                    alpha_candidates_.clear();
+                }
+                else
+                {
+                    StateVec x_new = x_before;
+                    x_new(StateIndex::ALPHA) = alpha_mean;
+
+                    StateMat P_new = ekf_.covariance();
+                    P_new.row(StateIndex::ALPHA).setZero();
+                    P_new.col(StateIndex::ALPHA).setZero();
+                    P_new(StateIndex::ALPHA, StateIndex::ALPHA) = 0.05 * 0.05;
+
+                    ekf_.reset(x_new, P_new);
+
+                    alpha_course_aligned_ = true;
+
+                    // update initial heading for gnss
+                    gnss_initial_heading_ned_ = x_new(StateIndex::ALPHA);
+                    alpha_candidates_.clear();
+                }
+            }
+
             // -----ALPHA course over ground alignment-----
         }
 
@@ -557,8 +596,9 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
             {
                 vel_update_result = ekf_.update_gnss_velocity_ned(
                     v_N, v_E, corrected_yaw_rate_vehicle_frd_,
-                    gnss_offset_x_vehicle_frd, gnss_offset_y_vehicle_frd,
-                    gnss_vel_sigma, gnss_velocity_ned_confidence_level_);
+                    alpha_course_aligned_, gnss_offset_x_vehicle_frd,
+                    gnss_offset_y_vehicle_frd, gnss_vel_sigma,
+                    gnss_velocity_ned_confidence_level_);
                 gnss_vel_accepted = vel_update_result.accepted;
 
                 update_ekf_output();
@@ -593,9 +633,10 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
         if (alpha_course_aligned_)
         {
             pos_update_result = ekf_.update_gnss_position_ned(
-                gps_point_ned_2d, gnss_offset_x_vehicle_frd,
-                gnss_offset_y_vehicle_frd, gnss_initial_heading_ned_,
-                gnss_pos_sigma, gnss_pos_ned_confidence_level_);
+                gps_point_ned_2d, alpha_course_aligned_,
+                gnss_offset_x_vehicle_frd, gnss_offset_y_vehicle_frd,
+                gnss_initial_heading_ned_, gnss_pos_sigma,
+                gnss_pos_ned_confidence_level_);
 
             const bool gnss_pos_enabled = pos_update_result.attempted;
             gnss_pos_accepted = pos_update_result.accepted;
@@ -653,6 +694,56 @@ bool EkfManager::handle_single_gnss(EkfStepResult& result, GnssSample& sample,
 
     update_debug_statuses(pos_meas_id, pos_update_result);
     return true;
+}
+
+bool EkfManager::likely_straight_line(double gnss_speed_meas)
+{
+    const double ekf_speed_before = current_ekf_speed();
+
+    return gnss_speed_meas >= alpha_alignment_min_speed_ &&
+           ekf_speed_before >= alpha_alignment_min_speed_ &&
+           std::abs(corrected_yaw_rate_vehicle_frd_) <=
+               alpha_gate_yaw_rate_max_rad_s_ &&
+           std::abs(corrected_accel_y_vehicle_frd_) <=
+               alpha_gate_lateral_accel_max_m_s2_;
+}
+
+double EkfManager::circular_mean(const std::vector<double>& candidates)
+{
+    if (candidates.empty())
+    {
+        return 0.0;
+    }
+
+    double sum_sin = 0.0;
+    double sum_cos = 0.0;
+
+    for (double ang_rad : candidates)
+    {
+        sum_sin += std::sin(ang_rad);
+        sum_cos += std::cos(ang_rad);
+    }
+
+    return std::atan2(sum_sin, sum_cos);
+}
+
+double EkfManager::circular_spread_max(const std::vector<double>& candidates,
+                                       double center_angle_rad)
+{
+    if (candidates.empty())
+    {
+        return 0.0;
+    }
+
+    double max_deviation = 0.0;
+    for (const double angle_rad : candidates)
+    {
+        const double deviation =
+            std::abs(wrap_angle(angle_rad - center_angle_rad));
+        max_deviation = std::max(max_deviation, deviation);
+    }
+
+    return max_deviation;
 }
 
 double EkfManager::current_ekf_speed() const
@@ -777,13 +868,12 @@ bool EkfManager::is_stationary(const ImuSample& imu)
 
     const bool overall_stationary =
         gyro_is_stationary && accel_is_stationary && gnss1_is_stationary &&
-        gnss2_is_stationary &&
-        (!both_gnss_invalid || ekf_speed_is_stationary);
+        gnss2_is_stationary && (!both_gnss_invalid || ekf_speed_is_stationary);
 
     if (overall_stationary)
     {
-        stationary_count_ = std::min(stationary_count_ + 1,
-                                     stationary_required_samples_);
+        stationary_count_ =
+            std::min(stationary_count_ + 1, stationary_required_samples_);
     }
     else
     {
@@ -1292,6 +1382,11 @@ InitStatus EkfManager::compute_alpha_status() const
     if (alpha_course_aligned_)
     {
         return InitStatus::Done;
+    }
+
+    if (alpha_candidates_.size() > 0)
+    {
+        return InitStatus::InProgress;
     }
 
     return InitStatus::Waiting;

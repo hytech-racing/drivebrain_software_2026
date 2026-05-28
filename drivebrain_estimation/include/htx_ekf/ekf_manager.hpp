@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <mutex>
 #include <optional>
+#include <vector>
 
 #include "htx_ekf/ekf.hpp"
 #include "htx_ekf/state.hpp"
@@ -108,6 +109,12 @@ struct EkfManagerConfig
 
     // GNSS stale timeout
     double gnss_stale_timeout_s = 0.5;
+
+    // alpha locking
+    std::size_t alpha_lock_required_samples = 10;
+    double alpha_gate_yaw_rate_max_rad_s = 0.05;
+    double alpha_gate_lateral_accel_max_m_s2 = 0.5;
+    double alpha_lock_spread_max_rad = 0.1;
 };
 
 struct EkfOutput
@@ -291,6 +298,13 @@ class EkfManager
     void update_debug_snapshot();
 
     bool should_publish_debug_snapshot(uint64_t vn_time_startup_ns);
+
+    bool likely_straight_line(double gnss_speed_meas);
+
+    double circular_mean(const std::vector<double>& candidates);
+
+    double circular_spread_max(const std::vector<double>& candidates,
+                               double center_angle_rad);
 
     InitStatus compute_imu_status() const;
     InitStatus compute_gnss1_status() const;
@@ -507,6 +521,13 @@ class EkfManager
     EkfDebugSnapshot latest_debug_snapshot_;
 
     std::optional<uint64_t> last_debug_snapshot_publish_time_ns_;
-    uint64_t debug_snapshot_period_ns_ = 100000000ULL;  // 10 Hzj
+    uint64_t debug_snapshot_period_ns_ = 100000000ULL;  // 10 Hz
+
+    // alpha locking
+    std::size_t alpha_lock_required_samples_ = 10;
+    double alpha_gate_yaw_rate_max_rad_s_ = 0.05;
+    double alpha_gate_lateral_accel_max_m_s2_ = 0.5;
+    double alpha_lock_spread_max_rad_ = 0.1;
+    std::vector<double> alpha_candidates_;
 };
 }  // namespace htx_ekf

@@ -226,6 +226,19 @@ htx_ekf::EkfManagerConfig load_ekf_manager_config_from_params()
     config.gnss_stale_timeout_s = try_get_ekf_double_param(
         "htx_ekf/gnss_stale_timeout_s", config.gnss_stale_timeout_s);
 
+    config.alpha_lock_required_samples =
+        try_get_ekf_size_param("htx_ekf/alpha_lock_required_samples",
+                               config.alpha_lock_required_samples);
+    config.alpha_gate_yaw_rate_max_rad_s =
+        try_get_ekf_double_param("htx_ekf/alpha_gate_yaw_rate_max_rad_s",
+                                 config.alpha_gate_yaw_rate_max_rad_s);
+    config.alpha_gate_lateral_accel_max_m_s2 =
+        try_get_ekf_double_param("htx_ekf/alpha_gate_lateral_accel_max_m_s2",
+                                 config.alpha_gate_lateral_accel_max_m_s2);
+    config.alpha_lock_spread_max_rad =
+        try_get_ekf_double_param("htx_ekf/alpha_lock_spread_max_rad",
+                                 config.alpha_lock_spread_max_rad);
+
     return config;
 }
 
