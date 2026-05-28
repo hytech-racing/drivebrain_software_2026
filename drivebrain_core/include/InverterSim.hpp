@@ -1,48 +1,50 @@
 #pragma once
 
 #include "InveterInterface.hpp"
-#include <string>
+#include "StateTracker.hpp"
 
-#include <gz/transport13/gz/transport/Node.hh>
+#include <zmq.hpp>
+
+#include <cmath>
+#include <cstring>
+
+/* Mirrors sim::VehicleInput from vehicle_fmi.hpp — field order must stay in sync */
+struct SimCmd {
+    double torque_fl;
+    double torque_fr;
+    double torque_rl;
+    double torque_rr;
+    double wheel_steer_rad;
+};
 
 class InverterSim : public InverterInterface {
-// public:
-//   InverterSim(const std::string& topic_prefix = "/inverter") 
-//     : rpm_pub_(node_.Advertise<gz::msgs::Float_V>(topic_prefix + "/rpm")),
-//       torque_limit_pub_(node_.Advertise<gz::msgs::Float_V>(topic_prefix + "/torque_limit")),
-//       torque_pub_(node_.Advertise<gz::msgs::Float_V>(topic_prefix + "/torque")) {}
+public:
+    InverterSim()
+        : _ctx(1)
+        , _cmd_push(_ctx, zmq::socket_type::push)
+    {
+        _cmd_push.connect("ipc:///tmp/hytech_sim_cmd");
+    }
 
-//   void send_rpm(const hytech::drivebrain_speed_set_input& input) override {
-//     gz::msgs::Float_V msg;
-//     msg.add_data(input.drivebrain_set_rpm_fl());
-//     msg.add_data(input.drivebrain_set_rpm_fr());
-//     msg.add_data(input.drivebrain_set_rpm_rl());
-//     msg.add_data(input.drivebrain_set_rpm_rr());
-//     rpm_pub_.Publish(msg);
-//   }
+    /* RPM and torque-limit have no meaning in the FMU sim */
+    void send_rpm(const hytech::drivebrain_speed_set_input&) override {}
+    void send_torque_limit(const hytech::drivebrain_torque_lim_input&) override {}
 
-//   void send_torque_limit(const hytech::drivebrain_torque_lim_input& input) override {
-//     gz::msgs::Float_V msg;
-//     msg.add_data(input.drivebrain_torque_fl());
-//     msg.add_data(input.drivebrain_torque_fr());
-//     msg.add_data(input.drivebrain_torque_rl());
-//     msg.add_data(input.drivebrain_torque_rr());
-//     torque_limit_pub_.Publish(msg);
-//   }
+    void send_torque(const hytech::drivebrain_desired_torque_input& input) override {
+        auto [vs, _] = core::StateTracker::instance().get_latest_state_and_validity();
+        SimCmd cmd{
+            .torque_fl       = input.drivebrain_torque_fl(),
+            .torque_fr       = input.drivebrain_torque_fr(),
+            .torque_rl       = input.drivebrain_torque_rl(),
+            .torque_rr       = input.drivebrain_torque_rr(),
+            .wheel_steer_rad = static_cast<double>(vs.steering_angle_deg) * (M_PI / 180.0)
+        };
+        zmq::message_t msg(sizeof(cmd));
+        std::memcpy(msg.data(), &cmd, sizeof(cmd));
+        _cmd_push.send(msg, zmq::send_flags::dontwait);
+    }
 
-//   void send_torque(const hytech::drivebrain_desired_torque_input& input) override {
-//     gz::msgs::Float_V msg;
-//     msg.add_data(input.drivebrain_torque_fl());
-//     msg.add_data(input.drivebrain_torque_fr());
-//     msg.add_data(input.drivebrain_torque_rl());
-//     msg.add_data(input.drivebrain_torque_rr());
-//     torque_pub_.Publish(msg);
-//     _node->
-//   }
-
-// private:
-//   gz::transport::Node _node;
-//   gz::transport::Node::Publisher rpm_pub_;
-//   gz::transport::Node::Publisher torque_limit_pub_;
-//   gz::transport::Node::Publisher torque_pub_;
+private:
+    zmq::context_t _ctx;
+    zmq::socket_t  _cmd_push;
 };

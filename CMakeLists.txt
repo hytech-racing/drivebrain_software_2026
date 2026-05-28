@@ -76,8 +76,8 @@ target_link_libraries(drivebrain PUBLIC
     mcap::mcap
     protobuf::libprotobuf 
     boost::boost
-    cppzmq::cppzmq
     gtsam
+    cppzmq
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
