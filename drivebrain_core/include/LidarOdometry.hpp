@@ -17,7 +17,7 @@ class LidarOdometry {
 public:
     LidarOdometry() = default;
 
-    // TODO: reimplement with factor graph
+    // TODO: factor graph
     void update(const float* xyz, uint32_t n_pts, int64_t timestamp_ns) {
         (void)xyz;
         (void)n_pts;
