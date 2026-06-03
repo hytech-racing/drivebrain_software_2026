@@ -288,5 +288,15 @@ bool StateTracker::_validate_timestamps(const std::array<std::chrono::microsecon
     bool last_update_recent_enough =
         (std::chrono::duration_cast<std::chrono::microseconds>(curr_time - max_stamp)) < threshold;
 
-    return within_threshold && all_members_received && last_update_recent_enough;
+    // TEMP DEBUG
+    bool valid = within_threshold && all_members_received && last_update_recent_enough;
+    if (!valid) {
+        static int dbg = 0;
+        if (dbg++ % 250 == 0) {
+            spdlog::warn("[DBG] validate_ts: all_recv={} within_thresh={} recent={} stamps=[{},{},{},{}]",
+                all_members_received, within_threshold, last_update_recent_enough,
+                debug_copy[0].count(), debug_copy[1].count(), debug_copy[2].count(), debug_copy[3].count());
+        }
+    }
+    return valid;
 }

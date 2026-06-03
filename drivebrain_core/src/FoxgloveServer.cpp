@@ -173,7 +173,7 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
         _server->publishParameterValues(clientHandle, foxglove_params, request_id);
     };
 
-    std::vector<std::string> proto_names = {"hytech_msgs.proto", "hytech.proto"};
+    std::vector<std::string> proto_names = {"hytech_msgs.proto", "hytech.proto", "sim_msgs.proto", "foxglove/PointCloud.proto", "foxglove/FrameTransform.proto"};
     proto_names.insert(
         proto_names.end(),
         matlab_model_gen::matlab_model_gend_protos.begin(),
@@ -203,7 +203,10 @@ core::FoxgloveServer::FoxgloveServer(std::string file_name) {
     _server->setHandlers(std::move(hdlrs));
     _server->start("0.0.0.0", 5555);
 
-    params_file.close(); 
+    _send_running = true;
+    _send_thread = std::thread([this]() { _broadcast_loop(); });
+
+    params_file.close();
 }
 
 boost::signals2::connection core::FoxgloveServer::register_param_callback(std::function<void (const std::unordered_map<std::string, core::DBParam> &)> callback) {
@@ -284,10 +287,47 @@ core::DBParam core::FoxgloveServer::_get_db_param(foxglove::Parameter param) {
 }
 
 void core::FoxgloveServer::send_live_telem_msg(std::shared_ptr<google::protobuf::Message> msg) {
-    auto msg_chan_id = _name_to_id_map[msg->GetDescriptor()->name()];
-    const auto serialized_msg = msg->SerializeAsString(); 
-    const auto now = nanosecondsSinceEpoch();
-    _server->broadcastMessage(msg_chan_id, now, reinterpret_cast<const uint8_t *>(serialized_msg.data()), serialized_msg.size());
+    /* find() is a non-mutating lookup — safe for concurrent callers (main loop, eth,
+       sim state/lidar threads). operator[] would insert-on-miss and race a rehash. */
+    auto it = _name_to_id_map.find(msg->GetDescriptor()->name());
+    if (it == _name_to_id_map.end()) {
+        return;
+    }
+
+    /* Serialize on the calling thread (CPU only, never blocks), then hand off to the
+       sender thread. The actual network send happens in _broadcast_loop so a slow
+       client can never apply backpressure to a producer (e.g. the control loop). */
+    OutgoingMsg out;
+    out.channel_id = it->second;
+    out.timestamp = nanosecondsSinceEpoch();
+    out.data = msg->SerializeAsString();
+    {
+        std::unique_lock lock(_send_mutex);
+        if (_send_queue.size() >= MAX_SEND_QUEUE) {
+            _send_queue.pop_front(); // drop oldest — keep telemetry fresh under load
+        }
+        _send_queue.push_back(std::move(out));
+    }
+    _send_cv.notify_one();
+}
+
+void core::FoxgloveServer::_broadcast_loop() {
+    std::deque<OutgoingMsg> batch;
+    while (true) {
+        {
+            std::unique_lock lock(_send_mutex);
+            _send_cv.wait(lock, [this]() { return !_send_queue.empty() || !_send_running; });
+            if (!_send_running && _send_queue.empty()) {
+                break;
+            }
+            batch.swap(_send_queue); 
+        }
+        for (const auto &m : batch) {
+            _server->broadcastMessage(m.channel_id, m.timestamp,
+                                      reinterpret_cast<const uint8_t *>(m.data.data()), m.data.size());
+        }
+        batch.clear();
+    }
 }
 
 

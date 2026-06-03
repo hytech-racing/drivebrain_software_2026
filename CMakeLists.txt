@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(drivebrain_software_2026)
@@ -23,15 +23,18 @@ find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
 find_package(GTSAM REQUIRED)
-find_package(cppzmq REQUIRED)
+
+option(HOOTL "Build with HOOTL sim interface" OFF)
+if(HOOTL)
+    find_package(cppzmq REQUIRED)
+endif()
 
 #################################
 # Upstreams (non-conan)
 #################################
 FetchContent_Declare(
-    HT_Proto 
-    GIT_REPOSITORY https://github.com/hytech-racing/HT_proto.git
-    GIT_TAG f4fc651
+    HT_Proto
+    SOURCE_DIR /home/warren/cars/HT_proto
 )
 FetchContent_MakeAvailable(HT_Proto)
 
@@ -61,6 +64,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(drivebrain_simulink_models)
 
+target_include_directories(drivebrain_core PRIVATE
+    $<TARGET_PROPERTY:matlab_model,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
 #################################
 # Linking to main app
 #################################
@@ -71,19 +78,25 @@ add_executable(drivebrain
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
 
-target_link_libraries(drivebrain PUBLIC 
-    foxglove-websocket::foxglove-websocket 
+if(HOOTL)
+    target_compile_definitions(drivebrain PRIVATE HOOTL_ENABLED)
+    target_compile_definitions(drivebrain_core PRIVATE HOOTL_ENABLED)
+    target_link_libraries(drivebrain PRIVATE cppzmq)
+
+endif()
+
+target_link_libraries(drivebrain PUBLIC
+    foxglove-websocket::foxglove-websocket
     mcap::mcap
-    protobuf::libprotobuf 
+    protobuf::libprotobuf
     boost::boost
     gtsam
-    cppzmq
     hytech_msgs_cpp_lib
     hytech_can_msgs_cpp_lib
     drivebrain_core
     drivebrain_comms
     drivebrain_control
-    # matlab_model
+    matlab_model
     simulink_automation_msgs_proto_cpp
 )
 
@@ -94,12 +107,4 @@ target_link_libraries(drivebrain PUBLIC
 if(NOT CMAKE_CROSSCOMPILING)
     enable_testing()
     add_subdirectory(tests)
-
-    # find_package(gz-transport13 QUIET)
-    # find_package(gz-msgs10 QUIET)
-    # if(gz-transport13_FOUND AND gz-msgs10_FOUND)
-    #     add_subdirectory(drivebrain_sim)
-    # else()
-    #     message(WARNING "gz-transport/msgs not found, SIL bridge not built")
-    # endif()
 endif()

@@ -10,8 +10,7 @@
 /****************************************************************
  * HELPER METHODS
  ****************************************************************/
-static std::string get_logfile_name() {
-  std::string dir_path = "/home/nixos/recordings";
+static std::string get_logfile_name(const std::string& dir_path) {
   int max_file_number = 0;
   std::string largest_file_name; 
 
@@ -139,9 +138,9 @@ void core::MCAPLogger::destroy() {
 }
 
 int core::MCAPLogger::open_new_mcap() {
-    std::string mcap_name = get_logfile_name();
+    std::string mcap_name = get_logfile_name(_base_dir);
     spdlog::info("Attempting to open new MCAP file: {}", mcap_name);
-    _log_name = "/home/nixos/recordings/" + get_logfile_name(); 
+    _log_name = _base_dir + mcap_name;
 
     const auto res = _writer.open(_log_name, _options);
     if (!res.ok()) {
@@ -149,7 +148,7 @@ int core::MCAPLogger::open_new_mcap() {
         return -1;
     }
 
-    std::vector<std::string> proto_names = {"hytech_msgs.proto", "hytech.proto"};
+    std::vector<std::string> proto_names = {"hytech_msgs.proto", "hytech.proto", "sim_msgs.proto", "foxglove/PointCloud.proto", "foxglove/FrameTransform.proto"};
     proto_names.insert(
         proto_names.end(),
         matlab_model_gen::matlab_model_gend_protos.begin(),
@@ -228,7 +227,7 @@ int core::MCAPLogger::log_msg(core::MsgType message) {
 /****************************************************************
  * PRIVATE CLASS METHOD IMPLEMENTATIONS
  ****************************************************************/
-core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) : _options(options) {
+core::MCAPLogger::MCAPLogger(const std::string &base_dir, const mcap::McapWriterOptions &options, const std::string &params_file) : _options(options), _base_dir(base_dir) {
     std::fstream raw_param_file(params_file);
     nlohmann::json params_config = nlohmann::json::parse(raw_param_file);
     _initial_params = params_config; // Used in open_new_mcap to log initial params
@@ -256,8 +255,12 @@ void core::MCAPLogger::_handle_log_to_file() {
 
             msg_to_log.logTime = msg.log_time;
             msg_to_log.publishTime = msg.log_time;
-    
-            msg_to_log.channelId = _name_to_id_map[msg.message_name];
+
+            auto id_it = _name_to_id_map.find(msg.message_name);
+            if (id_it == _name_to_id_map.end()) {
+                continue; // no channel registered for this message type, skip
+            }
+            msg_to_log.channelId = id_it->second;
             auto write_res = _writer.write(msg_to_log);
         }
         write_buffer.clear();

@@ -153,6 +153,7 @@ namespace core {
             nlohmann::json _params_schema_json;
             nlohmann::json _initial_params;
             std::unordered_map<std::string, uint32_t> _name_to_id_map;
+            std::string _base_dir;
             std::string _log_name = "NONE";
             bool _logging = false;
             bool _running = true;

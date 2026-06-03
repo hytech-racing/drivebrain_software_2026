@@ -4,11 +4,9 @@
 #include "StateTracker.hpp"
 
 #include <zmq.hpp>
-
 #include <cmath>
 #include <cstring>
 
-/* Mirrors sim::VehicleInput from vehicle_fmi.hpp — field order must stay in sync */
 struct SimCmd {
     double torque_fl;
     double torque_fr;
@@ -26,17 +24,17 @@ public:
         _cmd_push.connect("ipc:///tmp/hytech_sim_cmd");
     }
 
-    /* RPM and torque-limit have no meaning in the FMU sim */
+    /* RPM and torque-limit have no meaning in fmu sim */
     void send_rpm(const hytech::drivebrain_speed_set_input&) override {}
     void send_torque_limit(const hytech::drivebrain_torque_lim_input&) override {}
 
     void send_torque(const hytech::drivebrain_desired_torque_input& input) override {
         auto [vs, _] = core::StateTracker::instance().get_latest_state_and_validity();
         SimCmd cmd{
-            .torque_fl       = input.drivebrain_torque_fl(),
-            .torque_fr       = input.drivebrain_torque_fr(),
-            .torque_rl       = input.drivebrain_torque_rl(),
-            .torque_rr       = input.drivebrain_torque_rr(),
+            .torque_fl = input.drivebrain_torque_fl(),
+            .torque_fr = input.drivebrain_torque_fr(),
+            .torque_rl = input.drivebrain_torque_rl(),
+            .torque_rr = input.drivebrain_torque_rr(),
             .wheel_steer_rad = static_cast<double>(vs.steering_angle_deg) * (M_PI / 180.0)
         };
         zmq::message_t msg(sizeof(cmd));

@@ -12,10 +12,14 @@
 #include <google/protobuf/util/time_util.h>
 #include <boost/signals2.hpp>
 #include <MCAPLogger.hpp>
-#include <string> 
+#include <string>
 #include <atomic>
 #include <cassert>
 #include <optional>
+#include <deque>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <spdlog/spdlog.h>
 
 #include "hytech_msgs.pb.h"
@@ -46,18 +50,29 @@ namespace core {
             static void destroy();
             
             /**
-             * Destructs the foxglove server instance by stopping the server. 
+             * Destructs the foxglove server instance by stopping the broadcast
+             * thread (before any producer can enqueue into a dead server) and
+             * then stopping the websocket server.
              */
             ~FoxgloveServer() {
-                _server->stop(); 
-                spdlog::info("Destructed and stopped foxglove websocket server"); 
+                {
+                    std::unique_lock lock(_send_mutex);
+                    _send_running = false;
+                }
+                _send_cv.notify_all();
+                if (_send_thread.joinable()) _send_thread.join();
+
+                _server->stop();
+                spdlog::info("Destructed and stopped foxglove websocket server");
             }
-            
+
             /**
-             * Sends a protobuf to be viewed in foxglove. 
-             * broadcastMessage() is thread safe so this method can be called
-             * by different threads without a mutex.
-             * 
+             * Queues a protobuf for broadcast to Foxglove. Non-blocking: the message
+             * is serialized and pushed onto a bounded ring buffer drained by a single
+             * dedicated sender thread. Under load the OLDEST queued message is dropped
+             * rather than blocking the caller — telemetry is lossy so the control loop
+             * and sim receiver threads never stall on a slow/congested client.
+             *
              * @param msg the message to be sent
              */
             void send_live_telem_msg(std::shared_ptr<google::protobuf::Message> msg);
@@ -98,11 +113,15 @@ namespace core {
                 }
             }
 
-        private: 
+        private:
             FoxgloveServer(std::string parameters_file);
 
             /* Registers JSON params on init. Recursively called to support multi-level JSON */
             void _init_params(const nlohmann::json &json_obj, const std::string &prefix);
+
+            /* Drains the broadcast queue and sends to clients. Runs on _send_thread —
+               the only thread that touches _server->broadcastMessage(). */
+            void _broadcast_loop();
 
             /* Singleton move semantics */
             FoxgloveServer(const FoxgloveServer&) = delete;
@@ -129,7 +148,20 @@ namespace core {
             std::unique_ptr<foxglove::ServerInterface<websocketpp::connection_hdl>> _server;
             foxglove::ServerOptions _server_options;
 
-            std::mutex _parameter_mutex; 
+            std::mutex _parameter_mutex;
+
+            /* Async broadcast pipeline — decouples producers from the network. */
+            struct OutgoingMsg {
+                uint32_t channel_id;
+                uint64_t timestamp;
+                std::string data;
+            };
+            static constexpr size_t MAX_SEND_QUEUE = 256; // drop-oldest beyond this
+            std::deque<OutgoingMsg> _send_queue;
+            std::mutex _send_mutex;
+            std::condition_variable _send_cv;
+            std::thread _send_thread;
+            bool _send_running = false;
     };
 }
 

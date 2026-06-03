@@ -25,7 +25,6 @@ class DrivebrainSoftware(ConanFile):
         self.requires("mcap/2.0.2")
         self.requires("dbcppp/3.2.6")
         self.requires("gtsam/4.2")
-        self.requires("onetbb/2021.10.0")        
         self.requires("cppzmq/4.11.0")
 
     def build_requirements(self): 
@@ -35,3 +34,6 @@ class DrivebrainSoftware(ConanFile):
 
     def configure(self):
         self.options["hwloc"].shared = True
+        self.options["gtsam"].with_TBB = False
+
+        # TODO: we will need onettb at some point for fast parallelization, but it's annoying as fuck to build rn so idgaf
