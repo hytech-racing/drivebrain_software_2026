@@ -38,8 +38,6 @@ add_library(drivebrain_core
     src/MCAPLogger.cpp
     src/StateTracker.cpp
     src/DrivebrainControllerInterface.cpp
-    src/InverterInterface.cpp
-    src/LidarInterface.cpp
 )
 
 target_include_directories(drivebrain_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
