@@ -3,6 +3,38 @@
 #include <spdlog/spdlog.h>
 #include <iostream>
 
+namespace {
+const char* ctr_manager_status_to_string(core::ControllerManagerStatus status)
+{
+    using Status = core::ControllerManagerStatus;
+    switch (status)
+    {
+        case Status::NO_ERROR:
+            return "NO_ERROR";
+        case Status::ERROR_CONTROLLER_INDEX_OUT_OF_RANGE:
+            return "ERROR_CONTROLLER_INDEX_OUT_OF_RANGE";
+        case Status::ERROR_SPEED_TOO_HIGH:
+            return "ERROR_SPEED_TOO_HIGH";
+        case Status::ERROR_TORQUE_TOO_HIGH:
+            return "ERROR_TORQUE_TOO_HIGH";
+        case Status::ERROR_DRIVER_ON_PEDAL:
+            return "ERROR_DRIVER_ON_PEDAL";
+        case Status::ERROR_CONTROLLER_NO_TORQUE_OR_SPEED_OUTPUT:
+            return "ERROR_CONTROLLER_NO_TORQUE_OR_SPEED_OUTPUT";
+        case Status::ERROR_OUTPUT_EXCEEDS_PHYS_LIMITS:
+            return "ERROR_OUTPUT_EXCEEDS_PHYS_LIMITS";
+        case Status::ERROR_REQUESTING_SAME_CTR_TYPE:
+            return "ERROR_REQUESTING_SAME_CTR_TYPE";
+        case Status::ERROR_NULLPTR_CONTROLLER:
+            return "ERROR_NULLPTR_CONTROLLER";
+        case Status::NUM_CONTROLLER_MANAGER_STATUSES:
+            return "NUM_CONTROLLER_MANAGER_STATUSES";
+        default:
+            return "UNKNOWN_CONTROLLER_MANAGER_STATUS";
+    }
+}
+}  // namespace
+
 
 /****************************************************************
  * SINGLETON METHODS
@@ -142,19 +174,31 @@ bool core::ControllerManager<ControllerType, NumControllers>::swap_active_contro
     
     if (new_controller_index >= num_controllers) {
         _current_ctr_manager_state.current_status = status_type::ERROR_CONTROLLER_INDEX_OUT_OF_RANGE;
-        spdlog::info("Switch mode failed with error code: " + std::to_string(static_cast<int>(_current_ctr_manager_state.current_status)));
+        spdlog::warn(
+            "Switch mode failed: status={} code={} requested_index={} num_controllers={}",
+            ctr_manager_status_to_string(_current_ctr_manager_state.current_status),
+            static_cast<int>(_current_ctr_manager_state.current_status),
+            new_controller_index, num_controllers);
         return false;
     } else {
         if (_current_controller_index == new_controller_index) {
             _current_ctr_manager_state.current_status = status_type::ERROR_REQUESTING_SAME_CTR_TYPE;
-            spdlog::info("Switch mode failed with error code: " + std::to_string(static_cast<int>(_current_ctr_manager_state.current_status)));
+            spdlog::warn(
+                "Switch mode failed: status={} code={} requested_index={} active_index={}",
+                ctr_manager_status_to_string(_current_ctr_manager_state.current_status),
+                static_cast<int>(_current_ctr_manager_state.current_status),
+                new_controller_index, _current_controller_index);
             return false;
         }
     }
 
     if (!_controllers[new_controller_index]) {
         _current_ctr_manager_state.current_status = status_type::ERROR_NULLPTR_CONTROLLER;
-        spdlog::error("Switch mode failed due to nullptr controller with error code: " + std::to_string(static_cast<int>(_current_ctr_manager_state.current_status)));
+        spdlog::error(
+            "Switch mode failed: status={} code={} requested_index={} is nullptr",
+            ctr_manager_status_to_string(_current_ctr_manager_state.current_status),
+            static_cast<int>(_current_ctr_manager_state.current_status),
+            new_controller_index);
         return false;
     }
 
@@ -172,7 +216,12 @@ bool core::ControllerManager<ControllerType, NumControllers>::swap_active_contro
         spdlog::info("Switched mode: {}", std::to_string(new_controller_index));
         return true;
     } else {
-        spdlog::info("Switch mode failed with error code: {}", std::to_string(static_cast<int>(_current_ctr_manager_state.current_status)));
+        spdlog::warn(
+            "Switch mode failed: status={} code={} active_index={} requested_index={} max_switch_rpm={} max_torque_req_switch={} max_accel_req_switch={} max_rpm_req_switch={}",
+            ctr_manager_status_to_string(_current_ctr_manager_state.current_status),
+            static_cast<int>(_current_ctr_manager_state.current_status),
+            _current_controller_index, new_controller_index, _max_switch_rpm,
+            _max_torque_req_switch, _max_accel_req_switch, _max_rpm_req_switch);
         return false;
     }
 

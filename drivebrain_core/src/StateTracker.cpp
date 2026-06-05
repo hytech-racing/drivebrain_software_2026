@@ -2,6 +2,7 @@
 #include <memory>
 #include <mutex>
 
+#include "Telemetry.hpp"
 #include "hytech_msgs.pb.h"
 
 using namespace core;
@@ -139,15 +140,187 @@ void StateTracker::handle_receive_protobuf_message(
                 std::unique_lock lk(_state_mutex);
                 _vehicle_state.current_body_vel_ms.x =
                     in_msg->vx_vehicle_flu_m_s();
+                // _vehicle_state.current_body_vel_ms.x = 1.50;
                 _vehicle_state.current_body_vel_ms.y =
                     in_msg->vy_vehicle_flu_m_s();
                 _vehicle_state.current_angular_rate_rads.z =
                     in_msg->yaw_rate_corrected_vehicle_flu_rad_s();
                 // omit yaw angle for now and use vectornav's, maybe in the
-                // future separate vn states and ekf states omit both accel for
-                // now and use vectornav's
+                // future separate vn states and ekf states
+
+                // omit both accel for now and use vectornav's
             }
         }
+
+        bool state_is_valid = _validate_timestamps(_timestamp_array);
+
+        core::VehicleState snapshot;
+        {
+            std::unique_lock lk(_state_mutex);
+            snapshot = _vehicle_state;
+        }
+
+        snapshot.state_is_valid = state_is_valid;
+
+        auto vehicle_data_msg = std::make_shared<hytech_msgs::VehicleData>();
+
+        vehicle_data_msg->set_is_ready_to_drive(snapshot.is_ready_to_drive);
+        vehicle_data_msg->set_state_is_valid(snapshot.state_is_valid);
+        vehicle_data_msg->set_prev_mcu_recv_millis(
+            snapshot.prev_MCU_recv_millis);
+        vehicle_data_msg->set_steering_angle_deg(snapshot.steering_angle_deg);
+        vehicle_data_msg->set_old_energy_meter_kw(snapshot.old_energy_meter_kw);
+        vehicle_data_msg->set_electrical_power_watts(
+            snapshot.old_energy_meter_kw * 1000.0f);
+        // vehicle_data_msg->set_is_using_torque_controller(
+        //     std::holds_alternative<core::TorqueControlOut>(snapshot.prev_controller_output));
+
+        // set current inputs submessage
+        auto* input_msg = vehicle_data_msg->mutable_current_inputs();
+        input_msg->set_accel_percent(snapshot.input.requested_accel);
+        input_msg->set_brake_percent(snapshot.input.requested_brake);
+
+        auto* current_body_vel_msg =
+            vehicle_data_msg->mutable_current_body_vel_ms();
+        current_body_vel_msg->set_x(snapshot.current_body_vel_ms.x);
+        current_body_vel_msg->set_y(snapshot.current_body_vel_ms.y);
+        current_body_vel_msg->set_z(snapshot.current_body_vel_ms.z);
+
+        auto* current_body_accel_msg =
+            vehicle_data_msg->mutable_current_body_accel_mss();
+        current_body_accel_msg->set_x(snapshot.current_body_accel_mss.x);
+        current_body_accel_msg->set_y(snapshot.current_body_accel_mss.y);
+        current_body_accel_msg->set_z(snapshot.current_body_accel_mss.z);
+
+        auto* current_angular_rate_msg =
+            vehicle_data_msg->mutable_current_angular_rate_rads();
+        current_angular_rate_msg->set_x(snapshot.current_angular_rate_rads.x);
+        current_angular_rate_msg->set_y(snapshot.current_angular_rate_rads.y);
+        current_angular_rate_msg->set_z(snapshot.current_angular_rate_rads.z);
+
+        constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
+        auto* current_ypr_msg = vehicle_data_msg->mutable_current_ypr_rad();
+        current_ypr_msg->set_yaw(snapshot.current_ypr_deg.yaw * kDegToRad);
+        current_ypr_msg->set_pitch(snapshot.current_ypr_deg.pitch * kDegToRad);
+        current_ypr_msg->set_roll(snapshot.current_ypr_deg.roll * kDegToRad);
+
+        auto* current_rpms_msg = vehicle_data_msg->mutable_current_rpms();
+        current_rpms_msg->set_fl(snapshot.current_rpms.FL);
+        current_rpms_msg->set_fr(snapshot.current_rpms.FR);
+        current_rpms_msg->set_rl(snapshot.current_rpms.RL);
+        current_rpms_msg->set_rr(snapshot.current_rpms.RR);
+
+        auto* tire_dyn_msg = vehicle_data_msg->mutable_tire_dynamics();
+        auto* tire_forces_msg = tire_dyn_msg->mutable_tire_forces_n();
+        tire_forces_msg->mutable_fl()->set_x(
+            snapshot.tire_dynamics.tire_forces_n.FL.x);
+        tire_forces_msg->mutable_fl()->set_y(
+            snapshot.tire_dynamics.tire_forces_n.FL.y);
+        tire_forces_msg->mutable_fl()->set_z(
+            snapshot.tire_dynamics.tire_forces_n.FL.z);
+        tire_forces_msg->mutable_fr()->set_x(
+            snapshot.tire_dynamics.tire_forces_n.FR.x);
+        tire_forces_msg->mutable_fr()->set_y(
+            snapshot.tire_dynamics.tire_forces_n.FR.y);
+        tire_forces_msg->mutable_fr()->set_z(
+            snapshot.tire_dynamics.tire_forces_n.FR.z);
+        tire_forces_msg->mutable_rl()->set_x(
+            snapshot.tire_dynamics.tire_forces_n.RL.x);
+        tire_forces_msg->mutable_rl()->set_y(
+            snapshot.tire_dynamics.tire_forces_n.RL.y);
+        tire_forces_msg->mutable_rl()->set_z(
+            snapshot.tire_dynamics.tire_forces_n.RL.z);
+        tire_forces_msg->mutable_rr()->set_x(
+            snapshot.tire_dynamics.tire_forces_n.RR.x);
+        tire_forces_msg->mutable_rr()->set_y(
+            snapshot.tire_dynamics.tire_forces_n.RR.y);
+        tire_forces_msg->mutable_rr()->set_z(
+            snapshot.tire_dynamics.tire_forces_n.RR.z);
+
+        auto* tire_moments_msg = tire_dyn_msg->mutable_tire_moments_nm();
+        tire_moments_msg->mutable_fl()->set_x(
+            snapshot.tire_dynamics.tire_moments_nm.FL.x);
+        tire_moments_msg->mutable_fl()->set_y(
+            snapshot.tire_dynamics.tire_moments_nm.FL.y);
+        tire_moments_msg->mutable_fl()->set_z(
+            snapshot.tire_dynamics.tire_moments_nm.FL.z);
+        tire_moments_msg->mutable_fr()->set_x(
+            snapshot.tire_dynamics.tire_moments_nm.FR.x);
+        tire_moments_msg->mutable_fr()->set_y(
+            snapshot.tire_dynamics.tire_moments_nm.FR.y);
+        tire_moments_msg->mutable_fr()->set_z(
+            snapshot.tire_dynamics.tire_moments_nm.FR.z);
+        tire_moments_msg->mutable_rl()->set_x(
+            snapshot.tire_dynamics.tire_moments_nm.RL.x);
+        tire_moments_msg->mutable_rl()->set_y(
+            snapshot.tire_dynamics.tire_moments_nm.RL.y);
+        tire_moments_msg->mutable_rl()->set_z(
+            snapshot.tire_dynamics.tire_moments_nm.RL.z);
+        tire_moments_msg->mutable_rr()->set_x(
+            snapshot.tire_dynamics.tire_moments_nm.RR.x);
+        tire_moments_msg->mutable_rr()->set_y(
+            snapshot.tire_dynamics.tire_moments_nm.RR.y);
+        tire_moments_msg->mutable_rr()->set_z(
+            snapshot.tire_dynamics.tire_moments_nm.RR.z);
+
+        auto* accel_sat_msg = tire_dyn_msg->mutable_accel_saturation_nm();
+        accel_sat_msg->set_fl(snapshot.tire_dynamics.accel_saturation_nm.FL);
+        accel_sat_msg->set_fr(snapshot.tire_dynamics.accel_saturation_nm.FR);
+        accel_sat_msg->set_rl(snapshot.tire_dynamics.accel_saturation_nm.RL);
+        accel_sat_msg->set_rr(snapshot.tire_dynamics.accel_saturation_nm.RR);
+
+        auto* brake_sat_msg = tire_dyn_msg->mutable_brake_saturation_nm();
+        brake_sat_msg->set_fl(snapshot.tire_dynamics.brake_saturation_nm.FL);
+        brake_sat_msg->set_fr(snapshot.tire_dynamics.brake_saturation_nm.FR);
+        brake_sat_msg->set_rl(snapshot.tire_dynamics.brake_saturation_nm.RL);
+        brake_sat_msg->set_rr(snapshot.tire_dynamics.brake_saturation_nm.RR);
+
+        vehicle_data_msg->set_v_y_lm(snapshot.tire_dynamics.v_y_lm);
+        vehicle_data_msg->set_psi_dot_lm_rad_s(
+            snapshot.tire_dynamics.psi_dot_lm_rad_s);
+
+        auto* driver_torque_msg = vehicle_data_msg->mutable_driver_torque();
+        driver_torque_msg->set_fl(snapshot.driver_torque.FL);
+        driver_torque_msg->set_fr(snapshot.driver_torque.FR);
+        driver_torque_msg->set_rl(snapshot.driver_torque.RL);
+        driver_torque_msg->set_rr(snapshot.driver_torque.RR);
+
+        auto* tv_status_msg = vehicle_data_msg->mutable_tv_status();
+        auto* tv_torque_additional_msg =
+            tv_status_msg->mutable_torque_additional_nm();
+        // tv_torque_additional_msg->set_fl(snapshot.matlab_math_temp_out.torque_vectoring_status.torque_additional_nm.FL);
+        // tv_torque_additional_msg->set_fr(snapshot.matlab_math_temp_out.torque_vectoring_status.torque_additional_nm.FR);
+        // tv_torque_additional_msg->set_rl(snapshot.matlab_math_temp_out.torque_vectoring_status.torque_additional_nm.RL);
+        // tv_torque_additional_msg->set_rr(snapshot.matlab_math_temp_out.torque_vectoring_status.torque_additional_nm.RR);
+        // tv_status_msg->set_additional_mz_moment_nm(snapshot.matlab_math_temp_out.torque_vectoring_status.additional_mz_moment_nm);
+        // tv_status_msg->set_des_psi_dot(snapshot.matlab_math_temp_out.torque_vectoring_status.des_psi_dot);
+        // tv_status_msg->set_psi_dot_err(snapshot.matlab_math_temp_out.torque_vectoring_status.psi_dot_err);
+        // tv_status_msg->set_perceived_vx(snapshot.matlab_math_temp_out.torque_vectoring_status.perceived_vx);
+        // tv_status_msg->set_integral_yaw_rate_err(snapshot.matlab_math_temp_out.torque_vectoring_status.integral_yaw_rate_err);
+        // tv_status_msg->set_perceived_psi_dot(snapshot.matlab_math_temp_out.torque_vectoring_status.perceived_psi_dot);
+        // tv_status_msg->set_psi_dot_gain(snapshot.matlab_math_temp_out.torque_vectoring_status.psi_dot_gain);
+        // tv_status_msg->set_vy_vn_gain(snapshot.matlab_math_temp_out.torque_vectoring_status.vy_vn_gain);
+        // tv_status_msg->set_perceived_vy(snapshot.matlab_math_temp_out.torque_vectoring_status.perceived_vy);
+
+        auto* power_limit_msg = vehicle_data_msg->mutable_power_limit_status();
+        power_limit_msg->set_power_limit_status(false);
+
+        auto* suspension_msg =
+            vehicle_data_msg->mutable_suspension_potentiometers_mm();
+        suspension_msg->set_fl(snapshot.suspension_potentiometers_mm.FL);
+        suspension_msg->set_fr(snapshot.suspension_potentiometers_mm.FR);
+        suspension_msg->set_rl(snapshot.suspension_potentiometers_mm.RL);
+        suspension_msg->set_rr(snapshot.suspension_potentiometers_mm.RR);
+
+        auto* current_torques_msg =
+            vehicle_data_msg->mutable_current_torques_nm();
+        current_torques_msg->set_fl(snapshot.current_torques_nm.FL);
+        current_torques_msg->set_fr(snapshot.current_torques_nm.FR);
+        current_torques_msg->set_rl(snapshot.current_torques_nm.RL);
+        current_torques_msg->set_rr(snapshot.current_torques_nm.RR);
+
+        core::log(std::static_pointer_cast<google::protobuf::Message>(
+            vehicle_data_msg));
     }
     else
     {

@@ -235,9 +235,8 @@ htx_ekf::EkfManagerConfig load_ekf_manager_config_from_params()
     config.alpha_gate_lateral_accel_max_m_s2 =
         try_get_ekf_double_param("htx_ekf/alpha_gate_lateral_accel_max_m_s2",
                                  config.alpha_gate_lateral_accel_max_m_s2);
-    config.alpha_lock_spread_max_rad =
-        try_get_ekf_double_param("htx_ekf/alpha_lock_spread_max_rad",
-                                 config.alpha_lock_spread_max_rad);
+    config.alpha_lock_spread_max_rad = try_get_ekf_double_param(
+        "htx_ekf/alpha_lock_spread_max_rad", config.alpha_lock_spread_max_rad);
 
     return config;
 }
@@ -534,6 +533,17 @@ void DrivebrainApp::_loop()
                     speedControl->torque_lim_nm.RL);
                 torque_limit_msg->set_drivebrain_torque_rr(
                     speedControl->torque_lim_nm.RR);
+
+                // spdlog::info(
+                //     "CMD_RPM fl={}, fr={}, rl={}, rr={} CMD_TLIM fl={},
+                //     fr={}, " "rl={}, rr={}", speedControl->desired_rpms.FL,
+                //     speedControl->desired_rpms.FR,
+                //     speedControl->desired_rpms.RL,
+                //     speedControl->desired_rpms.RR,
+                //     speedControl->torque_lim_nm.FL,
+                //     speedControl->torque_lim_nm.FR,
+                //     speedControl->torque_lim_nm.RL,
+                //     speedControl->torque_lim_nm.RR);
 
                 // spdlog::info("tick: send_telem_speed");
 
