@@ -82,5 +82,5 @@ private:
     zmq::socket_t     _pull;
     std::thread       _thread;
     std::atomic<bool> _running{false};
-    LidarOdometry     _odometry;
+    Odometry     _odometry;
 };

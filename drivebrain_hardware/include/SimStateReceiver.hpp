@@ -16,9 +16,7 @@ static constexpr double LIDAR_MOUNT_Z = 0.15;
 
 struct SimState {
     double ax_world, ay_world, psi_ddot_world;
-    double ax_body, ay_body, psi_ddot_body;
     double vx_world, vy_world, psi_dot_world;
-    double vx_body, vy_body, psi_dot_body;
     double x_world, y_world, psi_world;
 };
 
@@ -62,15 +60,18 @@ private:
             if (sim_dbg++ % 250 == 0)
                 spdlog::info("[DBG SimStateRecv] got state #{} x={:.2f} y={:.2f}", sim_dbg, s.x_world, s.y_world);
 
+            double c = std::cos(s.psi_world);
+            double sn = std::sin(s.psi_world);
+
             auto gt = std::make_shared<sim_msgs::SimGroundTruth>();
             gt->set_x_world(s.x_world);
             gt->set_y_world(s.y_world);
             gt->set_psi_world(s.psi_world);
-            gt->set_vx_body(s.vx_body);
-            gt->set_vy_body(s.vy_body);
-            gt->set_psi_dot_body(s.psi_dot_body);
-            gt->set_ax_body(s.ax_body);
-            gt->set_ay_body(s.ay_body);
+            gt->set_vx_body( c * s.vx_world + sn * s.vy_world);
+            gt->set_vy_body(-sn * s.vx_world +  c * s.vy_world);
+            gt->set_psi_dot_body(s.psi_dot_world);
+            gt->set_ax_body( c * s.ax_world + sn * s.ay_world);
+            gt->set_ay_body(-sn * s.ax_world +  c * s.ay_world);
 
             core::log(gt);
 
@@ -90,7 +91,7 @@ private:
             }
             core::log(tf);
 
-            // Feed synthetic low-level messages so StateTracker timestamps stay fresh
+            // Feed synthetic low-level messages so StateTracker doesn't kill itself
             auto rear_sus = std::make_shared<hytech::rear_suspension>();
             auto front_sus = std::make_shared<hytech::front_suspension>();
             auto pedals = std::make_shared<hytech::pedals_system_data>();

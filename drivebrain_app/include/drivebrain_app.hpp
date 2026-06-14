@@ -7,6 +7,7 @@
 
 #include "InveterInterface.hpp"
 #include "LidarInterface.hpp"
+#include "SteeringInterface.hpp"
 #include "SimStateReceiver.hpp"
 #include "hytech_msgs.pb.h"
 #include <EstimatorManager.hpp>
@@ -34,6 +35,7 @@ private:
   const std::string _dbc_path;
 
   std::unique_ptr<InverterInterface> _inverter;
+  std::unique_ptr<SteeringInterface> _steering;
   std::unique_ptr<LidarInterface> _lidar;
   std::unique_ptr<SimStateReceiver> _sim_state_receiver;
 

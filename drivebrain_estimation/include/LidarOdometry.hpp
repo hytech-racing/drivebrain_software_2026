@@ -13,9 +13,9 @@
 
 #include <spdlog/spdlog.h>
 
-class LidarOdometry {
+class Odometry {
 public:
-    LidarOdometry() = default;
+    Odometry() = default;
 
     // TODO: factor graph
     void update(const float* xyz, uint32_t n_pts, int64_t timestamp_ns) {

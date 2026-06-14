@@ -3,6 +3,7 @@
 #include "FoxgloveServer.hpp"
 #include "InveterInterface.hpp"
 #include "LidarInterface.hpp"
+#include "SteeringInterface.hpp"
 #include "MCAPLogger.hpp"
 #include "hytech_msgs.pb.h"
 #include "Telemetry.hpp"
@@ -75,6 +76,7 @@ void DrivebrainApp::run() {
 #endif
 
   _inverter = InverterInterface::create(_dbc_path);
+  _steering = SteeringInterface::create();
   _lidar = LidarInterface::create();
   _lidar->start();
   _sim_state_receiver = std::make_unique<SimStateReceiver>();
@@ -169,13 +171,19 @@ void DrivebrainApp::_loop() {
         _inverter->send_torque(*desired_torque_msg);
       }
 
-      // TODO remove later im too fucking lazy to care about this right now 
-      desired_torque_msg->set_drivebrain_torque_fl(0.05);
-      desired_torque_msg->set_drivebrain_torque_fr(0.05);
-      desired_torque_msg->set_drivebrain_torque_rl(0.05);
-      desired_torque_msg->set_drivebrain_torque_rr(0.05);
+      // TODO remove later im too fucking lazy to care about this right now
+      desired_torque_msg->set_drivebrain_torque_fl(0.1);
+      desired_torque_msg->set_drivebrain_torque_fr(0.1);
+      desired_torque_msg->set_drivebrain_torque_rl(015);
+      desired_torque_msg->set_drivebrain_torque_rr(0.1);
       core::log(desired_torque_msg);
       _inverter->send_torque(*desired_torque_msg);
+
+      if (_steering) {
+        hytech_msgs::DBSteeringCommand steer_cmd;
+        steer_cmd.set_desired_steering_angle_deg(-5.0f);
+        _steering->send_steering(steer_cmd);
+      }
     }
 
     std::tuple<std::string, bool> mcap_status = core::MCAPLogger::instance().status();

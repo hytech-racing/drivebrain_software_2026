@@ -12,6 +12,7 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 add_subdirectory(drivebrain_core)
 add_subdirectory(drivebrain_comms)
 add_subdirectory(drivebrain_control)
+add_subdirectory(drivebrain_estimation)
 add_subdirectory(drivebrain_hardware)
 
 #################################
@@ -100,6 +101,7 @@ target_link_libraries(drivebrain PUBLIC
     drivebrain_comms
     drivebrain_control
     drivebrain_hardware
+    drivebrain_estimation
     matlab_model
     simulink_automation_msgs_proto_cpp
 )
