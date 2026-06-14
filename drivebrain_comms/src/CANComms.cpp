@@ -161,7 +161,7 @@ std::optional<std::shared_ptr<google::protobuf::Message>> comms::CANComms::_deco
 
     const dbcppp::IMessage* dbc_msg = _messages[frame.can_id];
     if (dbc_msg == nullptr) {
-        spdlog::error("DBC message does not exist");
+        spdlog::error("DBC message {} does not exist", frame.can_id);
         return std::nullopt; 
     }
 
