@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -e
 
-profile="rpi_profile"
+profile="orin_profile"
 build_folder="build-arm"
 
 if [ "$1" = "--test" ]; then

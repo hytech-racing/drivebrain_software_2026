@@ -23,6 +23,8 @@ find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
 
+find_package(CUDAToolKit REQUIRED)
+
 #################################
 # Upstreams (non-conan)
 #################################
