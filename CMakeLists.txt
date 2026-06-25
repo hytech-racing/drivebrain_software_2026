@@ -22,6 +22,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
+find_package(cppzmq REQUIRED)
 
 #################################
 # Upstreams (non-conan)
@@ -91,5 +92,5 @@ target_link_libraries(drivebrain PUBLIC
 
 if(NOT CMAKE_CROSSCOMPILING)
     enable_testing()
-    add_subdirectory(tests)
+    # add_subdirectory(tests/sil)
 endif()

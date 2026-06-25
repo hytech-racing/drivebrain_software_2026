@@ -1,5 +1,6 @@
 #include "ETHRecvComms.hpp"
 #include "CANComms.hpp"
+#include "SimComms.hpp"
 #include <MCAPLogger.hpp>
 #include <boost/asio.hpp>
 #include <memory>
@@ -66,5 +67,8 @@ private:
 
   /* Estimator Manager */
   std::shared_ptr<estimation::EstimatorManager> _estim_manager;
+
+  /* Simulation Communication Interface */
+  std::unique_ptr<comms::SimComms> _simulation_comms;
 
 };
