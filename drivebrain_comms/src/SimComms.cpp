@@ -2,6 +2,9 @@
 
 namespace comms {
 
+/****************************************************************
+ * STATIC HELPER METHODS
+ ****************************************************************/
 static std::shared_ptr<google::protobuf::Message> parse_by_name(const std::string& type_name, const void* data, size_t len) 
 {
     std::shared_ptr<google::protobuf::Message> msg;
@@ -21,15 +24,33 @@ static std::string endpoint(uint16_t port) {
     return "ipc:///tmp/drivebrain_sim_" + std::to_string(port);
 }
 
+/****************************************************************
+ * STATIC HELPER METHODS
+ ****************************************************************/
+void SimComms::create() {
+    SimComms* expected = nullptr;
+    SimComms* local = new SimComms();
+    if(!_s_instance.compare_exchange_strong(expected, local, std::memory_order_release, std::memory_order_relaxed)) {
+        // Already initialized, delete local instance
+        delete local;
+    }
+}
 
-bool SimComms::init() {
-    if (_running.exchange(true)) return false;
+SimComms& SimComms::instance() {
+    SimComms* instance = _s_instance.load(std::memory_order_acquire);
+    assert(instance != nullptr && "SimComms has not been initialized");
+    return *instance;
+}
 
-    bool rc = _setup_recv_socket(_veh_data_recv_socket, 6767);
-    if (!rc) return false;
-    // TODO add lidar and camera sockets
-    // TODO add send sockets
+void SimComms::destroy() {
+    SimComms* instance = _s_instance.exchange(nullptr, std::memory_order_acq_rel);
+    if (instance) {
+        delete instance;
+    }
+}
 
+bool SimComms::start() {
+    // TODO setup the other sockets
     _veh_recv_thread = std::thread(&SimComms::_veh_recv_loop, this);
 
     return true;
@@ -38,7 +59,24 @@ bool SimComms::init() {
 bool SimComms::close() {
     if (!_running.exchange(false)) return false; 
     if (_veh_recv_thread.joinable()) _veh_recv_thread.join();
+    _veh_data_recv_socket.close();
     return true;
+}
+
+bool SimComms::send_message(std::shared_ptr<google::protobuf::Message> message) {
+    // TODO send over the veh data send socket
+    return true;
+}
+
+/****************************************************************
+ * PRIVATE CLASS METHOD IMPLEMENTATIONS
+ ****************************************************************/
+SimComms::SimComms() {
+    _running = true;
+    if (!_setup_recv_socket(_veh_data_recv_socket, 6767)) {
+        _running = false;
+        throw std::runtime_error("SimComms: failed to bind recv socket");
+    }
 }
 
 bool SimComms::_setup_recv_socket(zmq::socket_t& s, uint16_t port) {
@@ -71,7 +109,7 @@ void SimComms::_veh_recv_loop() {
 
         std::shared_ptr<google::protobuf::Message> msg(parse_by_name(type_name, body.data(), body.size()));
 
-        spdlog::info(type_name);
+        spdlog::info("{}", type_name);
 
         if (msg) {
             core::log(msg); 

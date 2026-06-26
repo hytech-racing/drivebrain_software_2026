@@ -4,9 +4,11 @@ set -e
 profile="rpi_profile"
 build_folder="build-arm"
 
+hootl=""
 if [ "$1" = "--test" ]; then
   profile="default"
   build_folder="build-native"
+  hootl="-DHOOTL=ON"
 fi
 
 rm -rf .venv
@@ -39,7 +41,8 @@ cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE=../cmake/conan_toolchain.cmake \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_EXE_LINKER_FLAGS="-static"
+  -DCMAKE_EXE_LINKER_FLAGS="-static" \
+  $hootl
 
 make -j
 

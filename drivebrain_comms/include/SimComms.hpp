@@ -12,19 +12,30 @@ namespace comms {
 
     class SimComms {
 
-        public: 
+        public:
 
-            SimComms() { 
-                // TODO fill in constructor 
-            }
+            bool send_message(std::shared_ptr<google::protobuf::Message> message);
 
-            void send_message(std::shared_ptr<google::protobuf::Message> message);
+            bool start();
 
             bool init(); 
 
             bool close();
 
+            static void create();
+
+            static SimComms& instance();
+
+            static void destroy();
+
         private: 
+
+            SimComms();
+
+            SimComms(const SimComms&) = delete;
+            SimComms& operator=(const SimComms&) = delete;
+
+            inline static std::atomic<SimComms*> _s_instance;
 
             bool _setup_recv_socket(zmq::socket_t& s, uint16_t port);
 

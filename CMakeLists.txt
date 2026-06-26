@@ -7,6 +7,11 @@ include(FetchContent)
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 #################################
+# Options
+#################################
+option(HOOTL "Build with HOOTL sim interface" OFF)
+
+#################################
 # Custom libs
 #################################
 add_subdirectory(drivebrain_core)
@@ -22,7 +27,10 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(mcap REQUIRED)
 find_package(dbcppp REQUIRED)
-find_package(cppzmq REQUIRED)
+
+if (HOOTL)
+    find_package(cppzmq REQUIRED)
+endif()
 
 #################################
 # Upstreams (non-conan)
@@ -69,6 +77,13 @@ add_executable(drivebrain
 )
 
 target_include_directories(drivebrain PUBLIC drivebrain_app/include)
+
+if(HOOTL)
+    target_compile_definitions(drivebrain PRIVATE HOOTL_ENABLED)
+    target_compile_definitions(drivebrain_core PRIVATE HOOTL_ENABLED)
+    target_compile_definitions(drivebrain_comms PRIVATE HOOTL_ENABLED)
+    target_link_libraries(drivebrain PRIVATE cppzmq)
+endif()
 
 target_link_libraries(drivebrain PUBLIC 
     foxglove-websocket::foxglove-websocket 

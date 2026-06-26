@@ -59,9 +59,9 @@ void DrivebrainApp::run() {
   _vcr_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCRData_s>>(_io_context, 9999);
   _vcf_eth_driver = std::make_unique<comms::ETHRecvComms<hytech_msgs::VCFData_s>>(_io_context, 4444);
 
-  _simulation_comms = std::make_unique<comms::SimComms>();
+  comms::SimComms::create(); 
 
-  _simulation_comms->init();
+  comms::SimComms::instance().start();
 
   bool vn_init_not_successful;
   _vn_driver = std::make_unique<comms::VNDriver>(_io_context, vn_init_not_successful);
@@ -72,8 +72,8 @@ void DrivebrainApp::run() {
   spdlog::info("Initialized ethernet drivers");
 
   // CAN device names are defined in the drivebrain JSON config
-  // _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
-  // _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
+  _telem_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("telem_can_device").value(), _dbc_path);
+  _aux_can = std::make_unique<comms::CANComms>(core::FoxgloveServer::instance().get_param<std::string>("aux_can_device").value(), _dbc_path);
   spdlog::info("Initialized CAN drivers");
 
   // Initialize controllers
@@ -186,13 +186,13 @@ void DrivebrainApp::_loop() {
 
             // spdlog::info("tick: send_telem_speed");
 
-            // _telem_can->send_message(desired_rpm_msg);
-            // _telem_can->send_message(torque_limit_msg);
+            _telem_can->send_message(desired_rpm_msg);
+            _telem_can->send_message(torque_limit_msg);
             
             // // spdlog::info("tick: send_aux_speed");
 
-            // _aux_can->send_message(desired_rpm_msg);
-            // _aux_can->send_message(torque_limit_msg);
+            _aux_can->send_message(desired_rpm_msg);
+            _aux_can->send_message(torque_limit_msg);
 
             // spdlog::info("tick: log_speed");
 

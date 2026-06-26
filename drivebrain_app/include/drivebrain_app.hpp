@@ -68,7 +68,4 @@ private:
   /* Estimator Manager */
   std::shared_ptr<estimation::EstimatorManager> _estim_manager;
 
-  /* Simulation Communication Interface */
-  std::unique_ptr<comms::SimComms> _simulation_comms;
-
 };
