@@ -14,13 +14,12 @@ namespace comms {
 
         public:
 
-            bool send_message(std::shared_ptr<google::protobuf::Message> message);
 
             bool start();
 
-            bool init(); 
-
             bool close();
+            
+            bool send_message(std::shared_ptr<google::protobuf::Message> message);
 
             static void create();
 

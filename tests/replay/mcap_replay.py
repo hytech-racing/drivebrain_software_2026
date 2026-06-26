@@ -2,7 +2,7 @@ from mcap.reader import make_reader
 import zmq, time
 import sys
 
-BLACKLIST = ("estimator_Outports")
+BLACKLIST = {"estimator_Outports"}
 
 ctx = zmq.Context()
 sock = ctx.socket(zmq.PUSH)
