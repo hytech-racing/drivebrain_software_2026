@@ -24,6 +24,7 @@ class DrivebrainSoftware(ConanFile):
         self.requires("spdlog/1.15.3")
         self.requires("mcap/2.0.2")
         self.requires("dbcppp/3.2.6")
+        self.requires("cppzmq/4.11.0")
         
     def build_requirements(self): 
         if not self.settings_build.get_safe("cross_build"):
